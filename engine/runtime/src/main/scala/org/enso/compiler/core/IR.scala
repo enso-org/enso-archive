@@ -267,57 +267,117 @@ object IR {
     }
     object Scope {
 
-      /** An import statement.
-        *
-        * @param name the full `.`-separated path representing the import
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        */
-      sealed case class Import(
-        name: String,
-        override val location: Option[IdentifiedLocation],
-        override val passData: MetadataStorage      = MetadataStorage(),
-        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends Scope
-          with IRKind.Primitive {
-        override protected var id: Identifier = randomId
+      sealed trait Import extends Scope {
+        override def mapExpressions(fn: Expression => Expression): Import
+      }
 
-        /** Creates a copy of `this`.
+      object Import {
+
+        /** An import statement.
           *
           * @param name the full `.`-separated path representing the import
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
           */
-        def copy(
-          name: String                         = name,
-          location: Option[IdentifiedLocation] = location,
-          passData: MetadataStorage            = passData,
-          diagnostics: DiagnosticStorage       = diagnostics,
-          id: Identifier                       = id
-        ): Import = {
-          val res = Import(name, location, passData, diagnostics)
-          res.id = id
-          res
+        sealed case class Module(
+          name: String,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Import
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param name the full `.`-separated path representing the import
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            name: String                         = name,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Module = {
+            val res = Module(name, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(
+            fn: Expression => Expression
+          ): Module = this
+
+          override def toString: String =
+            s"""
+            |IR.Module.Scope.Import.Module(
+            |name = $name,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List()
         }
 
-        override def mapExpressions(fn: Expression => Expression): Import = this
+        sealed case class Java(
+          packageName: String,
+          className: String,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Import
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
 
-        override def toString: String =
-          s"""
-          |IR.Module.Scope.Import(
-          |name = $name,
-          |location = $location,
-          |passData = ${this.showPassData},
-          |diagnostics = $diagnostics,
-          |id = $id
-          |)
-          |""".toSingleLine
+          /** Creates a copy of `this`.
+            *
+            * @param name the full `.`-separated path representing the import
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            packageName: String                  = packageName,
+            className: String                    = className,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Java = {
+            val res =
+              Java(packageName, className, location, passData, diagnostics)
+            res.id = id
+            res
+          }
 
-        override def children: List[IR] = List()
+          override def mapExpressions(fn: Expression => Expression): Java =
+            this
+
+          override def toString: String =
+            s"""
+            |IR.Module.Scope.Import.Java(
+            |packageName = $packageName,
+            |className = $className,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List()
+        }
       }
 
       /** A representation of top-level definitions. */

@@ -15,6 +15,21 @@ class JavaInteropTest extends InterpreterTest {
     eval(code) shouldEqual 3
   }
 
+  "Java interop with cool syntax" should "allow calling methods from java classes" in {
+    val code =
+      """
+        |polyglot java import org.enso.example.TestClass
+        |
+        |Number.map = f -> f this
+        |
+        |main =
+        |    obj = new TestClass [map _ *2]
+        |    obj.callFunctionAndIncrement [10]
+        |""".stripMargin
+
+    eval(code) shouldEqual 21
+  }
+
   "Java interop" should "allow instantiating objects and calling methods on them" in {
     val code =
       """

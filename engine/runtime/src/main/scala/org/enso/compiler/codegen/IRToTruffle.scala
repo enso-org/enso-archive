@@ -3,6 +3,7 @@ package org.enso.compiler.codegen
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation}
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
@@ -26,6 +27,7 @@ import org.enso.interpreter.node.callable.{
 }
 import org.enso.interpreter.node.controlflow._
 import org.enso.interpreter.node.expression.constant.{
+  ConstantObjectNode,
   ConstructorNode,
   DynamicSymbolNode,
   ErrorNode
@@ -136,9 +138,16 @@ class IRToTruffle(
     }
 
     // Register the imports in scope
-    imports.foreach(i =>
-      this.moduleScope.addImport(context.getCompiler.processImport(i.name))
-    )
+    imports.foreach {
+      case i: Import.Java =>
+        val fullName = i.packageName + "." + i.className
+        this.moduleScope.registerPolyglotSymbol(
+          i.className,
+          context.getEnvironment.lookupHostSymbol(fullName)
+        )
+      case i: Import.Module =>
+        this.moduleScope.addImport(context.getCompiler.processImport(i.name))
+    }
 
     // Register the atoms and their constructors in scope
     val atomConstructors =
@@ -542,14 +551,17 @@ class IRToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot     = scope.getFramePointer(useInfo.id)
-          val atomCons = moduleScope.getConstructor(nameStr).toScala
+          val slot       = scope.getFramePointer(useInfo.id)
+          val atomCons   = moduleScope.getConstructor(nameStr).toScala
+          val polySymbol = moduleScope.getPolyglotSymbol(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
           } else if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (atomCons.isDefined) {
             ConstructorNode.build(atomCons.get)
+          } else if (polySymbol.isDefined) {
+            ConstantObjectNode.build(polySymbol.get)
           } else {
             DynamicSymbolNode.build(
               UnresolvedSymbol.build(nameStr, moduleScope)

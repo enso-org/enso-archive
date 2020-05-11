@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.IfZeroNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
@@ -25,7 +27,10 @@ import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
@@ -50,6 +55,10 @@ public class Builtins {
   private final AtomConstructor debug;
   private final AtomConstructor syntaxError;
   private final AtomConstructor compileError;
+
+  private final RootCallTarget interopDispatchRoot;
+  private final FunctionSchema interopDispatchSchema;
+  private final Function newInstanceFunction;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -138,6 +147,20 @@ public class Builtins {
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathNode.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassNode.makeFunction(language));
+
+    interopDispatchRoot = Truffle.getRuntime().createCallTarget(DispatchNode.build(language));
+    interopDispatchSchema =
+        new FunctionSchema(
+            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
+            FunctionSchema.CallerFrameAccess.NONE,
+            new ArgumentDefinition[] {
+              new ArgumentDefinition(1, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
+              new ArgumentDefinition(2, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE),
+              new ArgumentDefinition(3, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE)
+            },
+            new boolean[] {false, true, false},
+            new CallArgumentInfo[0]);
+    newInstanceFunction = NewInstanceNode.makeFunction(language);
   }
 
   private AtomConstructor createPolyglot(Language language) {
@@ -227,5 +250,14 @@ public class Builtins {
 
   public Module getModule() {
     return module;
+  }
+
+  public Function buildPolyglotDispatch(String method) {
+    Object[] preAppliedArr = new Object[] {null, method, null};
+    return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
+  }
+
+  public Function getNewInstanceFunction() {
+    return newInstanceFunction;
   }
 }
