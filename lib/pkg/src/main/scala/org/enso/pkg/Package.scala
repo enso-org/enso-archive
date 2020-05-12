@@ -176,12 +176,12 @@ case class Package(root: File, config: Config) {
   /**
     * Lists contents of the polyglot extensions directory for a given language.
     *
-    * @param language the language to list extenstions for
+    * @param languageName the language to list extenstions for
     * @return a list of files and directories contained in the relevant
     *         polyglot extensions directory.
     */
-  def listPolyglotExtensions(language: String): List[File] = {
-    val dir = new File(polyglotDir, language)
+  def listPolyglotExtensions(languageName: String): List[File] = {
+    val dir = new File(polyglotDir, languageName)
     if (!dir.isDirectory) return List()
     Files
       .list(dir.toPath)
