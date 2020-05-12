@@ -432,6 +432,8 @@ language's syntax for monadic bind. In essence, it operates as follows:
 - The pattern on the left-hand-side is matched against (unified with) the value
   that occurs on its right-hand-side.
 - A single line must contain at most one assignment.
+- An assignment may only appear as the _root expression_ of a line of code in a
+  file.
 - An assignment returns the value `Nothing`, and does not return the value that
   is assigned to it.
 
@@ -562,7 +564,7 @@ the type ascription operator `:`. The expression `a : b` says that the value
 `a` has the type `b` attributed to it.
 
 ```ruby
-foo : (m : Monoid) -> m.self
+foo : (m : Monoid) -> m.this
 ```
 
 Type signatures in Enso have some special syntax:
@@ -653,7 +655,7 @@ briefly below.
       Nothing
       type Just (value : a)
 
-      isJust = case self of
+      isJust = case this of
           Nothing -> False
           Just _ -> True
 
@@ -673,15 +675,15 @@ briefly below.
   name: String
   ```
 
-In addition, users may write explicit `self` constraints in a type definition,
+In addition, users may write explicit `this` constraints in a type definition,
 using the standard type-ascription syntax:
 
 ```ruby
 type Semigroup
-    <> : self -> self
+    <> : this -> this
 
 type Monoid
-    self : Semigroup
+    this : Semigroup
     use Nothing
 ```
 
@@ -917,7 +919,7 @@ Methods can be defined in Enso in two ways:
       Nothing
       type Just (value : a)
 
-      isJust = case self of
+      isJust = case this of
           Nothing -> False
           Just _ -> True
   ```
@@ -943,12 +945,6 @@ Methods can be defined in Enso in two ways:
 If the user does not explicitly specify the `this` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
-
-#### This vs. Self
-Though it varies greatly between programming languages, we have chosen `this` to
-be the name of the 'current type' rather than `self`. This is a purely aesthetic
-decision, and the final clincher was the ability to write `this` and `that`, as
-opposed to `self` and `that`.
 
 ### Calling Functions and UCS
 Calling a function or method is, in general, as simple as applying it to some
@@ -1074,7 +1070,7 @@ is best demonstrated by example. Consider the following code:
 ```ruby
 list       = 1 .. 100
 randomList = each random list
-headOfList = head 10 randomList
+headOfList = take 10 randomList
 result     = sort headOfList
 ```
 
@@ -1082,9 +1078,9 @@ This could easily be refactored to the following one-liner, and then transformed
 using UCS to an expression that reads left to right:
 
 ```ruby
-result = sort (head 10 (each random (1 .. 100)))
+result = sort (take 10 (each random (1 .. 100)))
 
-result = (((1 .. 100).each random).head 10).sort
+result = (((1 .. 100).each random).take 10).sort
 ```
 
 This is still quite noisy, however, so using the whitespace-sensitive operator
@@ -1092,7 +1088,7 @@ precedence rules, combined with the fact that the operator `.` is a regular
 operator, we get the following.
 
 ```ruby
-result = 1..100 . each random . head 10 . sort
+result = 1..100 . each random . take 10 . sort
 ```
 
 #### Sections

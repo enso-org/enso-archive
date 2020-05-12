@@ -16,8 +16,9 @@ language's syntactic [specification](../specification/syntax.md).
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Naming](#naming)
-  - [Identifiers](#identifiers)
-  - [Operators](#operators)
+    - [Identifiers](#identifiers)
+    - [Operators](#operators)
+    - [This vs. Self](#this-vs-self)
 
 <!-- /MarkdownTOC -->
 
@@ -48,3 +49,9 @@ paraphrasing the [Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unoff
 
 In essence, while the use of Unicode operators can make code look pretty, a font
 with well-defined ligatures can do the same.
+
+### This vs. Self
+Though it varies greatly between programming languages, we have chosen `this` to
+be the name of the 'current type' rather than `self`. This is a purely aesthetic
+decision, and the final clincher was the ability to write `this` and `that`, as
+opposed to `self` and `that`.
