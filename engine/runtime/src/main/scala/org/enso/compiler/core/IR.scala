@@ -1893,7 +1893,9 @@ object IR {
     }
 
     /** Literal applications in Enso. */
-    sealed trait Literal extends Application
+    sealed trait Literal extends Application {
+      override def mapExpressions(fn: Expression => Expression): Literal
+    }
 
     object Literal {
 
