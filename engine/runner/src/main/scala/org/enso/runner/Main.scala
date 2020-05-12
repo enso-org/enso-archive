@@ -10,7 +10,7 @@ import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
-import org.graalvm.polyglot.{Value}
+import org.graalvm.polyglot.Value
 
 import scala.annotation.unused
 import scala.util.Try
