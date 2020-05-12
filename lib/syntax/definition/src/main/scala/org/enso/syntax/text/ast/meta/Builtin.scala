@@ -31,7 +31,7 @@ object Builtin {
       }
     }
 
-    val listLiteral = {
+    val sequenceLiteral = {
       val items = Pattern.SepList(Pattern.ExprUntilOpr(","), Opr(",")).opt
       Definition(
         Opr("[") -> items,
@@ -43,7 +43,7 @@ object Builtin {
               items.body.toStream
                 .map(_.wrapped)
                 .filterNot(AST.Ident.Opr.unapply(_).contains(","))
-            AST.ListLiteral(realItems)
+            AST.SequenceLiteral(realItems)
           case _ => internalError
         }
       }
@@ -262,7 +262,7 @@ object Builtin {
 
     Registry(
       group,
-      listLiteral,
+      sequenceLiteral,
       case_of,
       if_then,
       if_then_else,

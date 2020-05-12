@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.literal;
+package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -7,10 +7,10 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Vector;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
-public class VectorLiteralNode extends ExpressionNode {
+public class SequenceLiteralNode extends ExpressionNode {
   private @Children ExpressionNode[] items;
 
-  private VectorLiteralNode(ExpressionNode[] items) {
+  private SequenceLiteralNode(ExpressionNode[] items) {
     this.items = items;
   }
 
@@ -20,8 +20,8 @@ public class VectorLiteralNode extends ExpressionNode {
    * @param items the expressions evaluating to the vector elements.
    * @return a new instance of this node.
    */
-  public static VectorLiteralNode build(ExpressionNode[] items) {
-    return new VectorLiteralNode(items);
+  public static SequenceLiteralNode build(ExpressionNode[] items) {
+    return new SequenceLiteralNode(items);
   }
 
   /**

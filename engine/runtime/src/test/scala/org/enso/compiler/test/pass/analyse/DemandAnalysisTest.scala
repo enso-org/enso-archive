@@ -162,7 +162,7 @@ class DemandAnalysisTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Application.Vector]
+        .asInstanceOf[IR.Application.Literal.Sequence]
 
       vec.items(0) shouldBe an[IR.Application.Force]
       vec.items(1) shouldBe an[IR.Application.Force]

@@ -15,7 +15,9 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(shortName = "Polyglot.invoke", description = "Invokes a polyglot method.")
+@NodeInfo(
+    shortName = "Polyglot.invoke",
+    description = "Invokes a polyglot method by name, dispatching by the target argument.")
 public class InvokeNode extends BuiltinRootNode {
   private InvokeNode(Language language) {
     super(language);
@@ -36,7 +38,7 @@ public class InvokeNode extends BuiltinRootNode {
         new InvokeNode(language),
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "callable", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(1, "target", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(2, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(3, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }

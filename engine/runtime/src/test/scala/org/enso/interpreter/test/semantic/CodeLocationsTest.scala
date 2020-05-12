@@ -1,12 +1,9 @@
 package org.enso.interpreter.test.semantic
-import org.enso.interpreter.node.callable.ApplicationNode
+import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.controlflow.MatchNode
-import org.enso.interpreter.node.expression.literal.{
-  IntegerLiteralNode,
-  VectorLiteralNode
-}
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
 
@@ -177,12 +174,12 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists( // outer list
       7,
       30,
-      classOf[VectorLiteralNode]
+      classOf[SequenceLiteralNode]
     )
     instrumenter.assertNodeExists( // inner list
       28,
       7,
-      classOf[VectorLiteralNode]
+      classOf[SequenceLiteralNode]
     )
     instrumenter.assertNodeExists(19, 7, classOf[ApplicationNode]) // 31 * 42
     eval(code)

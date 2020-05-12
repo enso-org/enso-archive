@@ -188,11 +188,17 @@ case object LambdaShorthandToLambda extends IRPass {
         } else appResult
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
-      case vector @ IR.Application.Vector(items, _, _, _) =>
+      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
         var bindings: List[IR.Name] = List()
         val newItems = items.map {
           case blank: IR.Name.Blank =>
-            val name = freshNameSupply.newName().copy(location = blank.location)
+            val name = freshNameSupply
+              .newName()
+              .copy(
+                location    = blank.location,
+                passData    = blank.passData,
+                diagnostics = blank.diagnostics
+              )
             bindings ::= name
             name
           case it => desugarExpression(it, freshNameSupply)

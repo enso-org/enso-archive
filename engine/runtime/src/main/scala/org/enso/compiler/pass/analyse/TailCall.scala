@@ -201,7 +201,7 @@ case object TailCall extends IRPass {
             target = analyseExpression(target, isInTailPosition)
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case vector @ IR.Application.Vector(items, _, _, _) =>
+      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
         vector
           .copy(items =
             items.map(analyseExpression(_, isInTailPosition = false))

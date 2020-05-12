@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class VectorLiteralsTest extends InterpreterTest {
+class SequenceLiteralsTest extends InterpreterTest {
   "Vector literals" should "create collections, with fields accessible through the Polyglot API" in {
     val code =
       """

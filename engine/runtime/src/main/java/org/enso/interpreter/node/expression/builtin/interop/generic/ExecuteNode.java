@@ -18,7 +18,9 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(shortName = "Polyglot.execute", description = "Executes a polyglot function.")
+@NodeInfo(
+    shortName = "Polyglot.execute",
+    description = "Executes a polyglot function object (e.g. a lambda).")
 public class ExecuteNode extends BuiltinRootNode {
   private ExecuteNode(Language language) {
     super(language);

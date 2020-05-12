@@ -200,12 +200,13 @@ object AstToIr {
           potentialFallback,
           getIdentifiedLocation(inputAST)
         )
-      case AST.App.any(inputAST)         => translateApplicationLike(inputAST)
-      case AST.Mixfix.any(inputAST)      => translateApplicationLike(inputAST)
-      case AST.Literal.any(inputAST)     => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)       => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)       => translateIdent(inputAST)
-      case AST.ListLiteral.any(inputAST) => translateListLiteral(inputAST)
+      case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
+      case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
+      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
+      case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.SequenceLiteral.any(inputAST) =>
+        translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
           lines.map(translateExpression),
@@ -290,12 +291,12 @@ object AstToIr {
   }
 
   /**
-    * Translates a list literal into its [[Core]] counterpart.
+    * Translates a sequence literal into its [[Core]] counterpart.
     * @param literal the literal to translate
     * @return the [[Core]] representation of `literal`
     */
-  def translateListLiteral(literal: AST.ListLiteral): Expression = {
-    IR.Application.Vector(
+  def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
+    IR.Application.Literal.Sequence(
       literal.items.map(translateExpression),
       getIdentifiedLocation(literal)
     )

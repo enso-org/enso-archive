@@ -836,21 +836,22 @@ class DataflowAnalysisTest extends CompilerTest {
         """
           |x -> [x, y * z + 1, 123]
           |""".stripMargin.preprocessExpression.get.analyse
+          .asInstanceOf[IR.Function.Lambda]
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val vector = ir
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Application.Vector]
+      val vector = ir.body
+        .asInstanceOf[IR.Application.Literal.Sequence]
 
-      val xId = mkStaticDep(vector.items(0).getId)
-      val yId   = mkStaticDep(vector.items(1).getId)
-      val litId = mkStaticDep(vector.items(2).getId)
-      val vecId = mkStaticDep(vector.getId)
-      val lamId = mkStaticDep(ir.getId)
+      val xDefId = mkStaticDep(ir.arguments(0).getId)
+      val xUseId = mkStaticDep(vector.items(0).getId)
+      val yId    = mkStaticDep(vector.items(1).getId)
+      val litId  = mkStaticDep(vector.items(2).getId)
+      val vecId  = mkStaticDep(vector.getId)
+      val lamId  = mkStaticDep(ir.getId)
 
-      depInfo.getDirect(xId) shouldEqual Some(Set(vecId))
+      depInfo.getDirect(xDefId) shouldEqual Some(Set(xUseId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(yId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(litId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(vecId) shouldEqual Some(Set(lamId))
