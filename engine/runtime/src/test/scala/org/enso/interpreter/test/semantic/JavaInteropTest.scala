@@ -21,7 +21,7 @@ class JavaInteropTest extends InterpreterTest {
         |
         |main =
         |    instance = TestClass.new [x -> x * 2]
-        |    instance.callFunctionAndIncrement" [10]
+        |    instance.callFunctionAndIncrement [10]
         |""".stripMargin
     eval(code) shouldEqual 21
   }
