@@ -130,7 +130,7 @@ public class ModuleScope {
    * @param name the name of the symbol being looked up
    * @return the polyglot value registered for {@code name}, if exists.
    */
-  public Optional<Object> getPolyglotSymbol(String name) {
+  public Optional<Object> lookupPolyglotSymbol(String name) {
     return Optional.ofNullable(polyglotSymbols.get(name));
   }
 

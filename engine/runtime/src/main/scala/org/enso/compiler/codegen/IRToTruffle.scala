@@ -553,7 +553,7 @@ class IRToTruffle(
 
           val slot       = scope.getFramePointer(useInfo.id)
           val atomCons   = moduleScope.getConstructor(nameStr).toScala
-          val polySymbol = moduleScope.getPolyglotSymbol(nameStr).toScala
+          val polySymbol = moduleScope.lookupPolyglotSymbol(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
           } else if (slot.isDefined) {
