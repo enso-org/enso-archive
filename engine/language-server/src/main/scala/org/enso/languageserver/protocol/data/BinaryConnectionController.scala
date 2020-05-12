@@ -15,24 +15,24 @@ import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   ConnectionFailed,
   OutboundStreamEstablished
 }
-import org.enso.languageserver.protocol.data.BinaryConnectionController.InboundPayloadType
-import org.enso.languageserver.protocol.data.envelope.InboundPayload.{
+import org.enso.languageserver.protocol.binary.InboundPayload.{
   INIT_SESSION_CMD,
   READ_FILE_CMD,
   WRITE_FILE_CMD
 }
-import org.enso.languageserver.protocol.data.envelope.{
+import org.enso.languageserver.protocol.binary.{
+  EnsoUUID,
   InboundMessage,
+  InitSessionCommand,
   OutboundPayload
 }
+import org.enso.languageserver.protocol.data.BinaryConnectionController.InboundPayloadType
 import org.enso.languageserver.protocol.data.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SuccessReplyFactory,
   VisualisationUpdateFactory
 }
-import org.enso.languageserver.protocol.data.session.InitSessionCommand
-import org.enso.languageserver.protocol.data.util.EnsoUUID
 import org.enso.languageserver.requesthandler.file.{
   ReadBinaryFileHandler,
   WriteBinaryFileHandler
@@ -90,7 +90,7 @@ class BinaryConnectionController(
           payload.identifier().leastSigBits()
         )
 
-      val responsePacket = createSessionInitResponsePacket(msg.requestId())
+      val responsePacket = createSessionInitResponsePacket(msg.messageId())
       outboundChannel ! responsePacket
       val session = DataSession(clientId, self)
       context.system.eventStream.publish(DataSessionInitialized(session))

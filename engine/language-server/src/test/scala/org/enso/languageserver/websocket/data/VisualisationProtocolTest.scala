@@ -3,11 +3,11 @@ package org.enso.languageserver.websocket.data
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import org.enso.languageserver.protocol.data.envelope.{
+import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
-  OutboundPayload
+  OutboundPayload,
+  VisualisationUpdate => BinaryVisualisationUpdate
 }
-import org.enso.languageserver.protocol.data.executioncontext
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
@@ -37,8 +37,8 @@ class VisualisationProtocolTest extends BaseBinaryServerTest with Eventually {
       //then
       msg.payloadType() shouldBe OutboundPayload.VISUALISATION_UPDATE
       val payload = msg
-        .payload(new executioncontext.VisualisationUpdate)
-        .asInstanceOf[executioncontext.VisualisationUpdate]
+        .payload(new BinaryVisualisationUpdate)
+        .asInstanceOf[BinaryVisualisationUpdate]
       payload.dataAsByteBuffer().compareTo(ByteBuffer.wrap(data)) shouldBe 0
       payload
         .visualisationContext()

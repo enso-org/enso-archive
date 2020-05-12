@@ -3,8 +3,8 @@ package org.enso.languageserver.websocket.data.factory
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
+import org.enso.languageserver.protocol.binary.InitSessionCommand
 import org.enso.languageserver.protocol.data.factory.EnsoUuidFactory
-import org.enso.languageserver.protocol.data.session.InitSessionCommand
 
 object SessionInitFactory {
 

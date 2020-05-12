@@ -3,7 +3,7 @@ package org.enso.languageserver.websocket.data
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.envelope.{
+import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
   OutboundPayload

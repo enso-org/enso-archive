@@ -4,9 +4,9 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.envelope.OutboundPayload
-import org.enso.languageserver.protocol.data.filemanager.FileContentsReply
-import org.enso.languageserver.protocol.data.util.EnsoUUID
+import org.enso.languageserver.protocol.binary.OutboundPayload
+import org.enso.languageserver.protocol.binary.FileContentsReply
+import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object FileContentsReplyFactory {
 

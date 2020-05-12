@@ -1,7 +1,7 @@
 package org.enso.languageserver.websocket.data.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.filemanager.ReadFileCommand
+import org.enso.languageserver.protocol.binary.ReadFileCommand
 
 object ReadFileCommandFactory {
 

@@ -3,15 +3,15 @@ package org.enso.languageserver.protocol.data.factory
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.envelope.OutboundMessage
-import org.enso.languageserver.protocol.data.util.EnsoUUID
+import org.enso.languageserver.protocol.binary.OutboundMessage
+import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object OutboundMessageFactory {
 
   /**
     * Creates an [[OutboundMessage]] inside a [[FlatBufferBuilder]].
     *
-    * @param requestId a unique id of the request sent to the server
+    * @param messageId a unique id of the message sent from the server
     * @param maybeCorrelationId an optional correlation id used to correlate
     *                           a response with a request
     * @param payloadType a payload type indicating the type of the payload
@@ -23,14 +23,14 @@ object OutboundMessageFactory {
     *         created object
     */
   def create(
-    requestId: UUID,
+    messageId: UUID,
     maybeCorrelationId: Option[EnsoUUID],
     payloadType: Byte,
     payload: Int
   )(implicit builder: FlatBufferBuilder): Int = {
     OutboundMessage.startOutboundMessage(builder)
-    val reqId = EnsoUuidFactory.create(requestId)
-    OutboundMessage.addRequestId(builder, reqId)
+    val reqId = EnsoUuidFactory.create(messageId)
+    OutboundMessage.addMessageId(builder, reqId)
     maybeCorrelationId.foreach { uuid =>
       val corId = EnsoUuidFactory.create(uuid)
       OutboundMessage.addCorrelationId(builder, corId)

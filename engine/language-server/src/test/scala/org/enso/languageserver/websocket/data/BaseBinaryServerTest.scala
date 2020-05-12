@@ -16,7 +16,7 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{FileManager, FileSystem}
 import org.enso.languageserver.http.server.ConnectionControllerFactory
 import org.enso.languageserver.protocol.data.BinaryConnectionController
-import org.enso.languageserver.protocol.data.envelope.InboundPayload
+import org.enso.languageserver.protocol.binary.InboundPayload
 import org.enso.languageserver.websocket.data.factory.{
   InboundMessageFactory,
   SessionInitFactory

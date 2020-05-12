@@ -6,12 +6,12 @@ import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.protocol.data.envelope.{
+import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
   OutboundPayload
 }
-import org.enso.languageserver.protocol.data.filemanager.FileContentsReply
+import org.enso.languageserver.protocol.binary.FileContentsReply
 import org.enso.languageserver.websocket.data.factory.{
   InboundMessageFactory,
   PathFactory,

@@ -1,7 +1,7 @@
 package org.enso.languageserver.websocket.data.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.filemanager.WriteFileCommand
+import org.enso.languageserver.protocol.binary.WriteFileCommand
 
 object WriteFileCommandFactory {
 

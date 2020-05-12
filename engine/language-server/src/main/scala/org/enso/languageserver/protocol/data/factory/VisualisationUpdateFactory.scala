@@ -1,7 +1,10 @@
 package org.enso.languageserver.protocol.data.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.executioncontext
+import org.enso.languageserver.protocol.binary.{
+  VisualisationContext => BinaryVisualisationContext,
+  VisualisationUpdate => BinaryVisualisationUpdate
+}
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
@@ -23,9 +26,8 @@ object VisualisationUpdateFactory {
   ): Int = {
     val ctx = createVisualisationCtx(update.visualisationContext)
     val data =
-      executioncontext.VisualisationUpdate
-        .createDataVector(builder, update.data)
-    executioncontext.VisualisationUpdate.createVisualisationUpdate(
+      BinaryVisualisationUpdate.createDataVector(builder, update.data)
+    BinaryVisualisationUpdate.createVisualisationUpdate(
       builder,
       ctx,
       data
@@ -44,14 +46,20 @@ object VisualisationUpdateFactory {
   def createVisualisationCtx(ctx: VisualisationContext)(
     implicit builder: FlatBufferBuilder
   ): Int = {
-    executioncontext.VisualisationContext.startVisualisationContext(builder)
-    executioncontext.VisualisationContext
-      .addContextId(builder, EnsoUuidFactory.create(ctx.contextId))
-    executioncontext.VisualisationContext
-      .addExpressionId(builder, EnsoUuidFactory.create(ctx.expressionId))
-    executioncontext.VisualisationContext
-      .addVisualisationId(builder, EnsoUuidFactory.create(ctx.visualisationId))
-    executioncontext.VisualisationContext.endVisualisationContext(builder)
+    BinaryVisualisationContext.startVisualisationContext(builder)
+    BinaryVisualisationContext.addContextId(
+      builder,
+      EnsoUuidFactory.create(ctx.contextId)
+    )
+    BinaryVisualisationContext.addExpressionId(
+      builder,
+      EnsoUuidFactory.create(ctx.expressionId)
+    )
+    BinaryVisualisationContext.addVisualisationId(
+      builder,
+      EnsoUuidFactory.create(ctx.visualisationId)
+    )
+    BinaryVisualisationContext.endVisualisationContext(builder)
   }
 
 }

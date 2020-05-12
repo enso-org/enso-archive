@@ -2,10 +2,7 @@ package org.enso.languageserver.protocol.data
 
 import java.nio.ByteBuffer
 
-import org.enso.languageserver.protocol.data.envelope.{
-  InboundMessage,
-  InboundPayload
-}
+import org.enso.languageserver.protocol.binary.{InboundMessage, InboundPayload}
 import org.enso.languageserver.util.binary.DecodingFailure.{
   DataCorrupted,
   EmptyPayload,

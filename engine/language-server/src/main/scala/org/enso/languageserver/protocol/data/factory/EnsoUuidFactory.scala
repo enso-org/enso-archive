@@ -3,7 +3,7 @@ package org.enso.languageserver.protocol.data.factory
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.util.EnsoUUID
+import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object EnsoUuidFactory {
 
