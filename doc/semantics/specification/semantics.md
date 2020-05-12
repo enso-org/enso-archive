@@ -28,8 +28,8 @@ languages that are immutable (or make heavy use of immutability). In essence,
 Enso is a lexically-scoped language where bindings may be shadowed in child
 scopes.
 
-A scope is the span in the code within which a set of visible, available
-identifiers occurs. A nested scope may:
+A scope is the span in the code within which a set of accessible identifiers
+occurs. A nested scope may:
 
 - Reference identifiers defined in parent scopes.
 - Shadow identifiers from parent scopes with a new binding.
@@ -40,8 +40,8 @@ Identifier visibility behaves as follows:
 - Identifiers are bound by using a variable name in a pattern context (e.g. the
   LHS of a binding, a function argument, or a case expression pattern).
 - Identifiers are accessible only _after_ they have been defined.
-- Identifiers introduced into a given scope `s` are visible in `s` and all the
-  children of `s`.
+- Identifiers introduced into a given scope `s` are accessible in `s` and all
+  the children of `s`, _after_ the point at which they are introduced.
 - If a scope uses an identifier defined in an outer scope, and then later (in
   the thread of execution) shadows that variable, any usage before the shadowing
   point refers to the occurrence in the outer scope.
@@ -62,23 +62,21 @@ The following constructs introduce new scopes in Enso:
 
 - **Modules:** Each module (file) introduces a new scope.
 - **The Function Arrow `(->)`:** The arrow operator introduces a new scope that
-  is shared by both of its operands each of its operands. This is true both when
-  it is used for a lambda (value or type), and when used to denote case
-  branches.
-- **Code Blocks:** A code block introduces a new scope. This scope is a child of
-  the scope in which the block is defined, or is the scope of the function being
-  defined.
+  is shared by both of its operands. This is true both when it is used for a
+  lambda (value or type), and when used to denote case branches.
+- **Code Blocks:** A code block introduces a new scope.
 - **The Type Ascription Operator:** The type ascription operator introduces a
   new scope on its right hand side.
+
+A new scope is _always_ introduced as a child of the scope in which the
+introducing construct occurs, unless explicitly noted otherwise.
 
 There are other linguistic constructs that _behave_ as if they introduce a
 scope, but this is purely down to the fact that they desugar to one or more of
 the above constructs:
 
-- **Method Definitions:** A method definition introduces a new scope. These
-  scopes are considered to be 'top-level' and hence have no parent other than
-  the module scope. This is simply because the method definition desugars to a
-  lambda definition.
+- **Method Definitions:** A method definition introduces a new scope. This is
+  simply because the method definition desugars to a lambda definition.
 - **Function Definitions:** A function definition introduces a new scope. This
   is simply because the method definition desugars to a lambda definition.
 

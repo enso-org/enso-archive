@@ -677,13 +677,17 @@ computeCoeff = (+) >> (*5)
 doThing = (+) >> (*)
 ```
 
-In addition, we have the standard function composition operator `.`, and its
-backwards chaining cousin `<|`.
+In addition, we have the operator `.`, which acts as standard forward function
+chaining in Enso, and its backwards chaining cousin `<|`.
 
 > The actionables from this section are:
 >
 > - Examples for the more advanced use-cases of `>>` to decide if the type
 >   complexity is worth it.
+> - Otherwise, standardise on using `>>` and `<<` for standard function
+>   composition:
+>   + `<< : (b -> c) -> (a -> b) -> a -> c` - backwards composition (standard)
+>   + `>> : (a -> b) -> (b -> c) -> a -> c` - forwards composition
 
 ## Access Modificatiom
 While we don't usually like making things private in a programming language, it
