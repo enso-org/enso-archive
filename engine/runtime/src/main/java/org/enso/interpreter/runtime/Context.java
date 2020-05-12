@@ -55,10 +55,10 @@ public class Context {
 
     packages.forEach(
         pkg -> {
-          List<File> jars = ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
-          jars.forEach(
-              jar -> {
-                TruffleFile f = getTruffleFile(jar);
+          List<File> classPathItems = ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
+          classPathItems.forEach(
+              cp -> {
+                TruffleFile f = getTruffleFile(cp);
                 getEnvironment().addToHostClassPath(f);
               });
         });
