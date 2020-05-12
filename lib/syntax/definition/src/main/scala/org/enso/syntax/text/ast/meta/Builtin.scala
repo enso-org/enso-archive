@@ -31,6 +31,24 @@ object Builtin {
       }
     }
 
+    val sequenceLiteral = {
+      val items = Pattern.SepList(Pattern.ExprUntilOpr(","), Opr(",")).opt
+      Definition(
+        Opr("[") -> items,
+        Opr("]")
+      ) { ctx =>
+        ctx.body match {
+          case List(items, _) =>
+            val realItems =
+              items.body.toStream
+                .map(_.wrapped)
+                .filterNot(AST.Ident.Opr.unapply(_).contains(","))
+            AST.SequenceLiteral(realItems)
+          case _ => internalError
+        }
+      }
+    }
+
     val defn = Definition(Var("type") -> {
       val head = Pattern.Cons().or("missing name").tag("name")
       val args =
@@ -55,6 +73,30 @@ object Builtin {
               }
             case _ => internalError
           }
+      }
+    }
+
+    val polyglotJavaImport = {
+      val javaQualName =
+        Pattern.SepList(Pattern.Cons().or(Pattern.Var()), AST.Opr("."))
+      Definition(
+        Var("polyglot") -> Pattern.fromAST(Var("java")),
+        Var("import")   -> javaQualName
+      ) { ctx =>
+        ctx.body match {
+          case List(_, segments) =>
+            val nonDot: List[AST.Ident] =
+              segments.body.toStream.map(_.wrapped).collect {
+                case AST.Ident.Var.any(v)  => v: AST.Ident
+                case AST.Ident.Cons.any(c) => c: AST.Ident
+              }
+            // The optional unwrap is safe by construction - the pattern
+            // guarantees at least one Var or Cons in the match result.
+            AST.JavaImport(
+              List1.fromListOption(nonDot).getOrElse(internalError)
+            )
+          case _ => internalError
+        }
       }
     }
 
@@ -244,9 +286,11 @@ object Builtin {
 
     Registry(
       group,
+      sequenceLiteral,
       case_of,
       if_then,
       if_then_else,
+      polyglotJavaImport,
       imp,
       defn,
       arrow,

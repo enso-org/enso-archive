@@ -85,11 +85,19 @@ object AstToIr {
 
         val imports = presentBlocks.collect {
           case AST.Import.any(list) => translateImport(list)
+          case AST.JavaImport.any(imp) =>
+            val pkg = imp.path.init.map(_.name)
+            val cls = imp.path.last.name
+            Module.Scope.Import.Polyglot(
+              Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls),
+              getIdentifiedLocation(imp)
+            )
         }
 
         val nonImportBlocks = presentBlocks.filter {
-          case AST.Import.any(_) => false
-          case _                 => true
+          case AST.Import.any(_)     => false
+          case AST.JavaImport.any(_) => false
+          case _                     => true
         }
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
@@ -205,6 +213,8 @@ object AstToIr {
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.SequenceLiteral.any(inputAST) =>
+        translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
           lines.map(translateExpression),
@@ -286,6 +296,18 @@ object AstToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
+  }
+
+  /**
+    * Translates a sequence literal into its [[Core]] counterpart.
+    * @param literal the literal to translate
+    * @return the [[Core]] representation of `literal`
+    */
+  def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
+    IR.Application.Literal.Sequence(
+      literal.items.map(translateExpression),
+      getIdentifiedLocation(literal)
+    )
   }
 
   /** Translates an argument definition from [[AST]] into [[Core]].
@@ -623,8 +645,8 @@ object AstToIr {
     * @param imp the import to translate
     * @return the [[Core]] representation of `imp`
     */
-  def translateImport(imp: AST.Import): Module.Scope.Import = {
-    Module.Scope.Import(
+  def translateImport(imp: AST.Import): Module.Scope.Import.Module = {
+    Module.Scope.Import.Module(
       imp.path.map(t => t.name).reduceLeft((l, r) => l + "." + r),
       getIdentifiedLocation(imp)
     )
