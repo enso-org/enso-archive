@@ -10,7 +10,7 @@ import org.enso.languageserver.protocol.binary.{
   InboundMessage,
   ReadFileCommand
 }
-import org.enso.languageserver.protocol.data.factory.{
+import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   FileContentsReplyFactory
 }
