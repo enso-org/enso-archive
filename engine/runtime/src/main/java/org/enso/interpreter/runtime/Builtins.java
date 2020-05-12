@@ -12,6 +12,8 @@ import org.enso.interpreter.node.expression.builtin.error.PanicNode;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
+import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
@@ -148,7 +150,7 @@ public class Builtins {
     scope.registerMethod(java, "add_to_class_path", AddToClassPathNode.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassNode.makeFunction(language));
 
-    interopDispatchRoot = Truffle.getRuntime().createCallTarget(DispatchNode.build(language));
+    interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
         new FunctionSchema(
             FunctionSchema.CallStrategy.ALWAYS_DIRECT,
@@ -160,7 +162,7 @@ public class Builtins {
             },
             new boolean[] {false, true, false},
             new CallArgumentInfo[0]);
-    newInstanceFunction = NewInstanceNode.makeFunction(language);
+    newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
   }
 
   private AtomConstructor createPolyglot(Language language) {
@@ -252,12 +254,19 @@ public class Builtins {
     return module;
   }
 
-  public Function buildPolyglotDispatch(String method) {
+  /**
+   * Builds a function dispatching to a polyglot method call.
+   *
+   * @param method the name of the method this function will dispatch to.
+   * @return a function calling {@code method} with given arguments.
+   */
+  public Function buildPolyglotMethodDispatch(String method) {
     Object[] preAppliedArr = new Object[] {null, method, null};
     return new Function(interopDispatchRoot, null, interopDispatchSchema, preAppliedArr, null);
   }
 
-  public Function getNewInstanceFunction() {
+  /** @return a function executing a constructor with given arguments. */
+  public Function getConstructorDispatch() {
     return newInstanceFunction;
   }
 }

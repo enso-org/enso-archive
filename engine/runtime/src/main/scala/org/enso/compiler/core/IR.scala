@@ -267,6 +267,7 @@ object IR {
     }
     object Scope {
 
+      /** Module-level import statements. */
       sealed trait Import extends Scope {
         override def mapExpressions(fn: Expression => Expression): Import
       }
@@ -328,9 +329,29 @@ object IR {
           override def children: List[IR] = List()
         }
 
-        sealed case class Java(
-          packageName: String,
-          className: String,
+        object Polyglot {
+
+          /** Represents language-specific polyglot import data. */
+          sealed trait Entity
+
+          /** Represents an import of a Java class.
+            *
+            * @param packageName the name of the package containing the imported
+            *                    class
+            * @param className the class name
+            */
+          case class Java(packageName: String, className: String) extends Entity
+        }
+
+        /** An import of a polyglot class.
+          *
+          * @param entity language-specific information on the imported entity
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Polyglot(
+          entity: Polyglot.Entity,
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -340,7 +361,7 @@ object IR {
 
           /** Creates a copy of `this`.
             *
-            * @param name the full `.`-separated path representing the import
+            * @param entity language-specific information on the imported entity
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
@@ -348,27 +369,25 @@ object IR {
             * @return a copy of `this`, updated with the specified values
             */
           def copy(
-            packageName: String                  = packageName,
-            className: String                    = className,
+            entity: Polyglot.Entity,
             location: Option[IdentifiedLocation] = location,
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
-          ): Java = {
+          ): Polyglot = {
             val res =
-              Java(packageName, className, location, passData, diagnostics)
+              Polyglot(entity, location, passData, diagnostics)
             res.id = id
             res
           }
 
-          override def mapExpressions(fn: Expression => Expression): Java =
+          override def mapExpressions(fn: Expression => Expression): Polyglot =
             this
 
           override def toString: String =
             s"""
-            |IR.Module.Scope.Import.Java(
-            |packageName = $packageName,
-            |className = $className,
+            |IR.Module.Scope.Import.Polyglot(
+            |entity = $entity,
             |location = $location,
             |passData = ${this.showPassData},
             |diagnostics = $diagnostics,

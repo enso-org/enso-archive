@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.interop.generic;
+package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.*;
@@ -8,16 +8,14 @@ import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(shortName = "<polyglot_dispatch>", description = "Invokes a polyglot method.")
-public class DispatchNode extends BuiltinRootNode {
-  private DispatchNode(Language language) {
+@NodeInfo(shortName = "<polyglot_dispatch>", description = "Invokes a polyglot method by name.")
+public class MethodDispatchNode extends BuiltinRootNode {
+  private MethodDispatchNode(Language language) {
     super(language);
   }
 
@@ -26,13 +24,13 @@ public class DispatchNode extends BuiltinRootNode {
   private final BranchProfile err = BranchProfile.create();
 
   /**
-   * Creates a function wrapping this node.
+   * Creates an instance of this node.
    *
    * @param language the current language instance
    * @return a function wrapping this node
    */
-  public static DispatchNode build(Language language) {
-    return new DispatchNode(language);
+  public static MethodDispatchNode build(Language language) {
+    return new MethodDispatchNode(language);
   }
 
   /**

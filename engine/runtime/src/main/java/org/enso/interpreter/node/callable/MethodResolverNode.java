@@ -103,13 +103,13 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
-  @Specialization(guards = "cachedSymbol == symbol")
+  @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
   Function resolvePolyglotCached(
       UnresolvedSymbol symbol,
       Object target,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx,
-      @Cached("buildPolyglotResolver(cachedSymbol, ctx.get())") Function function) {
+      @CachedContext(Language.class) Context ctx,
+      @Cached("buildPolyglotResolver(cachedSymbol, ctx)") Function function) {
     return function;
   }
 
@@ -145,9 +145,9 @@ public abstract class MethodResolverNode extends Node {
 
   Function buildPolyglotResolver(UnresolvedSymbol symbol, Context context) {
     if (symbol.getName().equals("new")) {
-      return context.getBuiltins().getNewInstanceFunction();
+      return context.getBuiltins().getConstructorDispatch();
     } else {
-      return context.getBuiltins().buildPolyglotDispatch(symbol.getName());
+      return context.getBuiltins().buildPolyglotMethodDispatch(symbol.getName());
     }
   }
 

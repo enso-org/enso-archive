@@ -88,9 +88,8 @@ object AstToIr {
           case AST.JavaImport.any(imp) =>
             val pkg = imp.path.init.map(_.name)
             val cls = imp.path.last.name
-            Module.Scope.Import.Java(
-              pkg.mkString("."),
-              cls,
+            Module.Scope.Import.Polyglot(
+              Module.Scope.Import.Polyglot.Java(pkg.mkString("."), cls),
               getIdentifiedLocation(imp)
             )
         }

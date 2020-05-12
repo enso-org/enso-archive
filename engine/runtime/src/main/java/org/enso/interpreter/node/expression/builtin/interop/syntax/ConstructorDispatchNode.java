@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.interop.generic;
+package org.enso.interpreter.node.expression.builtin.interop.syntax;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
@@ -19,8 +19,8 @@ import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "<new>", description = "Instantiates a polyglot constructor.")
-public class NewInstanceNode extends BuiltinRootNode {
-  private NewInstanceNode(Language language) {
+public class ConstructorDispatchNode extends BuiltinRootNode {
+  private ConstructorDispatchNode(Language language) {
     super(language);
   }
 
@@ -36,7 +36,7 @@ public class NewInstanceNode extends BuiltinRootNode {
    */
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
-        new NewInstanceNode(language),
+        new ConstructorDispatchNode(language),
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
