@@ -2936,7 +2936,6 @@ object IR {
           s"Redefining atoms is not supported: ${atomName.name} is " +
           s"defined multiple times in this module."
 
-
         override def mapExpressions(fn: Expression => Expression): Atom = this
 
         override def toString: String =
