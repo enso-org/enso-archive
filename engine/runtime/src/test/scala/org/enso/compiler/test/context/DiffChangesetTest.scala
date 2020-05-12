@@ -112,7 +112,7 @@ class DiffChangesetTest extends CompilerTest {
       val code =
         """x ->
           |    y = 5
-          |    y + x""".stripMargin.lines.mkString("\n")
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
       val edit = TextEdit(Range(Position(2, 4), Position(2, 9)), "x")
 
       val ir = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
@@ -133,7 +133,7 @@ class DiffChangesetTest extends CompilerTest {
       val code =
         """x ->
           |    y = 5
-          |    y + x""".stripMargin.lines.mkString("\n")
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
       val edit = TextEdit(Range(Position(1, 8), Position(2, 7)), "42\n    y -")
 
       val ir        = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
