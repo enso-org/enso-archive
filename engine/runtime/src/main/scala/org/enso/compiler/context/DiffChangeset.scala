@@ -31,16 +31,16 @@ final class DiffChangeset {
       if (queue.isEmpty) {
         acc.result()
       } else {
-        val ir               = queue.dequeue()
-        val affectedChildren = ir.children.filter(intersect(edit, _))
-        if (affectedChildren.isEmpty) {
+        val ir                  = queue.dequeue()
+        val invalidatedChildren = ir.children.filter(intersect(edit, _))
+        if (invalidatedChildren.isEmpty) {
           if (intersect(edit, ir)) {
             go(edit, queue, acc += ir.getId)
           } else {
             go(edit, queue ++= ir.children, acc)
           }
         } else {
-          go(edit, queue ++= affectedChildren, acc)
+          go(edit, queue ++= invalidatedChildren, acc)
         }
       }
 
