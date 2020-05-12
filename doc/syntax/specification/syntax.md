@@ -120,7 +120,7 @@ Name resolution obeys the following rules:
   both conventions refer to that name already in scope.
 - Operator names behave as variable names when placed in a prefix position
   (e.g. `+ a b`).
-- Operator names behave as type names when placed in an infix position (e.g.
+- Operator names behave as referent names when placed in an infix position (e.g.
   `a + b`).
 - All literals (e.g. `1` and `"Hello"`) are treated as referent names.
 
@@ -129,7 +129,6 @@ Identifiers are introduced by:
 - Naming them in a binding (assignments and function arguments).
 - Using them in a pattern matching context (free variables).
 - Using them in a type ascription (free variables).
-
 
 ### Localised Naming
 We do, however, recognise that there is sometimes a need for unicode characters
