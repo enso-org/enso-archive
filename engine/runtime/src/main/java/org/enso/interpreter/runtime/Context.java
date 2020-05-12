@@ -55,7 +55,7 @@ public class Context {
 
     packages.forEach(
         pkg -> {
-          List<File> jars = ScalaConversions.asJava(pkg.listJavaExtensions());
+          List<File> jars = ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
           jars.forEach(
               jar -> {
                 TruffleFile f = getTruffleFile(jar);

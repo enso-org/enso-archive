@@ -114,10 +114,22 @@ public class ModuleScope {
     }
   }
 
+  /**
+   * Registers a new symbol in the polyglot namespace.
+   *
+   * @param name the name of the symbol
+   * @param sym the value being exposed
+   */
   public void registerPolyglotSymbol(String name, Object sym) {
     polyglotSymbols.put(name, sym);
   }
 
+  /**
+   * Looks up a polyglot symbol by name.
+   *
+   * @param name the name of the symbol being looked up
+   * @return the polyglot value registered for {@code name}, if exists.
+   */
   public Optional<Object> getPolyglotSymbol(String name) {
     return Optional.ofNullable(polyglotSymbols.get(name));
   }

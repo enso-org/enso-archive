@@ -173,14 +173,18 @@ case class Package(root: File, config: Config) {
     }
   }
 
-  def listJavaExtensions: List[File] = {
-    val dir = new File(polyglotDir, "java")
+  /**
+    * Lists contents of the polyglot extensions directory for a given language.
+    *
+    * @param language the language to list extenstions for
+    * @return a list of files and directories contained in the relevant
+    *         polyglot extensions directory.
+    */
+  def listPolyglotExtensions(language: String): List[File] = {
+    val dir = new File(polyglotDir, language)
     if (!dir.isDirectory) return List()
     Files
       .list(dir.toPath)
-      .filter(f =>
-        Files.isRegularFile(f) && f.getFileName.toString.endsWith(".jar")
-      )
       .map(_.toFile)
       .iterator()
       .asScala

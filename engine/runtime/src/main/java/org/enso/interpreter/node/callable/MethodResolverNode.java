@@ -104,12 +104,12 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
-  Function resolvePolyglotCached(
+  Function resolveHostCached(
       UnresolvedSymbol symbol,
       Object target,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @CachedContext(Language.class) Context ctx,
-      @Cached("buildPolyglotResolver(cachedSymbol, ctx)") Function function) {
+      @Cached("buildHostResolver(cachedSymbol, ctx)") Function function) {
     return function;
   }
 
@@ -143,7 +143,7 @@ public abstract class MethodResolverNode extends Node {
     return ensureMethodExists(symbol.resolveFor(getBuiltins().any()), "Error", symbol);
   }
 
-  Function buildPolyglotResolver(UnresolvedSymbol symbol, Context context) {
+  Function buildHostResolver(UnresolvedSymbol symbol, Context context) {
     if (symbol.getName().equals("new")) {
       return context.getBuiltins().getConstructorDispatch();
     } else {
