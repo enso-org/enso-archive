@@ -1,7 +1,8 @@
 # Enso: The Semantics
-Much like we have specifications for the [syntax](../syntax/syntax.md) and the
-[type system](../types/types.md), we also need a document where we can specify
-the executable semantics of portions of Enso.
+Much like we have specifications for the
+[syntax](../../syntax/specification/syntax.md) and the
+[type system](../../types/design/types.md), we also need a document where we can
+specify the executable semantics of portions of Enso.
 
 This is that document, and it contains descriptions of key semantic portions of
 Enso.

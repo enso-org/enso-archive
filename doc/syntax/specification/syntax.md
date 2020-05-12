@@ -543,8 +543,8 @@ This works as follows:
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
 language is the same as the term language, with no artificial separation. For
-more information on the type system, please see the [types](../types/types.md)
-design document.
+more information on the type system, please see the
+[types](../../types/design/types.md) design document.
 
 This section will refer to terminology that has not been defined in _this_
 document. This is as this document is a specification rather than a guide, and
@@ -634,8 +634,8 @@ of typesets. Their syntax is as follows:
 ### Type Definitions
 Types in Enso are defined by using the `type` reserved name. This works in a
 context-dependent manner that is discussed properly in the
-[type system design document](../types/types.md), but is summarised briefly
-below.
+[type system design document](../../types/design/types.md), but is summarised
+briefly below.
 
 - **Name and Fields:** When you provide the keyword with only a name and some
   field names, this creates an atom.

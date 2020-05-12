@@ -25,8 +25,8 @@ instrumental for ensuring that we build the right language.
 #### A Note About This Document
 In the aid of precision, this document will use syntax that _may not_ be exposed
 to users. The appearance of a piece of syntax here that is not described in the
-[syntax](../syntax/syntax.md) document makes no promises as to whether said
-syntax will be accessible.
+[syntax](../../syntax/specification/syntax.md) document makes no promises as to
+whether said syntax will be exposed in the surface language.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
