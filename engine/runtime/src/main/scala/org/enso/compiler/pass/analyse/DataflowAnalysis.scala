@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -100,10 +99,11 @@ case object DataflowAnalysis extends IRPass {
             arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
           .updateMetadata(this -->> info)
-      case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
-        info.updateAt(asStatic(body), Set(asStatic(m)))
+      case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
+        info.updateAt(asStatic(body), Set(asStatic(method)))
 
-        m.copy(
+        method
+          .copy(
             body = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
@@ -224,6 +224,7 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
       case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
         items.foreach(it => info.updateAt(asStatic(it), Set(asStatic(vector))))
+
         vector
           .copy(items = items.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
@@ -359,15 +360,15 @@ case object DataflowAnalysis extends IRPass {
         )
       case _ =>
         val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
-        val key = defIdForName match {
+        val key: DependencyInfo.Type = defIdForName match {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
-              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
-                DependencyInfo.Type.Static(id, ext)
-              case _ => DependencyInfo.Type.Dynamic(name.name, None)
+              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _, _)) =>
+                DependencyInfo.Type.Static(id)
+              case _ => DependencyInfo.Type.Dynamic(name.name)
             }
 
-          case None => DependencyInfo.Type.Dynamic(name.name, None)
+          case None => DependencyInfo.Type.Dynamic(name.name)
         }
 
         info.updateAt(key, Set(asStatic(name)))
@@ -658,52 +659,31 @@ case object DataflowAnalysis extends IRPass {
     type Symbol = String
 
     /** The type of identification for a program component. */
-    sealed trait Type {
-
-      /** The external identifier associated with the dependency type, if it
-        * exists.
-        */
-      var externalId: Option[IR.ExternalId]
-    }
+    sealed trait Type
     object Type {
 
       /** Program components identified by their unique identifier.
         *
         * @param id the unique identifier of the program component
         */
-      sealed case class Static(
-        id: DependencyInfo.Identifier,
-        override var externalId: Option[ExternalId]
-      ) extends Type
+      sealed case class Static(id: DependencyInfo.Identifier) extends Type
 
       /** Program components identified by their symbol.
         *
         * @param name the name of the symbol
         */
-      sealed case class Dynamic(
-        name: DependencyInfo.Symbol,
-        override var externalId: Option[ExternalId]
-      ) extends Type
+      sealed case class Dynamic(name: DependencyInfo.Symbol) extends Type
 
       // === Utility Functions ================================================
 
-      /** Makes a static dependency type from an IR node.
-        *
-        * @param ir the IR node to make the dependency type from
-        * @return a static dependency representing `ir`
-        */
       def asStatic(ir: IR): Static = {
-        Static(ir.getId, ir.getExternalId)
+        Static(ir.getId)
       }
 
-      /** Makes a dynamic dependency type from an IR node.
-        *
-        * @param ir the IR node to make the dependency type from
-        * @return a dynamic dependency representing `ir`
-        */
       def asDynamic(ir: IR.Name): Dynamic = {
-        Dynamic(ir.name, ir.getExternalId)
+        Dynamic(ir.name)
       }
+
     }
   }
 }
