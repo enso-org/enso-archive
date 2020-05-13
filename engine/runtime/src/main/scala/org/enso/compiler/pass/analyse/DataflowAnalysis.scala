@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -643,41 +644,51 @@ case object DataflowAnalysis extends IRPass {
     type Symbol = String
 
     /** The type of identification for a program component. */
-    sealed trait Type
+    sealed trait Type {
+
+      /** The external identifier associated with the dependency type, if it
+        * exists.
+        */
+      var externalId: Option[IR.ExternalId]
+    }
     object Type {
 
       /** Program components identified by their unique identifier.
         *
         * @param id the unique identifier of the program component
         */
-      sealed case class Static(id: DependencyInfo.Identifier) extends Type
+      sealed case class Static(
+        id: DependencyInfo.Identifier,
+        override var externalId: Option[ExternalId]
+      ) extends Type
 
       /** Program components identified by their symbol.
         *
         * @param name the name of the symbol
         */
-      sealed case class Dynamic(name: DependencyInfo.Symbol) extends Type
+      sealed case class Dynamic(
+        name: DependencyInfo.Symbol,
+        override var externalId: Option[ExternalId]
+      ) extends Type
 
-      // === Conversions ======================================================
+      // === Utility Functions ================================================
 
-      /** An implicit conversion from [[DependencyInfo.Identifier]] to a
-        * [[Static]] dependency key.
-        *
-        * @param id the identifier
-        * @return the [[Type]] wrapping `id`
-        */
-      implicit def idToStatic(id: DependencyInfo.Identifier): Static = {
-        Static(id)
+      /** Makes a static dependency type from an IR node.
+       *
+       * @param ir the IR node to make the dependency type from
+       * @return a static dependency representing `ir`
+       */
+      def mkStatic(ir: IR): Static = {
+        Static(ir.getId, ir.getExternalId)
       }
 
-      /** An implicit conversion from [[DependencyInfo.Symbol]] to a [[Dynamic]]
-        * dependency key.
-        *
-        * @param symbol the symbol
-        * @return the [[Type]] wrapping `symbol`
-        */
-      implicit def symbolToDynamic(symbol: DependencyInfo.Symbol): Dynamic = {
-        Dynamic(symbol)
+      /** Makes a dynamic dependency type from an IR node.
+       *
+       * @param ir the IR node to make the dependency type from
+       * @return a dynamic dependency representing `ir`
+       */
+      def mkDynamic(ir: IR.Name): Dynamic = {
+        Dynamic(ir.name, ir.getExternalId)
       }
     }
   }
