@@ -6,10 +6,7 @@ import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.{
-  asDynamic,
-  asStatic
-}
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 
 import scala.collection.mutable
 
@@ -693,20 +690,22 @@ case object DataflowAnalysis extends IRPass {
     }
     object Type {
 
-      // TODO [AA] Update docs here
       /** Program components identified by their unique identifier.
         *
         * @param id the unique identifier of the program component
+        * @param externalId the external identifier corresponding to the program
+        *                   component
         */
       sealed case class Static(
         id: DependencyInfo.Identifier,
         override val externalId: Option[ExternalId]
       ) extends Type
 
-      // TODO [AA] Update docs here
       /** Program components identified by their symbol.
         *
         * @param name the name of the symbol
+        * @param externalId the external identifier corresponding to the program
+        *                   component
         */
       sealed case class Dynamic(
         name: DependencyInfo.Symbol,
@@ -715,14 +714,23 @@ case object DataflowAnalysis extends IRPass {
 
       // === Utility Functions ================================================
 
+      /** Creates a static dependency on an IR node.
+        *
+        * @param ir the IR node to create a dependency on
+        * @return a static dependency on `ir`
+        */
       def asStatic(ir: IR): Static = {
         Static(ir.getId, ir.getExternalId)
       }
 
+      /** Creates a dynamic dependency on an IR node.
+        *
+        * @param ir the IR node to create a dependency on
+        * @return a dynamic dependency on `ir`
+        */
       def asDynamic(ir: IR.Name): Dynamic = {
         Dynamic(ir.name, ir.getExternalId)
       }
-
     }
   }
 }

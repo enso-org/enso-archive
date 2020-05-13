@@ -4,6 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -18,10 +19,6 @@ import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.test.Metadata
 import org.scalatest.Assertion
 
-import scala.annotation.nowarn
-
-// TODO [AA] Remove this
-@nowarn("cat=unused")
 class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -58,7 +55,20 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a static dependency on the node given by `id`
     */
   def mkStaticDep(id: DependencyInfo.Identifier): DependencyInfo.Type = {
-    DependencyInfo.Type.Static(id, None)
+    mkStaticDep(id, None)
+  }
+
+  /** Makes a statically known dependency from the provided identifiers.
+    *
+    * @param id the internal id
+    * @param extId the external id of the node
+    * @return a static dependency on the node corresponding to `ir`, `extId`
+    */
+  def mkStaticDep(
+    id: DependencyInfo.Identifier,
+    extId: Option[IR.ExternalId]
+  ): DependencyInfo.Type = {
+    DependencyInfo.Type.Static(id, extId)
   }
 
   /** Makes a symbol dependency from the included string.
@@ -67,7 +77,20 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a symbol dependency on the symbol given by `str`
     */
   def mkDynamicDep(str: String): DependencyInfo.Type = {
-    DependencyInfo.Type.Dynamic(str, None)
+    mkDynamicDep(str, None)
+  }
+
+  /** Makes a symbol dependency from the included string and identifier.
+    *
+    * @param str the string to use as a name
+    * @param extId the external identifier corresponding to `str`
+    * @return a symbol dependency on the symbol given by `str`
+    */
+  def mkDynamicDep(
+    str: String,
+    extId: Option[IR.Identifier]
+  ): DependencyInfo.Type = {
+    DependencyInfo.Type.Dynamic(str, extId)
   }
 
   /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
@@ -905,17 +928,18 @@ class DataflowAnalysisTest extends CompilerTest {
     "have the result data associated with literals" in {
       implicit val inlineContext: InlineContext = mkInlineContext
 
-      val ir = "10".preprocessExpression.get.analyse.asInstanceOf[IR.Literal]
-
-      ir.getMetadata(DataflowAnalysis) shouldBe defined
+      "10".preprocessExpression.get.analyse
+        .asInstanceOf[IR.Literal]
+        .hasDependencyInfo
     }
   }
 
   "Dataflow analysis with external identifiers" should {
     implicit val inlineContext: InlineContext = mkInlineContext
 
-    val meta = new Metadata
-    val lambdaId = meta.addItem(1, 60)
+    val meta     = new Metadata
+    val lambdaId = meta.addItem(1, 59)
+    val aBindId  = meta.addItem(10, 9)
 
     val code =
       """
@@ -926,23 +950,35 @@ class DataflowAnalysisTest extends CompilerTest {
         |""".stripMargin
 
     val codeWithMeta = meta.appendToCode(code)
-
     val ir = codeWithMeta.preprocessExpression.get.analyse
       .asInstanceOf[IR.Function.Lambda]
 
-    println(ir.location)
-    println(lambdaId)
+    val metadata  = ir.getMetadata(DataflowAnalysis).get
+    val blockBody = ir.body.asInstanceOf[IR.Expression.Block]
+
+    val aBind = blockBody.expressions.head
+      .asInstanceOf[IR.Expression.Binding]
+    val aBindExpr = aBind.expression
 
     "store a mapping between internal and external identifiers" in {
-      pending
+      metadata.get(asStatic(aBind)).get should contain(
+        asStatic(ir)
+      )
+
+      asStatic(ir).externalId shouldEqual Some(lambdaId)
     }
 
     "return the set of external identifiers for invalidation" in {
-      pending
+      metadata.getExternal(asStatic(aBindExpr)).get shouldEqual Set(
+        lambdaId,
+        aBindId
+      )
     }
 
     "return the set of direct external identifiers for invalidation" in {
-      pending
+      metadata.getExternalDirect(asStatic(aBindExpr)).get shouldEqual Set(
+        aBindId
+      )
     }
   }
 }
