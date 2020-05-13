@@ -562,6 +562,19 @@ case object DataflowAnalysis extends IRPass {
       dependencies.get(key)
     }
 
+    /** Obtains the external identifiers of the _direct_ dependents of a given
+      * node in the IR.
+      *
+      * @param key the key to get the dependents of
+      * @return the set of external identifiers for the direct dependencies of
+      *         `key`, if they exist
+      */
+    def getExternalDirect(
+      key: DependencyInfo.Type
+    ): Option[Set[IR.ExternalId]] = {
+      getDirect(key).map(_.flatMap(_.externalId))
+    }
+
     /** Safely gets the set of all dependents for the provided key.
       *
       * Please note that the result set contains not just the _direct_
@@ -591,6 +604,21 @@ case object DataflowAnalysis extends IRPass {
       } else {
         None
       }
+    }
+
+    /** Safely gets the external identifiers for all dependents of the provided
+      * key.
+      *
+      * Please note that the result set contains not just the _direct_
+      * dependents of the key,
+      *
+      * @param key the key from which to get the external identifiers of its
+      *            dependents
+      * @return the set of all external identifiers of dependents on `key`, if
+      *         it exists
+      */
+    def getExternal(key: DependencyInfo.Type): Option[Set[IR.ExternalId]] = {
+      get(key).map(_.flatMap(_.externalId))
     }
 
     /** Executes an update on the dependency information.

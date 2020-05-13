@@ -15,10 +15,13 @@ import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.interpreter.test.Metadata
 import org.scalatest.Assertion
 
 import scala.annotation.nowarn
 
+// TODO [AA] Remove this
+@nowarn("cat=unused")
 class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -909,11 +912,36 @@ class DataflowAnalysisTest extends CompilerTest {
   }
 
   "Dataflow analysis with external identifiers" should {
+    implicit val inlineContext: InlineContext = mkInlineContext
+
+    val meta = new Metadata
+    val lambdaId = meta.addItem(1, 60)
+
+    val code =
+      """
+        |x ->
+        |    a = x + 1
+        |    b = State.read
+        |    a+b . IO.println
+        |""".stripMargin
+
+    val codeWithMeta = meta.appendToCode(code)
+
+    val ir = codeWithMeta.preprocessExpression.get.analyse
+      .asInstanceOf[IR.Function.Lambda]
+
+    println(ir.location)
+    println(lambdaId)
+
     "store a mapping between internal and external identifiers" in {
       pending
     }
 
-    "correctly return the set of external identifiers for invalidation" in {
+    "return the set of external identifiers for invalidation" in {
+      pending
+    }
+
+    "return the set of direct external identifiers for invalidation" in {
       pending
     }
   }
