@@ -64,8 +64,11 @@ class ClientController[F[+_, +_]: Exec](
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
-    case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
-      val handler = context.actorOf(requestHandlers(method))
+    case r @ Request(method, id, _) if (requestHandlers.contains(method)) =>
+      val handler = context.actorOf(
+        requestHandlers(method),
+        s"request-handler-$method-$id-${UUID.randomUUID()}"
+      )
       handler.forward(r)
   }
 }

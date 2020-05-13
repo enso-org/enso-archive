@@ -90,7 +90,7 @@ class LanguageServerController(
         )
       context.watch(bootloader)
       val timeoutCancellable =
-        context.system.scheduler.scheduleOnce(30.seconds, self, BootTimeout)
+        context.system.scheduler.scheduleOnce(10.seconds, self, BootTimeout)
       context.become(booting(bootloader, timeoutCancellable))
 
     case _ => stash()
