@@ -257,7 +257,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
     value match {
-      case member @ IR.Type.Set.Member(lbl, memberType, value, _, _, _) =>
+      case member @ IR.Type.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
           case _: IR.Literal => parentScope
           case _             => parentScope.addChild()
@@ -268,9 +268,9 @@ case object AliasAnalysis extends IRPass {
           case _             => parentScope.addChild()
         }
 
-        val lblId = graph.nextId()
+        val labelId = graph.nextId()
         parentScope.add(
-          Occurrence.Def(lblId, lbl.name, lbl.getId, lbl.getExternalId)
+          Occurrence.Def(labelId, label.name, label.getId, label.getExternalId)
         )
 
         member
@@ -278,7 +278,7 @@ case object AliasAnalysis extends IRPass {
             memberType = analyseExpression(memberType, graph, memberTypeScope),
             value      = analyseExpression(value, graph, valueScope)
           )
-          .updateMetadata(this -->> Info.Occurrence(graph, lblId))
+          .updateMetadata(this -->> Info.Occurrence(graph, labelId))
       case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
@@ -930,8 +930,9 @@ case object AliasAnalysis extends IRPass {
         parentCounter: Int = 0
       ): Option[Graph.Link] = {
         val definition = occurrences.find {
-          case Graph.Occurrence.Def(_, n, _, _, _) => n == occurrence.symbol
-          case _                                   => false
+          case Graph.Occurrence.Def(_, name, _, _, _) =>
+            name == occurrence.symbol
+          case _ => false
         }
 
         definition match {
