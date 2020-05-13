@@ -158,6 +158,10 @@ jobs:
       run: sbt --no-colors runner/assembly
     - name: Build the Parser JS Bundle
       run: sbt -no-colors syntaxJS/fullOptJS
+    - name: Build the Project-Manager Uberjar
+      run: |
+        sbt --no-colors runtime/assembly
+        sbt --no-colors project-manager/assembly
 
     # Publish
     - name: Publish the Uberjar
@@ -175,6 +179,13 @@ jobs:
       with:
         name: Engine Protocol FlatBuffers Schemas
         path: ./fbs-upload/fbs-schema.zip
+    - name: Prepare the Project-Manager package
+      run: zip -r project-manager.zip ./runtime.jar ./project-manager.jar
+    - name: Publish the Project-Manager launcher
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: The Project-Manager package
+        path: ./project-manager.zip
     - name: Prepare Parser JS Bundle for Upload
       run: |
         mkdir parser-upload
