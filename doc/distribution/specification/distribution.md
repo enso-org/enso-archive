@@ -1,17 +1,18 @@
 # The Enso Distribution
-
 This document describes the behavior of the first prototype of an Enso
 distribution, together with some future expansion plans.
 
 ## Installation Home Layout
-
 *Please keep in mind that this system is just a proposal and none of it is
 implemented yet.*
 
 All of Enso's binaries, packages, etc. are installed into a directory in
 the user's home directory. For macOS and linux distributions that's `~/.enso`,
 by default.  
-TODO: What is it on Windows?  
+
+> The actionables for this section are:
+> - determine the proper installation directory on Windows.
+
 The distribution is fully portable, so it never makes any assumptions about
 actually being placed in any particular directory.
 
@@ -31,8 +32,15 @@ The directory structure is as follows:
     └── graalvm-ce-27.1.1
 ```
 
-## Single Version Distribution Layout
+## Universal Launcher Script
+The universal launcher script should be able to launch the proper version of
+Enso executable based on the version specified in the project being run,
+or use the default version if none specified.
 
+> The actionables for this section are:
+> - Determine the proper technology to implement the script (i.e. Java/Bash)
+
+## Layout of a Distribution of a Single Version of Enso
 This section describes the structure of a single version distribution. This
 system is intended to be implemented first and used e.g. for the Enso nightly
 builds / releases.
@@ -73,7 +81,6 @@ enso-1.0.0
 ```
 
 ### Package Sets
-
 A package set is a manifest containing library versions that are made available
 for importing when no `package.yaml` is available (e.g. when using the CLI to
 run a single file). The package set used is `default.yaml` and there is no way
