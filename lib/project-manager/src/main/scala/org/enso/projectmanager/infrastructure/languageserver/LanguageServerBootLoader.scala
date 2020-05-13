@@ -55,6 +55,9 @@ class LanguageServerBootLoader(
       )
       self ! Boot
       context.become(booting(jsonRpcPort, binaryPort, retry))
+
+    case GracefulStop =>
+      context.stop(self)
   }
 
   private def booting(rpcPort: Int, dataPort: Int, retryCount: Int): Receive = {
@@ -92,6 +95,9 @@ class LanguageServerBootLoader(
     case (config: LanguageServerConfig, server: LanguageServerComponent) =>
       log.info(s"Language server booted [$config].")
       context.parent ! ServerBooted(config, server)
+      context.stop(self)
+
+    case GracefulStop =>
       context.stop(self)
   }
 

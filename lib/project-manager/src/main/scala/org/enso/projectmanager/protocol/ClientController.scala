@@ -43,7 +43,7 @@ class ClientController[F[+_, +_]: Exec](
       ProjectOpen -> ProjectOpenHandler
         .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, config.bootTimeout),
+        .props[F](clientId, projectService, config.requestTimeout),
       ProjectListRecent -> ProjectListRecentHandler
         .props[F](clientId, projectService, config.requestTimeout)
     )
