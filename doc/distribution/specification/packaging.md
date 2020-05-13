@@ -55,14 +55,16 @@ specified on a per-language basis, in the polyglot documentation section.
 and version. It also includes the list of dependencies of the package.
 The following is an example of this manifest file.
 
-```
+```yaml
 license: MIT
-name: My_Package
+name: My_Package # mandatory
 version: 1.0.1
 author: "John Doe <john.doe@example.com>"
 maintainer: "Jane Doe <jane.doe@example.com>"
 enso_version: 1.2.0
 dependencies:
   - name: Base
-    version: "1.2.0" # TODO: Specify and implement 
+    version: "1.2.0" # TODO: Specify and implement version strings. Currently only supports exact matches.
+  - name: Http
+    version: "4.5.3"
 ```
