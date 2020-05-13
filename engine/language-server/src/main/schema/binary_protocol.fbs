@@ -140,3 +140,5 @@ table FileContentsReply {
   contents: [ubyte];
 
 }
+
+//todo Split up the schema once Rust bugs will be resolved.
