@@ -17,6 +17,8 @@ import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Assertion
 
+import scala.annotation.nowarn
+
 class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -44,7 +46,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a randomly generated identifier dependency
     */
   def genStaticDep: DependencyInfo.Type = {
-    DependencyInfo.Type.Static(genId)
+    DependencyInfo.Type.Static(genId, None)
   }
 
   /** Makes a statically known dependency from the included id.
@@ -53,7 +55,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a static dependency on the node given by `id`
     */
   def mkStaticDep(id: DependencyInfo.Identifier): DependencyInfo.Type = {
-    DependencyInfo.Type.Static(id)
+    DependencyInfo.Type.Static(id, None)
   }
 
   /** Makes a symbol dependency from the included string.
@@ -62,7 +64,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a symbol dependency on the symbol given by `str`
     */
   def mkDynamicDep(str: String): DependencyInfo.Type = {
-    DependencyInfo.Type.Dynamic(str)
+    DependencyInfo.Type.Dynamic(str, None)
   }
 
   /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
@@ -677,7 +679,6 @@ class DataflowAnalysisTest extends CompilerTest {
     "work properly for prefix applications" in {
       implicit val inlineContext: InlineContext = mkInlineContext
 
-      // TODO [AA] Make this test by-name application
       val ir =
         """
           |foo (a = 10) (x -> x * x)

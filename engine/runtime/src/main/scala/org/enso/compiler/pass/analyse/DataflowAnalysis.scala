@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.ExternalId
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -363,12 +364,12 @@ case object DataflowAnalysis extends IRPass {
         val key: DependencyInfo.Type = defIdForName match {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
-              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _, _)) =>
-                DependencyInfo.Type.Static(id)
-              case _ => DependencyInfo.Type.Dynamic(name.name)
+              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
+                DependencyInfo.Type.Static(id, ext)
+              case _ => DependencyInfo.Type.Dynamic(name.name, None)
             }
 
-          case None => DependencyInfo.Type.Dynamic(name.name)
+          case None => DependencyInfo.Type.Dynamic(name.name, None)
         }
 
         info.updateAt(key, Set(asStatic(name)))
@@ -659,29 +660,39 @@ case object DataflowAnalysis extends IRPass {
     type Symbol = String
 
     /** The type of identification for a program component. */
-    sealed trait Type
+    sealed trait Type {
+      val externalId: Option[IR.ExternalId]
+    }
     object Type {
 
+      // TODO [AA] Update docs here
       /** Program components identified by their unique identifier.
         *
         * @param id the unique identifier of the program component
         */
-      sealed case class Static(id: DependencyInfo.Identifier) extends Type
+      sealed case class Static(
+        id: DependencyInfo.Identifier,
+        override val externalId: Option[ExternalId]
+      ) extends Type
 
+      // TODO [AA] Update docs here
       /** Program components identified by their symbol.
         *
         * @param name the name of the symbol
         */
-      sealed case class Dynamic(name: DependencyInfo.Symbol) extends Type
+      sealed case class Dynamic(
+        name: DependencyInfo.Symbol,
+        override val externalId: Option[ExternalId]
+      ) extends Type
 
       // === Utility Functions ================================================
 
       def asStatic(ir: IR): Static = {
-        Static(ir.getId)
+        Static(ir.getId, ir.getExternalId)
       }
 
       def asDynamic(ir: IR.Name): Dynamic = {
-        Dynamic(ir.name)
+        Dynamic(ir.name, ir.getExternalId)
       }
 
     }
