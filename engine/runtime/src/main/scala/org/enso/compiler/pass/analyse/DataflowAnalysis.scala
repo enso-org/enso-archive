@@ -607,7 +607,7 @@ case object DataflowAnalysis extends IRPass {
       * key.
       *
       * Please note that the result set contains not just the _direct_
-      * dependents of the key,
+      * dependents of the key, but all dependents of the key.
       *
       * @param key the key from which to get the external identifiers of its
       *            dependents
