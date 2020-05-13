@@ -48,7 +48,7 @@ enso-1.0.0
 │   └── enso.jar  # Che main executable of the distribution. CLI entry point.
 ├── lib           # Contains all the installed libraries for this compiler version.
 │   ├── Http      # Every library directory may contain multiple versions of the same library.
-│   │   ├── 3.1.0 # Every version subdir is just an Enso package containing the library.
+│   │   ├── 3.1.0 # Every version sub-directory is just an Enso package containing the library.
 │   │   │   ├── package.yaml
 │   │   │   ├── polyglot
 │   │   │   └── src
@@ -74,7 +74,7 @@ enso-1.0.0
 
 ### Package Sets
 
-A package set is a manifest containing library versions that become available
+A package set is a manifest containing library versions that are made available
 for importing when no `package.yaml` is available (e.g. when using the CLI to
 run a single file). The package set used is `default.yaml` and there is no way
 of changing the behavior currently.

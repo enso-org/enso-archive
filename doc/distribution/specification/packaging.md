@@ -24,7 +24,7 @@ My_Package
         └── Util.enso
 ```
 
-### the `src` Directory
+### The `src` Directory
 
 The `src` directory contains all Enso sources, organized in a hierarchical
 structure. The structure of this directory dictates how particular modules
@@ -43,13 +43,13 @@ Notice that the name of the package appears as the first segment of the name.
 Note that the package name is not specified by the containing directory's name,
 but rather it is described in the `package.yaml` file.
 
-### the `polyglot` Directory
+### The `polyglot` Directory
 
 The `polyglot` directory contains per-language subdirectories containing files
 used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the polyglot documentation section.
 
-### the `package.yaml` File
+### The `package.yaml` File
 
 `package.yaml` describes certain package metadata, such as its name, authors
 and version. It also includes the list of dependencies of the package.
