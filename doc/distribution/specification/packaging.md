@@ -1,7 +1,16 @@
 # Enso Libraries Packaging
 Given the open-community model of Enso as a programming language, it is crucial
-to provide an extensible package management system.
-This document describes the behavior of the first prototype of such a system.
+to provide an extensible package management system. This document describes the
+behaviour of the first prototype of such a system.
+
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Enso Package Structure](#enso-package-structure)
+  - [The `src` Directory](#the-src-directory)
+  - [The `polyglot` Directory](#the-polyglot-directory)
+  - [The `package.yaml` File](#the-packageyaml-file)
+
+<!-- /MarkdownTOC -->
 
 ## Enso Package Structure
 The general directory structure of an Enso package is as follows:
@@ -10,10 +19,10 @@ The general directory structure of an Enso package is as follows:
 My_Package
 ├── package.yaml
 ├── polyglot
-│   ├── java
-│   │   └── jar.jar
-│   └── js
-│       └── library.js
+│   ├── java
+│   │   └── jar.jar
+│   └── js
+│       └── library.js
 └── src
     ├── Main.enso
     └── Sub_Module
@@ -38,11 +47,13 @@ import My_Package.Sub_Module.Helper
 ```
 
 Please note the following:
+
 - The name of the package appears as the first segment of the name.
 - The package name is not specified by the containing directory's name,
   but rather it is described in the `package.yaml` file.
-  
+
 The exact transformation is as follows:
+
 1. The name of the package becomes the first segment of the qualified module
    name.
 2. Any subdirectories on the path from the `src` directory to the source file
@@ -99,7 +110,8 @@ format.
 for.
 
 > The actionables for this section are:
-> - extend the compiler version to handle version bounds.
+>
+> - Extend the compiler version to handle version bounds.
 
 #### dependencies
 **Optional** *List of Library objects*: The list of all libraries this package
@@ -112,4 +124,5 @@ version: <semver string of the required library version>
 ```
 
 > The actionables for this section are:
-> - extend the library version field to handle version bounds.
+>
+> - Extend the library version field to handle version bounds.
