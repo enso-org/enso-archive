@@ -362,9 +362,8 @@ case object DataflowAnalysis extends IRPass {
         val key = defIdForName match {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
-              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _)) =>
-                // TODO [AA] Fix this!!!!!
-                DependencyInfo.Type.Static(id, None)
+              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, ext, _)) =>
+                DependencyInfo.Type.Static(id, ext)
               case _ => DependencyInfo.Type.Dynamic(name.name, None)
             }
 
