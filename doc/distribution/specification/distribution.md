@@ -37,7 +37,7 @@ This section describes the structure of a single version distribution. This
 system is intended to be implemented first and used e.g. for the Enso nightly
 builds / releases.
 
-Such a distribution can be used as a standalone version, assuming the proper
+Such a distribution can be used as a standalone version, assuming the required
 version of the JVM is installed and used.
 
 The layout of such a distribution is as follows:
