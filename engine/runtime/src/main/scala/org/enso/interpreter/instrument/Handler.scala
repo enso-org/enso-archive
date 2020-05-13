@@ -31,7 +31,6 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import scala.jdk.CollectionConverters._
 import scala.jdk.javaapi.OptionConverters
 import scala.util.control.NonFatal
-import cats.implicits._
 
 /**
   * A message endpoint implementation used by the
@@ -261,7 +260,7 @@ final class Handler {
   private def execute(
     contextId: Api.ContextId,
     stack: List[Api.StackItem]
-  ): Unit = {
+  ): Either[Throwable, Unit] = {
     def unwind(
       stack: List[Api.StackItem],
       explicitCalls: List[Api.StackItem.ExplicitCall],
@@ -276,12 +275,14 @@ final class Handler {
           unwind(xs, explicitCalls, id :: localCalls)
       }
     val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
-    explicitCalls.headOption.foreach { item =>
-      execute(
-        toExecutionItem(item),
-        localCalls,
-        onExpressionValueComputed(contextId, _)
-      )
+    Either.catchNonFatal {
+      explicitCalls.headOption.foreach { item =>
+        execute(
+          toExecutionItem(item),
+          localCalls,
+          onExpressionValueComputed(contextId, _)
+        )
+      }
     }
   }
 
@@ -329,12 +330,16 @@ final class Handler {
           val payload = item match {
             case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
               contextManager.push(contextId, item)
-              withContext(execute(contextId, List(call)))
-              Api.PushContextResponse(contextId)
+              withContext(execute(contextId, List(call))) match {
+                case Right(()) => Api.PushContextResponse(contextId)
+                case Left(_)   => Api.ExecutionFailed(contextId)
+              }
             case _: Api.StackItem.LocalCall if stack.nonEmpty =>
               contextManager.push(contextId, item)
-              withContext(execute(contextId, stack.toList))
-              Api.PushContextResponse(contextId)
+              withContext(execute(contextId, stack.toList)) match {
+                case Right(()) => Api.PushContextResponse(contextId)
+                case Left(_)   => Api.ExecutionFailed(contextId)
+              }
             case _ =>
               Api.InvalidStackItemError(contextId)
           }
@@ -352,10 +357,11 @@ final class Handler {
             case Some(_: Api.StackItem.ExplicitCall) =>
               Api.PopContextResponse(contextId)
             case Some(_: Api.StackItem.LocalCall) =>
-              withContext(
-                execute(contextId, contextManager.getStack(contextId).toList)
-              )
-              Api.PopContextResponse(contextId)
+              val stack = contextManager.getStack(contextId)
+              withContext(execute(contextId, stack.toList)) match {
+                case Right(()) => Api.PopContextResponse(contextId)
+                case Left(_)   => Api.ExecutionFailed(contextId)
+              }
             case None =>
               Api.EmptyStackError(contextId)
           }
@@ -384,8 +390,10 @@ final class Handler {
           val payload = if (stack.isEmpty) {
             Api.EmptyStackError(contextId)
           } else {
-            withContext(execute(contextId, stack.toList))
-            Api.RecomputeContextResponse(contextId)
+            withContext(execute(contextId, stack.toList)) match {
+              case Right(()) => Api.RecomputeContextResponse(contextId)
+              case Left(_)   => Api.ExecutionFailed(contextId)
+            }
           }
           endpoint.sendToClient(Api.Response(requestId, payload))
         } else {

@@ -120,6 +120,10 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecutionFailed],
+        name  = "executionFailed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.VisualisationExpressionFailed],
         name  = "visualisationExpressionFailed"
       ),
@@ -454,6 +458,13 @@ object Runtime {
       * @param moduleName the module name
       */
     case class ModuleNotFound(moduleName: String) extends Error
+
+    /**
+      * Signals that executon of a context failed.
+      *
+      * @param contextId the context's id.
+      */
+    case class ExecutionFailed(contextId: ContextId) extends Error
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or
