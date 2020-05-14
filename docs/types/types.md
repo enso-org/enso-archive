@@ -1,32 +1,3 @@
-# Enso: The Type System
-On the spectrum of programming type systems ranging from dynamically typed to
-statically typed, one likes to think that there is a happy medium between the
-two. A language that _feels_ dynamic, with high levels of type inference, but
-lets the users add more type information as they want more safety and
-compile-time checking.
-
-Enso aims to be that language, providing a statically-typed language with a type
-system that makes it feel dynamic. It will infer sensible types in many cases,
-but as users move from exploratory pipelines to production systems, they are
-able to add more and more type information to their programs, proving more and
-more properties using the type system. This is based on a novel type-inference
-engine, and a fusion of nominal and structural typing, combined with dependent
-types.
-
-All in all, the type system should stay out of the users' ways unless they make
-a mistake, but give more experienced users the tools to build the programs that
-they require.
-
-This document contains discussion and designs for the type-system's behaviour,
-as well as formal specifications where necessary. It discusses the impact of
-many syntactic language features upon inference and type checking, and is
-instrumental for ensuring that we build the right language.
-
-#### A Note About This Document
-In the aid of precision, this document will use syntax that _may not_ be exposed
-to users. The appearance of a piece of syntax here that is not described in the
-[syntax](../../syntax/specification/syntax.md) document makes no promises as to
-whether said syntax will be exposed in the surface language.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -999,6 +970,7 @@ computations.
 >
 > - Greatly expand on the reasoning and theory behind the two exception models.
 > - Explain why broken values serve the GUI well.
+> - Explain how this can all be typed.
 
 ### Async Exceptions
 

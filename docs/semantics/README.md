@@ -12,6 +12,11 @@ Enso language.
 This specification is broken down into the following sections:
 
 - [**Bindings:**](./bindings.md) The semantics of Enso's binding expressions.
+- [**Diagnostics:**](./diagnostics.md) The semantics of Enso's executable
+  compiler diagnostics.
+- [**Dispatch:**](./dispatch.md) The semantics of Enso's dispatch system.
+- [**Errors:**](./errors.md) The semantics of Enso's various error systems.
 - [**Evaluation:**](./evaluation.md) Enso's evaluation semantics, including 
   those of suspended computations.
+- [**Modules:**](./modules.md) The semantics of Enso's modules.
 - [**Scoping:**](./scoping.md) Enso's scoping and identifier resolution rules.
