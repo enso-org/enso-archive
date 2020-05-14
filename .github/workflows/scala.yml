@@ -162,15 +162,15 @@ jobs:
         mkdir $CLI_DIR
         mv enso.jar $CLI_DIR
         echo "::set-env name=CLI_DIR::"$CLI_DIR
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
+#    - name: Build the Parser JS Bundle
+#      run: sbt -no-colors syntaxJS/fullOptJS
 
     # Publish
     - name: Publish the Uberjar
       uses: actions/upload-artifact@v1.0.0
       with:
         name: Enso CLI
-        path: $CLI_DIR
+        path: ${{ env.cli_dir }}
 #    - name: Prepare the FlatBuffers Schemas for Upload
 #      run: |
 #        mkdir fbs-upload
