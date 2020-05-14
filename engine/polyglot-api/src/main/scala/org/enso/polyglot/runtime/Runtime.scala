@@ -460,11 +460,13 @@ object Runtime {
     case class ModuleNotFound(moduleName: String) extends Error
 
     /**
-      * Signals that executon of a context failed.
+      * Signals that execution of a context failed.
       *
       * @param contextId the context's id.
+      * @param message the error message.
       */
-    case class ExecutionFailed(contextId: ContextId) extends Error
+    case class ExecutionFailed(contextId: ContextId, message: String)
+        extends Error
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or

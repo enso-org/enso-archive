@@ -524,7 +524,12 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.ExecutionFailed(contextId))),
+      Some(
+        Api.Response(
+          requestId,
+          Api.ExecutionFailed(contextId, "error in function: main")
+        )
+      ),
       None
     )
 
@@ -533,7 +538,12 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
     Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.ExecutionFailed(contextId))),
+      Some(
+        Api.Response(
+          requestId,
+          Api.ExecutionFailed(contextId, "error in function: main")
+        )
+      ),
       None
     )
   }

@@ -3208,7 +3208,7 @@ Signals that execution of a context failed.
 ```typescript
 "error" : {
   "code" : 2009,
-  "message" : "Execution failed"
+  "message" : "Execution failed [error in function: main]"
 }
 ```
 
