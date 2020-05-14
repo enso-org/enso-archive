@@ -5,8 +5,8 @@ transport formats, please look [here](./enso-protocol-architecture.md).
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
-- [Protocol Message Specification - Key](#protocol-message-specification---key)
-- [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
+- [Protocol Message Specification - Common](#protocol-message-specification---common)
+    - [Common Types](#common-types)
         - [`Path`](#path)
         - [`IPWithSocket`](#ipwithsocket)
         - [`EnsoUUID`](#ensouuid)
@@ -97,7 +97,7 @@ transport formats, please look [here](./enso-protocol-architecture.md).
 
 <!-- /MarkdownTOC -->
 
-## Protocol Message Specification - Key
+## Protocol Message Specification - Common
 The message specification for protocol messages must include the following
 fields:
 
@@ -121,7 +121,7 @@ section 'Enables' stating which protocol messages are gated by the capability.
 - **registerOptions:** The options that must be provided to register the
   capability, described using typescript type syntax.
 
-## Protocol Message Specification - Common Types
+###Common Types
 There are a number of types that are shared between many of the protocol
 messages. They are specified below.
 
