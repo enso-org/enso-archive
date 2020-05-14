@@ -17,9 +17,10 @@ Security updates for Enso are provided for the versions shown below with a
 :white_check_mark: next to them. No other versions have security updates
 provided.
 
-| Version     | Supported          |
-|-------------|--------------------|
-| master@HEAD | :white_check_mark: |
+| Version       | Supported          |
+|---------------|--------------------|
+| `master@HEAD` | :white_check_mark: |
+| `wip/*`       | :x:                |
 
 ## Reporting a Vulnerability
 If you believe that you've found a security vulnerability in the Enso codebase
