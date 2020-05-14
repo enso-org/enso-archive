@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.function.Consumer
+import java.util.logging.Level
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleContext
@@ -278,9 +279,18 @@ final class Handler {
     for {
       stackItem <- Either.fromOption(explicitCalls.headOption, "stack is empty")
       item = toExecutionItem(stackItem)
-      _ <- Either.catchNonFatal(
-        execute(item, localCalls, onExpressionValueComputed(contextId, _))
-      ).leftMap(_ => s"error in function: ${item.function}")
+      _ <- Either
+        .catchNonFatal(
+          execute(item, localCalls, onExpressionValueComputed(contextId, _))
+        )
+        .leftMap { ex =>
+          executionService.getLogger.log(
+            Level.FINE,
+            s"Error executing a function '${item.function}'",
+            ex
+          )
+          s"error in function: ${item.function}"
+        }
     } yield ()
   }
 
