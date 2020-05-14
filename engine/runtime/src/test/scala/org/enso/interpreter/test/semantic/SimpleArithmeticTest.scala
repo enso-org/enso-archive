@@ -24,10 +24,12 @@ class SimpleArithmeticTest extends InterpreterTest {
   }
 
   "-1" should "equal -1" in {
+    pending
     eval("main = -1") shouldEqual -1
   }
 
   "1 + -1" should "equal 0" in {
+    pending
     eval("main = 1 + -1") shouldEqual 0
   }
 }

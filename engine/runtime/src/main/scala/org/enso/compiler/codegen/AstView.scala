@@ -712,13 +712,13 @@ object AstView {
       * well for now. This will be improved with the new parser.
       *
       * @param ast the structure to try and match on
-      * @return the negated number
+      * @return the negated expression
       */
     def unapply(ast: AST): Option[AST] = ast match {
       case MaybeParensed(
-          AST.App.Section.Right(AST.Ident.Opr("-"), AST.Number(base, num))
+          AST.App.Section.Right(AST.Ident.Opr("-"), expression)
           ) =>
-        Some(AST.Number(base, s"$minusSymbol$num"))
+        Some(expression)
       case _ => None
     }
   }

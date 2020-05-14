@@ -165,7 +165,24 @@ object AstToIr {
     */
   def translateExpression(inputAST: AST): Expression = {
     inputAST match {
-      case AstView.UnaryMinus(number) => translateExpression(number)
+      case AstView.UnaryMinus(expression) =>
+        expression match {
+          case AST.Literal.Number(base, number) =>
+            translateExpression(AST.Literal.Number(base, s"-$number"))
+          case _ =>
+            IR.Application.Prefix(
+              IR.Name.Literal("negate", None),
+              List(
+                IR.CallArgument.Specified(
+                  None,
+                  translateExpression(expression),
+                  getIdentifiedLocation(expression),
+                )
+              ),
+              hasDefaultsSuspended = false,
+              getIdentifiedLocation(expression)
+            )
+        }
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
