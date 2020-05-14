@@ -24,12 +24,21 @@ class SimpleArithmeticTest extends InterpreterTest {
   }
 
   "-1" should "equal -1" in {
-    pending
     eval("main = -1") shouldEqual -1
   }
 
   "1 + -1" should "equal 0" in {
-    pending
     eval("main = 1 + -1") shouldEqual 0
+  }
+
+  "negation of expressions" should "work" in {
+    val code =
+      """
+        |main =
+        |    expr = (10 * 3+2) - 1
+        |    -expr
+        |""".stripMargin
+
+    eval(code) shouldEqual -49
   }
 }
