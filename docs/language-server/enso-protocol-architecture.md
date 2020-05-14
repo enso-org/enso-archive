@@ -8,9 +8,11 @@ These services are responsible for providing the whole-host of language- and
 project-level tooling to the IDE components, whether they're hosted in the cloud
 or locally on a user's machine.
 
-To that end, we need to have a well-specified idea of what the various services
-do, and how they interact. This document contains a design for the engine
-services components, as well as any open questions that may remain.
+This document contains the architectural and functional specification of the
+Enso protocol.
+
+For a detailed specification of all of the messages that make up the protocol,
+please see [the protocol message specification](./enso-protocol-messages.md).
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
