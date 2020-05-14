@@ -215,7 +215,7 @@ jobs:
         aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
     - name: Upload Project Manager to S3
       run: |
-        aws s3 sync ./pm-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+        aws s3 sync ./pm-upload s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
     - name: Teardown AWS Session
       run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
