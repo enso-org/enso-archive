@@ -158,7 +158,7 @@ jobs:
       run: sbt --no-colors runner/assembly
     - name: Build the Parser JS Bundle
       run: sbt -no-colors syntaxJS/fullOptJS
-    - name: Build the Project-Manager Uberjar
+    - name: Build the Project Manager Uberjar
       run: |
         sbt --no-colors runtime/assembly
         sbt --no-colors project-manager/assembly
