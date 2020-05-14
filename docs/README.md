@@ -1,4 +1,4 @@
-# Enso Documentation
+# Enso Developer Documentation
 This folder contains the documentation for the implementation of the Enso
 programming language. The documentation is broken up by subject, within the
 below-listed categories, and each subject combines information about the
