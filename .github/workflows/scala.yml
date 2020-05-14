@@ -149,10 +149,6 @@ jobs:
         key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
         restore-keys: ${{ runner.os }}-coursier-
 
-    # Build
-    - name: Build Enso
-      run: sbt --no-colors compile
-
     # Build Artefacts
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
@@ -161,7 +157,7 @@ jobs:
         CLI_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
         mkdir $CLI_DIR
         mv enso.jar $CLI_DIR
-        echo "::set-env name=CLI_DIR::"$CLI_DIR
+        echo ::set-env name=CLI_DIR::$CLI_DIR
 #    - name: Build the Parser JS Bundle
 #      run: sbt -no-colors syntaxJS/fullOptJS
 
@@ -170,7 +166,7 @@ jobs:
       uses: actions/upload-artifact@v1.0.0
       with:
         name: Enso CLI
-        path: ${{ env.cli_dir }}
+        path: ${{ env.CLI_DIR }}
 #    - name: Prepare the FlatBuffers Schemas for Upload
 #      run: |
 #        mkdir fbs-upload
