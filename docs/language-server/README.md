@@ -20,7 +20,8 @@ and orchestrating the runtime in response to this. It is responsible for:
 - **Type Interactions:** Features for type-driven-development that allow users
   to interact with the types of their programs.
 
-This folder contains all documentation pertaining to the Language Server.
+This folder contains all documentation pertaining to the Language Server, which
+is broken up as follows:
 
 - [**The Enso Protocol Architecture:**](./enso-protocol-architecture.md) The
   architecture of the Enso protocol.
