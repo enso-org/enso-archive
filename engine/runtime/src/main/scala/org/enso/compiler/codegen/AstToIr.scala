@@ -165,6 +165,7 @@ object AstToIr {
     */
   def translateExpression(inputAST: AST): Expression = {
     inputAST match {
+      case AstView.UnaryMinus(number) => translateExpression(number)
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(

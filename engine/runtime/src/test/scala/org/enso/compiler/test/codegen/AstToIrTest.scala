@@ -199,4 +199,26 @@ class AstToIrTest extends CompilerTest {
       binding.name shouldBe an[IR.Name.Blank]
     }
   }
+
+  "AST translation of unary minus" should {
+    "work when parenthesised" in {
+      val ir =
+        """
+          |(-1)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Literal.Number]
+      ir.asInstanceOf[IR.Literal.Number].value shouldEqual "-1"
+    }
+
+    "work when not parenthesised" in {
+      val ir =
+        """
+          |-100
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Literal.Number]
+      ir.asInstanceOf[IR.Literal.Number].value shouldEqual "-100"
+    }
+  }
 }

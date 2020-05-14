@@ -702,4 +702,24 @@ object AstView {
       case _                      => None
     }
   }
+
+  object UnaryMinus {
+    def minusSymbol: String = "-"
+
+    /** Matches a unary minus.
+      *
+      * It should be noted that this is a hack that matches a spaced section as
+      * well for now. This will be improved with the new parser.
+      *
+      * @param ast the structure to try and match on
+      * @return the negated number
+      */
+    def unapply(ast: AST): Option[AST] = ast match {
+      case MaybeParensed(
+          AST.App.Section.Right(AST.Ident.Opr("-"), AST.Number(base, num))
+          ) =>
+        Some(AST.Number(base, s"$minusSymbol$num"))
+      case _ => None
+    }
+  }
 }
