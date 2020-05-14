@@ -8,7 +8,7 @@ unification.
 >
 > - How do we type pattern matching?
 > - Exactly how (and what) evidence is discharged during matching?
-> - How can we use bujective applications of the
+> - How can we use bijective applications of the
 >   [typeset operators](#./hierarchy.md#typeset-operators) to perform pattern
 >   matching?
 > - How do we extend this to structural matching in general on typesets?
