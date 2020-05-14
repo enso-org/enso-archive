@@ -77,12 +77,12 @@ information, please read the detailed instructions in
 ### Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
 is based, or just delve into the why's and what's of Enso's design, please take
-a look in the [`doc/` folder](./docs/). It is split up into subfolders for each
+a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
 component of Enso. You can view this same documentation in a rendered form at
 [the developer docs website](https://dev.enso.org).
 
 This folder also contains a document on Enso's
-[design philosophy](./doc/enso-philosophy.md), that details the thought process
+[design philosophy](./docs/enso-philosophy.md), that details the thought process
 that we use when contemplating changes or additions to the language.
 
 This documentation will evolve as Enso does, both to help newcomers to the
@@ -111,6 +111,10 @@ our [chat](http://chat.luna-lang.org/), and take a look at our
 [development and contribution guidelines](./docs/CONTRIBUTING.md). The latter
 describes all the ways in which you can help out with the project, as well as
 provides detailed instructions for building and hacking on Enso.
+
+If you believe that you have found a security vulnerability in Enso, or that
+you have a bug report that poses a security risk to Enso's users, please take
+a look at our [security guidelines](./docs/SECURITY.md) for a course of action.
 
 <a href="https://github.com/luna/enso/graphs/contributors">
   <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false">

@@ -111,7 +111,8 @@ correctness and provide as much valuable information to the user as possible in
 as automated and intuitive a fashion as possible.
 
 ## Connections to your Data
-Software creation is a very creative process. However, while using conventional languages, programmers are like chess players trying to play with a blindfold on
+Software creation is a very creative process. However, while using conventional
+languages, programmers are like chess players trying to play with a blindfold on
 - so much of their mental energy is spent just trying to picture where the
 pieces are that there’s hardly any left over to think about the game itself.
 

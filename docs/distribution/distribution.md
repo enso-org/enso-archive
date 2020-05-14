@@ -1,20 +1,17 @@
 # The Enso Distribution
-This document describes the behaviour of the first prototype of an Enso
-distribution, together with some future expansion plans.
+This document provides a specification of how the Enso distribution should
+be structured and how it should behave.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Installation Home Layout](#installation-home-layout)
+- [Enso Home Layout](#enso-home-layout)
 - [Universal Launcher Script](#universal-launcher-script)
-- [Layout of a Distribution of a Single Version of Enso](#layout-of-a-distribution-of-a-single-version-of-enso)
+- [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
     - [Package Sets](#package-sets)
 
 <!-- /MarkdownTOC -->
 
-## Installation Home Layout
-*Please keep in mind that this system is just a proposal and none of it is
-implemented yet.*
-
+## Enso Home Layout
 All of Enso's binaries, packages, etc. are installed into a directory in
 the user's home directory. For macOS and linux distributions that's `~/.enso`,
 by default. The distribution is fully portable, so it never makes any
@@ -50,7 +47,7 @@ or use the default version if none specified.
 > - Determine the proper technology to implement the script (i.e. Java/Bash).
 > - Determine the features needed in the launcher script.
 
-## Layout of a Distribution of a Single Version of Enso
+## Layout of an Enso Version Package
 This section describes the structure of a single version distribution. This
 system is intended to be implemented first and used e.g. for the Enso nightly
 builds / releases.
@@ -89,6 +86,13 @@ enso-1.0.0
     ├── default.yaml
     └── my_package_set.yaml
 ```
+
+> **Implementation Note:**
+> This structure makes use of deep nesting, which may give some with knowledge
+> of Windows' path-name limits pause (windows paths are historically limited to
+> 256 characters). However, there is no special action required to handle this
+> limit as long as we are building on top of the JVM. The JVM automatically
+> inserts the `\\?\` prefix required to bypass the windows path length limit.
 
 ### Package Sets
 A package set is a manifest containing library versions that are made available

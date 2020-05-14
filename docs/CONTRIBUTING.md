@@ -53,7 +53,7 @@ about, so report as many bugs as you can! If you're not sure whether something
 is a bug, file it anyway!
 
 **If you are concerned that your bug publicly presents a security risk to the
-users of Enso, please contact [security@enso.org](mailto:security@enso.org).**
+users of Enso, please look at our [security guidelines](./security.md).**
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if
 you could

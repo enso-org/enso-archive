@@ -1,14 +1,16 @@
 # Enso Libraries Packaging
-Given the open-community model of Enso as a programming language, it is crucial
-to provide an extensible package management system. This document describes the
-behaviour of the first prototype of such a system.
+Given the nature of Enso as an open-source programming language and platform,
+it is crucial that we provide users with an extensible package management
+system. This document describes the current state of our packaging efforts, as
+well as future directions and enhancements to it.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Enso Package Structure](#enso-package-structure)
-  - [The `src` Directory](#the-src-directory)
-  - [The `polyglot` Directory](#the-polyglot-directory)
-  - [The `package.yaml` File](#the-packageyaml-file)
+    - [The `src` Directory](#the-src-directory)
+    - [The `polyglot` Directory](#the-polyglot-directory)
+    - [The `package.yaml` File](#the-packageyaml-file)
+- [Build Reproducibility](#build-reproducibility)
 
 <!-- /MarkdownTOC -->
 
@@ -126,3 +128,15 @@ version: <semver string of the required library version>
 > The actionables for this section are:
 >
 > - Extend the library version field to handle version bounds.
+
+## Build Reproducibility
+It is crucial for any good development environment to provide reproducible
+builds, such that it is impossible for it to go wrong by mismatching library
+versions.
+
+> The actionables for this section are:
+> 
+> - Decide on the strategies of ensuring consistent library resolution. This
+>   may include hashing the downloaded versions of libraries and publishing
+>   stack-style resolvers for sets of libraries that are proven to work well
+>   together.
