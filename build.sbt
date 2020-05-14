@@ -474,12 +474,9 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
-      case "application.conf" =>
-        MergeStrategy.concat
-      case "reference.conf" =>
-        MergeStrategy.concat
-      case x =>
-        MergeStrategy.first
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf" => MergeStrategy.concat
+      case x => MergeStrategy.first
     },
     assemblyOption in assembly := (assemblyOption in assembly).value
       .copy(
