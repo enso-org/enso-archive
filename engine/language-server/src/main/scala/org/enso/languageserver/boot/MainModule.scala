@@ -15,6 +15,11 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
+import org.enso.languageserver.io.{
+  ObservableCharOutput,
+  OutputKind,
+  OutputRedirectionController
+}
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -38,7 +43,10 @@ import scala.concurrent.duration._
   *
   * @param serverConfig configuration for the language server
   */
-class MainModule(serverConfig: LanguageServerConfig) {
+class MainModule(
+  serverConfig: LanguageServerConfig,
+  stdOut: ObservableCharOutput
+) {
 
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
@@ -120,17 +128,25 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
   context.initialize(LanguageInfo.ID)
 
-  lazy val clientControllerFactory = new JsonConnectionControllerFactory(
+  lazy val stdOutController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdOut, OutputKind.StdOut, sessionRouter),
+      "std-out-controller"
+    )
+
+  lazy val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,
-    contextRegistry
+    contextRegistry,
+    stdOutController
   )
 
   lazy val jsonRpcServer =
-    new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+    new JsonRpcServer(JsonRpc.protocol, jsonRpcControllerFactory)
 
-  lazy val dataServer =
+  lazy val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,

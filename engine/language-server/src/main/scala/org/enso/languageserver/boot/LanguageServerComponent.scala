@@ -1,5 +1,7 @@
 package org.enso.languageserver.boot
 
+import java.io.PrintStream
+
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.LanguageServerComponent.ServerContext
@@ -8,6 +10,7 @@ import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentStarted,
   ComponentStopped
 }
+import org.enso.languageserver.io.ObservableCharOutput
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -30,19 +33,30 @@ class LanguageServerComponent(config: LanguageServerConfig)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
-      module        <- Future { new MainModule(config) }
-      jsonBinding   <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-      binaryBinding <- module.dataServer.bind(config.interface, config.dataPort)
+      stdOut      <- Future { redirectStdOut() }
+      module      <- Future { new MainModule(config, stdOut) }
+      jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
+      binaryBinding <- module.binaryServer
+        .bind(config.interface, config.dataPort)
       _ <- Future {
         maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
       }
       _ <- Future {
         logger.info(
-          s"Started server at rpc:${config.interface}:${config.rpcPort}, " +
-          s"data:${config.interface}:${config.dataPort}"
+          s"Started server at json:${config.interface}:${config.rpcPort}, " +
+          s"binary:${config.interface}:${config.dataPort}"
         )
       }
     } yield ComponentStarted
+  }
+
+  private def redirectStdOut(): ObservableCharOutput = {
+    val stdOut = System.out
+    val output = new ObservableCharOutput
+    val newOut = new PrintStream(output)
+    output.subscribe(m => stdOut.print(m))
+    System.setOut(newOut)
+    output
   }
 
   /** @inheritdoc **/
