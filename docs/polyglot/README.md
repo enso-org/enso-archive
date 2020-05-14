@@ -7,6 +7,9 @@ It is broken down into the following sections:
 
 - [**Polyglot Bindings:**](./polyglot-bindings.md) A document providing an 
   overview of the mechanisms provided to work with polyglot bindings in Enso.
+- [**Typing Polyglot Bindings:**](./typing-polyglot-bindings.md) An exploration
+  of how we can provide a modicum of type safety for the polyglot bindings in
+  Enso.
 
 It also provides language-specific documentation for the various supported
 polyglot languages. These are as follows:

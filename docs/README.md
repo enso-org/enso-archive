@@ -20,5 +20,14 @@ It is broken up into categories as follows:
 
 - [**Distribution:**](./distirbution) Information on how we distribute Enso to
   our users, and how Enso packages themselves work.
+- [**Language Server:**](./language-server) Information on the Enso language
+  server, its protocol, and how it integrates with the runtime.
+- [**Polyglot:**](./polyglot) Information on Enso's polyglot functionality, and
+  how it is integrated into the surface Enso language.
+- [**Runtime:**](./runtime) Specification and documentation of the way that the
+  Enso runtime is designed and implemented.
+- [**Semantics:**](./semantics) A specification of Enso's semantics.
 - [**Style Guides:**](./style-guide) Style guides for the code written as part
   of the Enso project.
+- [**Syntax:**](./syntax) A specification of Enso's syntax.
+- [**Types:**](./types) A specification of Enso's type system and type theory.

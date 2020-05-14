@@ -1,34 +1,21 @@
-# Enso: The Semantics
-Much like we have specifications for the
-[syntax](../../syntax/specification/syntax.md) and the
-[type system](../../types/design/types.md), we also need a document where we can
-specify the executable semantics of portions of Enso.
-
-This is that document, and it contains descriptions of key semantic portions of
-Enso.
-
-> The actionables for this section are:
->
-> - As we make more semantic determinations about the language these should be
->   written down here.
-
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
-
-- [Scoping](#scoping)
-  - [Scoping Rules](#scoping-rules)
-  - [Scoping of Type Signatures](#scoping-of-type-signatures)
-- [Strict Evaluation](#strict-evaluation)
-  - [Optional Suspension](#optional-suspension)
-- [Bindings](#bindings)
-
-<!-- /MarkdownTOC -->
-
-## Scoping
+# Scoping Rules
 Enso's scoping rules should be fairly familiar to those coming from other
 languages that are immutable (or make heavy use of immutability). In essence,
 Enso is a lexically-scoped language where bindings may be shadowed in child
 scopes.
 
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Scopes](#scopes)
+- [Introducing New Scopes](#introducing-new-scopes)
+    - [Scoping of Type Signatures](#scoping-of-type-signatures)
+- [Implementation Notes](#implementation-notes)
+    - [Function Call Arguments](#function-call-arguments)
+    - [Collapsing Scopes](#collapsing-scopes)
+
+<!-- /MarkdownTOC -->
+
+## Scopes
 A scope is the span in the code within which a set of accessible identifiers
 occurs. A nested scope may:
 
@@ -58,7 +45,7 @@ valid entity," and hence implies "can have its value used."
 > - Once we are capable of supporting `fix` and recursive pure bindings in
 >   contexts, we need to revisit the above rules.
 
-### Scoping Rules
+## Introducing New Scopes
 The following constructs introduce new scopes in Enso:
 
 - **Modules:** Each module (file) introduces a new scope.
@@ -111,55 +98,35 @@ Currently, type signatures in Enso obey a simple set of typing rules:
 > - Do we actually want to support this?
 > - What complexities does this introduce wrt typechecking?
 
-## Strict Evaluation
-Though Enso shares many syntactic similarities with Haskell, the most famous
-example of a lazily evaluated language, Enso is not lazy. Instead, Enso is a
-language that is strict.
+## Implementation Notes
+This section contains notes on the implementation of the Enso scoping rules in
+the interpreter.
 
-- Statements in Enso are evaluated as soon as they are bound to a name.
-- This means that arguments to a function are always evaluated before the
-  function is applied.
-- Statements are _only_ evaluated when they contain fully-applied function
-  applications. Otherwise they return curried functions.
+### Function Call Arguments
+In order to support suspended function arguments in the interpreter in a
+performant way, we implicitly wrap _all_ function arguments in a suspension. In
+conjunction with making the function itself responsible for when its arguments
+are evaluated, this lets us have incredibly performant suspended computations in
+Enso.
 
-> The actionables for this section are:
->
-> - Make this far better specified.
+However, it _does_ require creating a small hack in the Alias Analysis process:
 
-### Optional Suspension
-Laziness, however, can often be quite useful for defining certain kinds of API.
-To that end, Enso provides support for optional laziness, more specifically
-optional _suspension_, through the built-in `Suspended` type.
+- In order for an expression to be a suspension, it must occur in its own scope
+  (the suspended scope).
+- Alias analysis must account for this, otherwise the code generator will get
+  frame accesses incorrect.
 
-- When a type `a` is wrapped in a `Suspended`, it is turned into a thunk.
-- A value of type `Suspended a` may be forced to execute the suspended
-  computation and thereby obtain an `a`.
+To this end, we account for this implementation detail in alias analysis.
 
-This forcing can take place in two ways:
+### Collapsing Scopes
+Another quirk of the internal alias analysis process is down to the fact that
+the Enso IR represents Methods, functions, and blocks as separate constructs.
+This means that if you had a method containing a function containing a block, a
+naive implementation of alias analysis would allocate three scopes here.
 
-- The user calls the standard library function `force : Suspended a -> a` on the
-  value.
-- Automatically, at a site where its evaluation is demanded. The algorithm for
-  this is simple. If a value of type `Suspended a` is provided in a location
-  that expects a value of type `a`, the compiler will insert an implicit call to
-  `force` to produce the `a`.
+This is incorrect, according to the semantic specification of the language, so
+the alias analysis process needs to handle the collapsing of these scopes as it
+allocates them. The rules are as follows:
 
-> The actionables for this section are:
->
-> - Make this far better specified.
-
-## Bindings
-While some expression-based languages with bindings have the binding return the
-value assigned to the binding, we feel that this is far too error prone.
-Consider the following code as a demonstration:
-
-```ruby
-if x = someExprEvaluatingToBool then foo else bar
-```
-
-This is the perennially-discussed C++ bug where you fail to type `==` in an
-if-statement.
-
-Enso, instead, takes the approach where a binding expression returns the
-singleton value of the type `Nothing`, making the above-written code a type
-error.
+- If you have a method whose body is a function, they share a scope.
+- If you have a function whose body is a block, they share a scope.
