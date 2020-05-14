@@ -10,3 +10,5 @@ It is broken up into categories as follows:
   philosophy behind Enso, and why we build things in the way we do.
 - [**Distribution:**](./distirbution) Information on how we distribute Enso to
   our users, and how Enso packages themselves work.
+- [**Style Guides:**](./style-guide) Style guides for the code written as part
+  of the Enso project.
