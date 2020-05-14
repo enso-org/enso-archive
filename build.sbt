@@ -707,9 +707,7 @@ lazy val runtime = (project in file("engine/runtime"))
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
-      case "application.conf" => MergeStrategy.concat
-      case "reference.conf"   => MergeStrategy.concat
-      case _                  => MergeStrategy.first
+      case _ => MergeStrategy.first
     }
   )
   .dependsOn(pkg)
