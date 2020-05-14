@@ -475,8 +475,8 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
       case "application.conf" => MergeStrategy.concat
-      case "reference.conf" => MergeStrategy.concat
-      case x => MergeStrategy.first
+      case "reference.conf"   => MergeStrategy.concat
+      case _                  => MergeStrategy.first
     },
     assemblyOption in assembly := (assemblyOption in assembly).value
       .copy(
@@ -707,12 +707,9 @@ lazy val runtime = (project in file("engine/runtime"))
         MergeStrategy.discard
       case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
         MergeStrategy.discard
-      case "application.conf" =>
-        MergeStrategy.concat
-      case "reference.conf" =>
-        MergeStrategy.concat
-      case x =>
-        MergeStrategy.first
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
+      case _                  => MergeStrategy.first
     }
   )
   .dependsOn(pkg)
