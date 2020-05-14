@@ -22,3 +22,7 @@ and orchestrating the runtime in response to this. It is responsible for:
 
 This folder contains all documentation pertaining to the Language Server.
 
+- [**The Enso Protocol Architecture:**](./enso-protocol-architecture.md) The
+  architecture of the Enso protocol.
+- [**The Enso Protocol Messages:**](./enso-protocol-messages.md) The message
+  specification for the Enso protocol.
