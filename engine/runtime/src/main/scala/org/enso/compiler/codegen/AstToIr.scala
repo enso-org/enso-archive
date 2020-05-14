@@ -160,15 +160,23 @@ object AstToIr {
 
   /** Translates an arbitrary program expression from [[AST]] into [[IR]].
     *
-    * @param inputAST the expresion to be translated
+    * @param maybeParensedInput the expresion to be translated
     * @return the [[IR]] representation of `inputAST`
     */
-  def translateExpression(inputAST: AST): Expression = {
+  def translateExpression(maybeParensedInput: AST): Expression = {
+    val inputAST = AstView.MaybeParensed
+      .unapply(maybeParensedInput)
+      .getOrElse(maybeParensedInput)
+
     inputAST match {
       case AstView.UnaryMinus(expression) =>
         expression match {
           case AST.Literal.Number(base, number) =>
-            translateExpression(AST.Literal.Number(base, s"-$number"))
+            translateExpression(
+              AST.Literal
+                .Number(base, s"-$number")
+                .setLocation(inputAST.location)
+            )
           case _ =>
             IR.Application.Prefix(
               IR.Name.Literal("negate", None),
@@ -176,11 +184,11 @@ object AstToIr {
                 IR.CallArgument.Specified(
                   None,
                   translateExpression(expression),
-                  getIdentifiedLocation(expression),
+                  getIdentifiedLocation(expression)
                 )
               ),
               hasDefaultsSuspended = false,
-              getIdentifiedLocation(expression)
+              getIdentifiedLocation(inputAST)
             )
         }
       case AstView
