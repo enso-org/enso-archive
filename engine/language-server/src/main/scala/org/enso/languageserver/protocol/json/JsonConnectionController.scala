@@ -18,17 +18,15 @@ import org.enso.languageserver.event.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
-import org.enso.languageserver.io.InputOutputApi.{
-  FeedStandardInput,
-  RedirectStandardOutput,
-  StandardOutputAppended
-}
+import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.InputOutputProtocol
+import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io.{
   FeedStandardInputHandler,
+  RedirectStdErrHandler,
   RedirectStdOutHandler
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
@@ -76,6 +74,7 @@ class JsonConnectionController(
   val fileManager: ActorRef,
   val contextRegistry: ActorRef,
   val stdOutController: ActorRef,
+  val stdErrController: ActorRef,
   val stdInController: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
@@ -163,14 +162,27 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
-    case InputOutputProtocol.OutputAppended(output, _) =>
-      webActor ! Notification(
-        StandardOutputAppended,
-        StandardOutputAppended.Params(output)
-      )
+    case InputOutputProtocol.OutputAppended(output, outputKind) =>
+      outputKind match {
+        case StandardOutput =>
+          webActor ! Notification(
+            StandardOutputAppended,
+            StandardOutputAppended.Params(output)
+          )
+
+        case StandardError =>
+          webActor ! Notification(
+            StandardErrorAppended,
+            StandardErrorAppended.Params(output)
+          )
+
+      }
 
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
-      val handler = context.actorOf(requestHandlers(method))
+      val handler = context.actorOf(
+        requestHandlers(method),
+        s"request-handler-$method-${UUID.randomUUID()}"
+      )
       handler.forward(req)
   }
 
@@ -229,6 +241,8 @@ class JsonConnectionController(
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
+      RedirectStandardError -> RedirectStdErrHandler
+        .props(stdErrController, rpcSession.clientId),
       FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
     )
 
@@ -254,6 +268,7 @@ object JsonConnectionController {
     fileManager: ActorRef,
     contextRegistry: ActorRef,
     stdOutController: ActorRef,
+    stdErrController: ActorRef,
     stdInController: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
@@ -265,6 +280,7 @@ object JsonConnectionController {
         fileManager,
         contextRegistry,
         stdOutController,
+        stdErrController,
         stdInController,
         requestTimeout
       )

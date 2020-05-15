@@ -38,6 +38,38 @@ object InputOutputApi {
     }
   }
 
+  case object RedirectStandardError extends Method("io/redirectStandardError") {
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object SuppressStandardError extends Method("io/suppressStandardError") {
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object StandardErrorAppended extends Method("io/standardErrorAppended") {
+
+    case class Params(output: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = StandardErrorAppended.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object FeedStandardInput extends Method("io/feedStandardInput") {
 
     case class Params(input: String, isLineTerminated: Boolean)

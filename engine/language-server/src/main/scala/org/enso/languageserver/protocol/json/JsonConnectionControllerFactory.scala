@@ -18,6 +18,7 @@ class JsonConnectionControllerFactory(
   fileManager: ActorRef,
   contextRegistry: ActorRef,
   stdOutController: ActorRef,
+  stdErrController: ActorRef,
   stdInController: ActorRef
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
@@ -37,6 +38,7 @@ class JsonConnectionControllerFactory(
         fileManager,
         contextRegistry,
         stdOutController,
+        stdErrController,
         stdInController
       )
     )

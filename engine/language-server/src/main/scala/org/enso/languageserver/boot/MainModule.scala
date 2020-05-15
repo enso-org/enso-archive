@@ -109,9 +109,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val stdOut = new ObservableCharOutput
 
-  val inOut   = new PipedOutputStream()
-  val pipeEnd = new PrintStream(inOut, true)
-  val stdIn   = new PipedInputStream(inOut)
+  lazy val stdErr = new ObservableCharOutput
+
+  val pipeOutEnd   = new PipedOutputStream()
+  val pipePrintEnd = new PrintStream(pipeOutEnd, true)
+  val stdIn        = new PipedInputStream(pipeOutEnd)
 
   val context = Context
     .newBuilder(LanguageInfo.ID)
@@ -120,6 +122,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
     .out(stdOut)
+    .err(stdErr)
     .in(stdIn)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
@@ -141,9 +144,16 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "std-out-controller"
     )
 
+  val stdErrController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdErr, OutputKind.StandardError, sessionRouter),
+      "std-err-controller"
+    )
+
   val stdInController =
     system.actorOf(
-      InputRedirectionController.props(pipeEnd),
+      InputRedirectionController.props(pipePrintEnd),
       "std-in-controller"
     )
 
@@ -153,6 +163,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     fileManager,
     contextRegistry,
     stdOutController,
+    stdErrController,
     stdInController
   )
 
