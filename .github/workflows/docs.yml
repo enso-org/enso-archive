@@ -18,8 +18,8 @@ jobs:
       run: git config --global user.name "GitHub Actions"
     - name: Fetch
       run: git fetch
-    - name: Checkout gh-pages
-      run: git checkout gh-pages 
+    - name: Checkout gh-pages-sources
+      run: git checkout gh-pages-sources 
     - name: Checkout docs in master
       run: git checkout master -- docs
     - name: Stage changed files
@@ -27,5 +27,5 @@ jobs:
     - name: Commit changes
       run: git commit -m "Updating docs"
     - name: Push to gh-pages
-      run: git push origin gh-pages
+      run: git push origin gh-pages-sources
     
