@@ -10,9 +10,8 @@ import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
-import org.graalvm.polyglot.{PolyglotException, Value}
+import org.graalvm.polyglot.Value
 
-import scala.annotation.unused
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -30,6 +29,7 @@ object Main {
   private val ROOT_ID_OPTION         = "root-id"
   private val ROOT_PATH_OPTION       = "path"
   private val VERSION_OPTION         = "version"
+  private val JSON_OPTION            = "json"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -110,6 +110,10 @@ object Main {
       .longOpt(VERSION_OPTION)
       .desc("Checks the version of the Enso executable.")
       .build
+    val json = CliOption.builder
+      .longOpt(JSON_OPTION)
+      .desc("Switches the --version option to JSON output.")
+      .build
 
     val options = new Options
     options
@@ -125,6 +129,7 @@ object Main {
       .addOption(uuidOption)
       .addOption(pathOption)
       .addOption(version)
+      .addOption(json)
 
     options
   }
@@ -206,16 +211,9 @@ object Main {
   }
 
   private def runMain(mainModule: Module): Value = {
-    try {
-      val mainCons = mainModule.getAssociatedConstructor
-      val mainFun  = mainModule.getMethod(mainCons, "main")
-      mainFun.execute(mainCons.newInstance())
-    } catch {
-      case e: PolyglotException =>
-        System.err.println(e.getMessage)
-        exitFail()
-        throw new RuntimeException("Impossible to reach here.")
-    }
+    val mainCons = mainModule.getAssociatedConstructor
+    val mainFun  = mainModule.getMethod(mainCons, "main")
+    mainFun.execute(mainCons.newInstance())
   }
 
   /**
@@ -278,11 +276,11 @@ object Main {
     } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
     // format: on
 
-  /** Prints the version of the enso executable.
+  /** Prints the version of the Enso executable.
     *
-    * @param options A description of the CLI options syntax
+    * @param useJson whether the output should be JSON or human-readable.
     */
-  def displayVersion(@unused options: Options): Unit = {
+  def displayVersion(useJson: Boolean): Unit = {
     // Running platform information
     val vmName     = System.getProperty("java.vm.name")
     val jreVersion = System.getProperty("java.runtime.version")
@@ -290,21 +288,35 @@ object Main {
     val osName     = System.getProperty("os.name")
     val osVersion  = System.getProperty("os.version")
 
-    val dirtyStr = if (Info.isDirty) {
-      "*"
-    } else {
-      ""
-    }
-
     val versionOutput =
-      s"""
-         |Enso Compiler and Runtime
-         |Version:    ${Info.ensoVersion}
-         |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-         |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
-         |Running on: $vmName, JDK $jreVersion
-         |            $osName $osVersion ($osArch)
-         |""".stripMargin
+      if (useJson) {
+        s"""{ "version": "${Info.ensoVersion}",
+           |  "scalaVersion": "${Info.scalacVersion}",
+           |  "graalVersion": "${Info.graalVersion}",
+           |  "branch": "${Info.branch}",
+           |  "dirty": ${Info.isDirty},
+           |  "commit": "${Info.commit}",
+           |  "vmName": "$vmName",
+           |  "jreVersion": "$jreVersion",
+           |  "osName": "$osName",
+           |  "osVersion": "$osVersion",
+           |  "osArch": "$osArch"
+           |}""".stripMargin
+      } else {
+        val dirtyStr = if (Info.isDirty) {
+          "*"
+        } else {
+          ""
+        }
+        s"""
+           |Enso Compiler and Runtime
+           |Version:    ${Info.ensoVersion}
+           |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
+           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
+           |Running on: $vmName, JDK $jreVersion
+           |            $osName $osVersion ($osArch)
+           |""".stripMargin
+      }
 
     println(versionOutput)
   }
@@ -327,7 +339,7 @@ object Main {
       exitSuccess()
     }
     if (line.hasOption(VERSION_OPTION)) {
-      displayVersion(options)
+      displayVersion(useJson = line.hasOption(JSON_OPTION))
       exitSuccess()
     }
     if (line.hasOption(NEW_OPTION)) {

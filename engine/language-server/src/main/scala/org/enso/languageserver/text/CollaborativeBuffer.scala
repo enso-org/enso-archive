@@ -15,8 +15,8 @@ import org.enso.languageserver.event.{
   RpcSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  FileContent,
-  ReadFileResult,
+  ReadTextualFileResult,
+  TextualFileContent,
   WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
@@ -24,7 +24,7 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
@@ -74,16 +74,16 @@ class CollaborativeBuffer(
   }
 
   private def waitingForFileContent(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
-    case ReadFileResult(Right(content)) =>
+    case ReadTextualFileResult(Right(content)) =>
       handleFileContent(rpcSession, replyTo, content)
       unstashAll()
       timeoutCancellable.cancel(): Unit
 
-    case ReadFileResult(Left(failure)) =>
+    case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
       stop()
@@ -97,8 +97,8 @@ class CollaborativeBuffer(
 
   private def collaborativeEditing(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession]
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession]
   ): Receive = {
     case OpenFile(client, _) =>
       openFile(buffer, clients, lockHolder, client)
@@ -131,8 +131,8 @@ class CollaborativeBuffer(
 
   private def saving(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
@@ -158,8 +158,8 @@ class CollaborativeBuffer(
 
   private def saveFile(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId,
     clientVersion: Version
   ): Unit = {
@@ -186,8 +186,8 @@ class CollaborativeBuffer(
 
   private def edit(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId,
     change: FileEdit
   ): Unit = {
@@ -210,7 +210,7 @@ class CollaborativeBuffer(
 
   private def applyEdits(
     buffer: Buffer,
-    lockHolder: Option[RpcSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId,
     change: FileEdit
   ): Either[ApplyEditFailure, Buffer] =
@@ -233,7 +233,7 @@ class CollaborativeBuffer(
   }
 
   private def validateAccess(
-    lockHolder: Option[RpcSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId
   ): Either[ApplyEditFailure, Unit] = {
     val hasLock = lockHolder.exists(_.clientId == clientId)
@@ -265,7 +265,7 @@ class CollaborativeBuffer(
       TextEditValidationFailed(s"Invalid position: $position")
   }
 
-  private def readFile(rpcSession: RpcSession, path: Path): Unit = {
+  private def readFile(rpcSession: JsonSession, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
@@ -275,9 +275,9 @@ class CollaborativeBuffer(
   }
 
   private def handleFileContent(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     originalSender: ActorRef,
-    file: FileContent
+    file: TextualFileContent
   ): Unit = {
     val buffer = Buffer(file.path, file.content)
     val cap    = CapabilityRegistration(CanEdit(bufferPath))
@@ -298,9 +298,9 @@ class CollaborativeBuffer(
 
   private def openFile(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
-    rpcSession: RpcSession
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    rpcSession: JsonSession
   ): Unit = {
     val writeCapability =
       if (lockHolder.isEmpty)
@@ -319,8 +319,8 @@ class CollaborativeBuffer(
 
   private def removeClient(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId
   ): Unit = {
     val newLock =
@@ -339,8 +339,8 @@ class CollaborativeBuffer(
 
   private def releaseWriteLock(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
     clientId: ClientId
   ): Unit = {
     lockHolder match {
@@ -360,9 +360,9 @@ class CollaborativeBuffer(
 
   private def acquireWriteLock(
     buffer: Buffer,
-    clients: Map[ClientId, RpcSession],
-    lockHolder: Option[RpcSession],
-    clientId: RpcSession,
+    clients: Map[ClientId, JsonSession],
+    lockHolder: Option[JsonSession],
+    clientId: JsonSession,
     path: Path
   ): Unit = {
     lockHolder match {

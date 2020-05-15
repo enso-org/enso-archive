@@ -115,7 +115,7 @@ object AstView {
         case AST.Ident.Var.any(variable) => Some(variable)
         case AST.Ident.Cons.any(cons)    => Some(cons)
         case AST.Ident.Blank.any(blank)  => Some(blank)
-        case _ => None
+        case _                           => None
       }
     }
   }
@@ -700,6 +700,26 @@ object AstView {
       case PatternMatch(_, _)     => Some(ast)
       case AST.Ident.Blank.any(b) => Some(b)
       case _                      => None
+    }
+  }
+
+  object UnaryMinus {
+    def minusSymbol: String = "-"
+
+    /** Matches a unary minus.
+      *
+      * It should be noted that this is a hack that matches a spaced section as
+      * well for now. This will be improved with the new parser.
+      *
+      * @param ast the structure to try and match on
+      * @return the negated expression
+      */
+    def unapply(ast: AST): Option[AST] = ast match {
+      case MaybeParensed(
+          AST.App.Section.Right(AST.Ident.Opr("-"), expression)
+          ) =>
+        Some(expression)
+      case _ => None
     }
   }
 }
