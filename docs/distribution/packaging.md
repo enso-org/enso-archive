@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Libraries Packaging
+category: distribution
+tags: [packaging, distribution, layout]
+order: 1
+---
+
 # Enso Libraries Packaging
 Given the nature of Enso as an open-source programming language and platform,
 it is crucial that we provide users with an extensible package management

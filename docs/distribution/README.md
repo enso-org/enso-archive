@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Distribution
+category: distribution
+tags: [distribution, readme]
+order: 0
+---
+
 # Enso Distribution
 Documents in this section deal with the process of packaging both Enso and its
 dependencies, and Enso projects for use by our users.
