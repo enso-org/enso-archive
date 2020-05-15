@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.state.Stateful;
 
-@NodeInfo(shortName = "IO.print_err", description = "Root of the IO.print_err method.")
+@NodeInfo(shortName = "IO.print_err", description = "Prints its argument to standard error.")
 public abstract class PrintErrNode extends BuiltinRootNode {
   PrintErrNode(Language language) {
     super(language);

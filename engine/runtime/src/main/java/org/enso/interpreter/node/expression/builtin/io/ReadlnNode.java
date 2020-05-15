@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrateg
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.state.Stateful;
 
-@NodeInfo(shortName = "IO.readln", description = "Root of the IO.readln method.")
+@NodeInfo(shortName = "IO.readln", description = "Reads a line from standard in.")
 public abstract class ReadlnNode extends BuiltinRootNode {
   public ReadlnNode(Language language) {
     super(language);
@@ -53,6 +53,11 @@ public abstract class ReadlnNode extends BuiltinRootNode {
         new ArgumentDefinition(0, "this", ExecutionMode.EXECUTE));
   }
 
+  /**
+   * Gets the source-level name of this node.
+   *
+   * @return the source-level name of the node
+   */
   @Override
   public String getName() {
     return "IO.readln";

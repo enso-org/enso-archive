@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Allows for printing arbitrary values to the standard output. */
-@NodeInfo(shortName = "IO.println", description = "Root of the IO.println method.")
+@NodeInfo(shortName = "IO.println", description = "Prints its argument to standard out.")
 public abstract class PrintlnNode extends BuiltinRootNode {
   PrintlnNode(Language language) {
     super(language);

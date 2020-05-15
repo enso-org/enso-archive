@@ -1,10 +1,19 @@
 package org.enso.interpreter.test
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PipedInputStream, PipedOutputStream, PrintStream, StringReader}
+import java.io.{
+  ByteArrayOutputStream,
+  PipedInputStream,
+  PipedOutputStream,
+  PrintStream
+}
 import java.util.UUID
 
 import com.oracle.truffle.api.instrumentation.EventBinding
-import org.enso.interpreter.instrument.{FunctionCallExtractorInstrument, ReplDebuggerInstrument, ValueExtractorInstrument}
+import org.enso.interpreter.instrument.{
+  FunctionCallExtractorInstrument,
+  ReplDebuggerInstrument,
+  ValueExtractorInstrument
+}
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.{Function, LanguageInfo, PolyglotContext}
@@ -68,11 +77,12 @@ trait InterpreterRunner {
         value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
       )
   }
-  val output = new ByteArrayOutputStream()
-  val err = new ByteArrayOutputStream()
-  val inOut = new PipedOutputStream()
+  val output       = new ByteArrayOutputStream()
+  val err          = new ByteArrayOutputStream()
+  val inOut        = new PipedOutputStream()
   val inOutPrinter = new PrintStream(inOut, true)
-  val in = new PipedInputStream(inOut)
+  val in           = new PipedInputStream(inOut)
+
   val ctx = Context
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)
