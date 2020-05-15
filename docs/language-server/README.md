@@ -23,7 +23,14 @@ and orchestrating the runtime in response to this. It is responsible for:
 This folder contains all documentation pertaining to the Language Server, which
 is broken up as follows:
 
-- [**The Enso Protocol Architecture:**](./enso-protocol-architecture.md) The
+- [**The Enso Protocol Architecture:**](./protocol-architecture.md) The
   architecture of the Enso protocol.
-- [**The Enso Protocol Messages:**](./enso-protocol-messages.md) The message
-  specification for the Enso protocol.
+
+The protocol messages are broken up into documents as follows:
+
+- [**Common Message Specification:**](./protocol-common.md) The common messages
+  and types
+- [**Project Manager Message Specification:**](./protocol-project-manager.md)
+  The messages and types pertaining to the project manager component.
+- [**Language Server Message Specification:**](./protocol-language-server.md)
+  The messages and types pertaining to the language server component.

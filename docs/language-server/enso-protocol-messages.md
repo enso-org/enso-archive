@@ -5,422 +5,80 @@ transport formats, please look [here](./enso-protocol-architecture.md).
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
-- [Protocol Message Specification - Common](#protocol-message-specification---common)
-    - [Common Types](#common-types)
-        - [`Path`](#path)
-        - [`IPWithSocket`](#ipwithsocket)
-        - [`EnsoUUID`](#ensouuid)
-- [Protocol Message Specification - Project Manager](#protocol-message-specification---project-manager)
-    - [Types](#types)
-        - [`ProjectMetadata`](#projectmetadata)
-    - [Project Management Operations](#project-management-operations)
-        - [`project/open`](#projectopen)
-        - [`project/close`](#projectclose)
-        - [`project/listRecent`](#projectlistrecent)
-        - [`project/create`](#projectcreate)
-        - [`project/delete`](#projectdelete)
-        - [`project/listSample`](#projectlistsample)
-    - [Language Server Management](#language-server-management)
-    - [Errors - Project Manager](#errors---project-manager)
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
+  - [Types](#types)
+    - [`File`](#file)
+    - [`DirectoryTree`](#directorytree)
+    - [`FileAttributes`](#fileattributes)
+    - [`UTCDateTime`](#utcdatetime)
+    - [`FileEventKind`](#fileeventkind)
+    - [`Position`](#position)
+    - [`Range`](#range)
+    - [`TextEdit`](#textedit)
+    - [`SHA3-224`](#sha3-224)
+    - [`FileEdit`](#fileedit)
+    - [`FileContents`](#filecontents)
+    - [`FileSystemObject`](#filesystemobject)
+    - [`WorkspaceEdit`](#workspaceedit)
+  - [Connection Management](#connection-management)
+    - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
+  - [Capability Management](#capability-management)
+    - [`capability/acquire`](#capabilityacquire)
+    - [`capability/release`](#capabilityrelease)
+    - [`capability/granted`](#capabilitygranted)
+    - [`capability/forceReleased`](#capabilityforcereleased)
+  - [Capabilities](#capabilities)
+    - [`text/canEdit`](#textcanedit)
+    - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
+    - [`executionContext/canModify`](#executioncontextcanmodify)
+    - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
+  - [File Management Operations](#file-management-operations)
+    - [`file/write`](#filewrite)
+    - [`file/read`](#fileread)
+    - [`file/writeBinary`](#filewritebinary)
+    - [`file/readBinary`](#filereadbinary)
+    - [`file/create`](#filecreate)
+    - [`file/delete`](#filedelete)
+    - [`file/copy`](#filecopy)
+    - [`file/move`](#filemove)
+    - [`file/exists`](#fileexists)
+    - [`file/tree`](#filetree)
+    - [`file/list`](#filelist)
+    - [`file/info`](#fileinfo)
+    - [`file/event`](#fileevent)
+    - [`file/addRoot`](#fileaddroot)
+    - [`file/removeRoot`](#fileremoveroot)
+    - [`file/rootAdded`](#filerootadded)
+    - [`file/rootRemoved`](#filerootremoved)
+  - [Text Editing Operations](#text-editing-operations)
+    - [`text/openFile`](#textopenfile)
+    - [`text/closeFile`](#textclosefile)
+    - [`text/save`](#textsave)
+    - [`text/applyEdit`](#textapplyedit)
+    - [`text/didChange`](#textdidchange)
+  - [Workspace Operations](#workspace-operations)
+    - [`workspace/undo`](#workspaceundo)
+    - [`workspace/redo`](#workspaceredo)
+  - [Monitoring](#monitoring)
+    - [`heartbeat/ping`](#heartbeatping)
+  - [Execution Management](#execution-management)
+    - [Example](#example)
     - [Types](#types-1)
-        - [`File`](#file)
-        - [`DirectoryTree`](#directorytree)
-        - [`FileAttributes`](#fileattributes)
-        - [`UTCDateTime`](#utcdatetime)
-        - [`FileEventKind`](#fileeventkind)
-        - [`Position`](#position)
-        - [`Range`](#range)
-        - [`TextEdit`](#textedit)
-        - [`SHA3-224`](#sha3-224)
-        - [`FileEdit`](#fileedit)
-        - [`FileContents`](#filecontents)
-        - [`FileSystemObject`](#filesystemobject)
-        - [`WorkspaceEdit`](#workspaceedit)
-    - [Connection Management](#connection-management)
-        - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
-        - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
-    - [Capability Management](#capability-management)
-        - [`capability/acquire`](#capabilityacquire)
-        - [`capability/release`](#capabilityrelease)
-        - [`capability/granted`](#capabilitygranted)
-        - [`capability/forceReleased`](#capabilityforcereleased)
-    - [Capabilities](#capabilities)
-        - [`text/canEdit`](#textcanedit)
-        - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
-        - [`executionContext/canModify`](#executioncontextcanmodify)
-        - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
-    - [File Management Operations](#file-management-operations)
-        - [`file/write`](#filewrite)
-        - [`file/read`](#fileread)
-        - [`file/writeBinary`](#filewritebinary)
-        - [`file/readBinary`](#filereadbinary)
-        - [`file/create`](#filecreate)
-        - [`file/delete`](#filedelete)
-        - [`file/copy`](#filecopy)
-        - [`file/move`](#filemove)
-        - [`file/exists`](#fileexists)
-        - [`file/tree`](#filetree)
-        - [`file/list`](#filelist)
-        - [`file/info`](#fileinfo)
-        - [`file/event`](#fileevent)
-        - [`file/addRoot`](#fileaddroot)
-        - [`file/removeRoot`](#fileremoveroot)
-        - [`file/rootAdded`](#filerootadded)
-        - [`file/rootRemoved`](#filerootremoved)
-    - [Text Editing Operations](#text-editing-operations)
-        - [`text/openFile`](#textopenfile)
-        - [`text/closeFile`](#textclosefile)
-        - [`text/save`](#textsave)
-        - [`text/applyEdit`](#textapplyedit)
-        - [`text/didChange`](#textdidchange)
-    - [Workspace Operations](#workspace-operations)
-        - [`workspace/undo`](#workspaceundo)
-        - [`workspace/redo`](#workspaceredo)
-    - [Monitoring](#monitoring)
-        - [`heartbeat/ping`](#heartbeatping)
-    - [Execution Management](#execution-management)
-        - [Example](#example)
-        - [Types](#types-2)
-        - [`executionContext/create`](#executioncontextcreate)
-        - [`executionContext/destroy`](#executioncontextdestroy)
-        - [`executionContext/fork`](#executioncontextfork)
-        - [`executionContext/push`](#executioncontextpush)
-        - [`executionContext/pop`](#executioncontextpop)
-        - [`executionContext/recompute`](#executioncontextrecompute)
-        - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
-        - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
-        - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
-        - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
-        - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
-    - [Errors - Language Server](#errors---language-server)
+    - [`executionContext/create`](#executioncontextcreate)
+    - [`executionContext/destroy`](#executioncontextdestroy)
+    - [`executionContext/fork`](#executioncontextfork)
+    - [`executionContext/push`](#executioncontextpush)
+    - [`executionContext/pop`](#executioncontextpop)
+    - [`executionContext/recompute`](#executioncontextrecompute)
+    - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+    - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
+    - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
+    - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
+    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
+  - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
-
-## Protocol Message Specification - Common
-The message specification for protocol messages must include the following
-fields:
-
-- **Type:** The type of the message (e.g. Request or Notification).
-- **Direction:** The direction in which the _originating_ message is sent
-  (either `Client -> Server` or `Server -> Client`).
-- **Connection:** Which connection the message should be sent on. Write
-  'Protocol' for the textual connection and 'Data' for the binary connection.
-- **Visibility:** Whether the method should be used by the public or is an
-  internal / implementation detail ('Public' or 'Private').
-
-They must also contain separate sections specifying their parameters, result (if
-it has one), and any errors that may occur. These specifications should be
-either in typescript or flatbuffers syntax, depending on the connection on
-which the message occurs.
-
-The capability specifications must include the following fields, as well as a
-section 'Enables' stating which protocol messages are gated by the capability.
-
-- **method:** The name of the capability.
-- **registerOptions:** The options that must be provided to register the
-  capability, described using typescript type syntax.
-
-###Common Types
-There are a number of types that are shared between many of the protocol
-messages. They are specified below.
-
-#### `Path`
-A path is a representation of a path relative to a specified content root.
-
-##### Format
-Please note that segments can only be ordinary file names, `..` and `.` may not
-be supported.
-
-```typescript
-interface Path {
-  rootId: UUID;
-  segments: [String];
-}
-```
-
-```idl
-namespace org.enso.languageserver.protocol.binary;
-
-//A representation of a path relative to a specified content root.
-table Path {
-
-  //a content root id that the path is relative to
-  rootId: EnsoUUID;
-
-  //path segments
-  segments: [string];
-
-}
-```
-
-#### `IPWithSocket`
-A IPWithSocket is an endpoint for communication between machines.
-
-##### Format
-
-```typescript
-interface IPWithSocket {
-  host: String;
-  port: Int;
-}
-```
-
-#### `EnsoUUID`
-An EnsoUUID is a value object containing 128-bit universally unique identifier.
-
-##### Format
-
-```idl
-namespace org.enso.languageserver.protocol.binary;
-
-//A binary representation of universally unique identifiers.
-struct EnsoUUID {
-
-  //The most significant bits of the UUID.
-  leastSigBits:uint64;
-
-  //The most significant bits of the UUID.
-  mostSigBits:uint64;
-
-}
-```
-
-## Protocol Message Specification - Project Manager
-This section exists to contain a specification of each of the messages that the
-project manager supports. This is in order to aid in the proper creation of
-clients, and to serve as an agreed-upon definition for the protocol between the
-IDE and Engine teams.
-
-> The actionables for this section are:
->
-> - As we establish the _exact_ format for each of the messages supported by the
->   services, record the details of each message here.
-
-### Types
-There are a number of types that are used only within the project server's
-protocol messages. These are specified here.
-
-#### `ProjectMetadata`
-This type represents information about a project.
-
-##### Format
-
-```typescript
-interface ProjectMetadata {
-  name: String;
-  id: UUID;
-  lastOpened: UTCDateTime;
-}
-```
-
-### Project Management Operations
-The primary responsibility of the project managers is to allow users to manage
-their projects.
-
-#### `project/open`
-This message requests that the project manager open a specified project. This
-operation also includes spawning an instance of the language server open on the
-specified project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectOpenRequest {
-  projectId: UUID;
-}
-```
-
-##### Result
-
-```typescript
-interface ProjectOpenResult {
-  languageServerJsonAddress: IPWithSocket;
-  languageServerBinaryAddress: IPWithSocket;
-}
-```
-
-##### Errors
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-  doesn't exist.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-  underlying data store.
-- [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
-
-#### `project/close`
-This message requests that the project manager close a specified project. This
-operation includes shutting down the language server gracefully so that it can
-persist state to disk as needed.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectCloseRequest {
-  projectId: UUID;
-}
-```
-
-##### Result
-
-```typescript
-{}
-```
-
-##### Errors
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-  doesn't exist.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-  underlying data store.
-- [`ProjectCloseError`](#projectcloseerror) to signal failures that occurred
-  during language server stoppage.
-- [`ProjectNotOpenError`](#projectnotopenerror) to signal cannot close a project
-  that is not open.
-- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal
-  that cannot close a project that is open by other clients.
-
-#### `project/listRecent`
-This message requests that the project manager lists the user's most recently
-opened projects.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectListRecentRequest {
-  numberOfProjects: Int;
-}
-```
-
-##### Result
-
-```typescript
-interface ProjectListRecentResponse {
-  projects: [ProjectMetadata];
-}
-```
-
-##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-  underlying data store.
-
-#### `project/create`
-This message requests the creation of a new project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectCreateRequest {
-  name: String;
-}
-```
-
-##### Result
-
-```typescript
-interface ProjectOpenResponse {
-  projectId: UUID;
-}
-```
-
-##### Errors
-- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
-  validation failures.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-  underlying data store.
-- [`ProjectExistsError`](#projectexistserror) to signal that the project
-  already exists.
-
-
-#### `project/delete`
-This message requests the deletion of a project.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectDeleteRequest {
-  projectId: UUID;
-}
-```
-
-##### Result
-
-```typescript
-{}
-```
-
-##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-  underlying data store.
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-  doesn't exist.
-- [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that
-  the project cannot be removed, because is open by at least one user.
-
-
-#### `project/listSample`
-This request lists the sample projects that are available to the user.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-interface ProjectListSampleRequest {
-  numProjects: Int;
-}
-```
-
-##### Result
-
-```typescript
-interface ProjectListSampleResponse {
-  projects: [ProjectMetadata];
-}
-```
-
-##### Errors
-TBC
-
-### Language Server Management
-The project manager is also responsible for managing the language server. This
-means that it needs to be able to spawn the process, but also tell the process
-when to shut down.
-
-> The actionables for this section are:
->
-> - Fill it in when we have more of an idea about exactly how this spawning
->   relationship is going to work.
-
-### Errors - Project Manager
-The project manager component also has its own set of errors. This section is
-not a complete specification and will be updated as new errors are added.
 
 ## Protocol Message Specification - Language Server
 This section exists to contain a specification of each of the messages that the
@@ -2612,96 +2270,6 @@ Signals that the client doesn't hold write lock to the buffer.
 }
 ```
 
-##### `ProjectNameValidationError`
-Signals validation failures.
-
-```typescript
-"error" : {
-  "code" : 4001,
-  "message" : "Cannot create project with empty name"
-}
-```
-
-##### `ProjectDataStoreError`
-Signals problems with underlying data store.
-
-```typescript
-"error" : {
-  "code" : 4002,
-  "message" : "Cannot load project index"
-}
-```
-
-##### `ProjectExistsError`
-Signals that the project already exists.
-
-```typescript
-"error" : {
-  "code" : 4003,
-  "message" : "Project with the provided name exists"
-}
-```
-
-##### `ProjectNotFoundError`
-Signals that the project doesn't exist.
-
-```typescript
-"error" : {
-  "code" : 4004,
-  "message" : "Project with the provided id does not exist"
-}
-```
-
-```
-##### `ProjectOpenError`
-Signals that the project cannot be open due to boot failures.
-
-```typescript
-"error" : {
-  "code" : 4005,
-  "message" : "A boot failure."
-}
-```
-
-##### `ProjectCloseError`
-Signals failures during shutdown of a server.
-
-```typescript
-"error" : {
-  "code" : 4009,
-  "message" : "A shutdown failure."
-}
-```
-
-##### `ProjectNotOpenError`
-Signals that cannot close project that is not open.
-
-```typescript
-"error" : {
-  "code" : 4006,
-  "message" : "Cannot close project that is not open"
-}
-```
-
-##### `ProjectOpenByOtherPeersError`
-Signals that cannot close a project that is open by other clients.
-
-```typescript
-"error" : {
-  "code" : 4007,
-  "message" : "Cannot close project because it is open by other peers"
-}
-```
-
-##### `CannotRemoveOpenProjectError`
-Signals that cannot remove open project.
-
-```typescript
-"error" : {
-  "code" : 4008,
-  "message" : "Cannot remove open project"
-}
-```
 
 ##### `CapabilityNotAcquired`
 Signals that requested capability is not acquired.

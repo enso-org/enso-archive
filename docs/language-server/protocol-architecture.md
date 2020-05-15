@@ -12,7 +12,7 @@ This document contains the architectural and functional specification of the
 Enso protocol.
 
 For a detailed specification of all of the messages that make up the protocol,
-please see [the protocol message specification](./enso-protocol-messages.md).
+please see [the protocol message specifications](./README.md).
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
@@ -635,10 +635,10 @@ process for spawning and connecting to an engine instance is as follows:
 3.  **Protocol Connection Initialisation:** The client performs the init for the
     textual protocol connection, passing its client identifier as it does so.
     See [`session/initProtocolConnection`](#sessioninitprotocolconnection)
-    below for more information.
+    for more information.
 4.  **Data Connection Initialisation:** The client performs the init for the
     data connection, passing its client identifier as it does so. See
-    [`session/initDataConnection`](#sessioninitdataconnection) below for more
+    [`session/initDataConnection`](#sessioninitdataconnection) below more
     information.
 
 ## Service Connection Teardown

@@ -7,9 +7,9 @@ well as future directions and enhancements to it.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Enso Package Structure](#enso-package-structure)
-    - [The `src` Directory](#the-src-directory)
-    - [The `polyglot` Directory](#the-polyglot-directory)
-    - [The `package.yaml` File](#the-packageyaml-file)
+  - [The `src` Directory](#the-src-directory)
+  - [The `polyglot` Directory](#the-polyglot-directory)
+  - [The `package.yaml` File](#the-packageyaml-file)
 - [Build Reproducibility](#build-reproducibility)
 
 <!-- /MarkdownTOC -->
@@ -39,7 +39,7 @@ are imported in all of Enso code.
 
 Note that all files and directories in this subtree must be named according
 to the Enso style for referent names (i.e. `Upper_Snake_Case`, see
-[Syntax Specification](../../syntax/specification/syntax.md#naming)).
+[the syntax specification](../syntax/naming.md#naming-constructs)).
 
 A file located at the path `My_Package/src/Sub_Module/Helper.enso` will be
 imported like so:
@@ -67,7 +67,7 @@ The exact transformation is as follows:
 The `polyglot` directory contains per-language subdirectories containing files
 used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the
-[polyglot documentation](../../runtime/implementation/polyglot/).
+[polyglot documentation](../polyglot/README.md).
 
 ### The `package.yaml` File
 `package.yaml` describes certain package metadata, such as its name, authors
@@ -95,7 +95,7 @@ The following is the specification of the manifest fields.
 `None`, meaning the package is not safe for use by third parties.
 
 #### version
-**Required** *String*: The [Semantic Versioning](https://semver.org/) string,
+**Required** *String*: The [semantic versioning](https://semver.org/) string,
 in the `major.minor.patch` format.
 
 #### author
