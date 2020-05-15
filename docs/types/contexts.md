@@ -7,9 +7,9 @@ stack.
 
 For a language as focused on usability as Enso is this really isn't feasible. To
 that end, we have created the notion of a 'Monadic Context', which is a monad
-transformer based on Supermonads (see [references](#references)). These have
-special support in the compiler, and hence can be automatically lifted to aid
-usability.
+transformer based on Supermonads (see
+[references](./references.md#monadic-contexts)). These have special support in
+the compiler, and hence can be automatically lifted to aid usability.
 
 > The actionables for this section are:
 >

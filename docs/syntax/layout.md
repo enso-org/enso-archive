@@ -9,10 +9,10 @@ This document describes the layout rules for Enso's white-space.
 
 - [Maximum Line Length](#maximum-line-length)
 - [Indented Blocks](#indented-blocks)
-    - [Trailing Operator on the Parent Line](#trailing-operator-on-the-parent-line)
-    - [Leading Operator on All Child Lines](#leading-operator-on-all-child-lines)
-    - [No Leading or Trailing Operators](#no-leading-or-trailing-operators)
-    - [Debug Line Breaks](#debug-line-breaks)
+  - [Trailing Operator on the Parent Line](#trailing-operator-on-the-parent-line)
+  - [Leading Operator on All Child Lines](#leading-operator-on-all-child-lines)
+  - [No Leading or Trailing Operators](#no-leading-or-trailing-operators)
+  - [Debug Line Breaks](#debug-line-breaks)
 
 <!-- /MarkdownTOC -->
 
@@ -47,8 +47,8 @@ are defined. These are described in the following subsections.
 
 ### Trailing Operator on the Parent Line
 If a line ends with an operator then all of its child lines form a
-[_code_ block](#code-blocks). The most common usage of this kind of indented
-block is a function definition body (following the `=` or `->`).
+[_code_ block](./functions.md/#code-blocks). The most common usage of this kind
+of indented block is a function definition body (following the `=` or `->`).
 
 ```ruby
 test = a -> b ->

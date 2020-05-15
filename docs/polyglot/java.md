@@ -1,6 +1,7 @@
 # Polyglot Java Runtime
 This document deals with the implementation of polyglot interoperation with
-Java in the runtime.
+Java in the runtime. Please familiarise yourself with the general operation of
+[polyglot bindings](./polyglot-bindings.md).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

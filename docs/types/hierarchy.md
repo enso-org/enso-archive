@@ -8,15 +8,15 @@ for Enso to _feel_ like a dynamic language while still bringing enhanced safety.
 - [Typeset Theory](#typeset-theory)
 - [Atoms](#atoms)
 - [Typesets](#typesets)
-    - [Typeset Operators](#typeset-operators)
-    - [Typeset Subsumption](#typeset-subsumption)
-    - [Unsafe Typeset Field Mutation](#unsafe-typeset-field-mutation)
+  - [Typeset Operators](#typeset-operators)
+  - [Typeset Subsumption](#typeset-subsumption)
+  - [Unsafe Typeset Field Mutation](#unsafe-typeset-field-mutation)
 - [Interfaces](#interfaces)
-    - [Special Interfaces](#special-interfaces)
+  - [Special Interfaces](#special-interfaces)
 - [Type Ascription](#type-ascription)
-    - [Scoping in Type Ascription](#scoping-in-type-ascription)
+  - [Scoping in Type Ascription](#scoping-in-type-ascription)
 - [Projections](#projections)
-    - [Special Fields](#special-fields)
+  - [Special Fields](#special-fields)
 
 <!-- /MarkdownTOC -->
 
@@ -262,7 +262,7 @@ themselves, but as atoms are typesets this also applies.
   that performs in-place field mutation of the field `field` to set its value to
   `any`.
 - In order to prevent this from being used flippantly, this functionality is
-  marked `unsafe` (see [access modifiers](#access-modification) for more).
+  marked `unsafe` (see [access modifiers](./access-modifiers.md) for more).
 
 ## Interfaces
 Because typesets can be matched _structurally_, all typesets implicitly define
@@ -457,7 +457,7 @@ the types ascribed to values in Enso are not the be-all and end-all.
 
 Additionally, as Enso is a dependently-typed language, the expression `b` may
 contain arbitrary Enso expressions. The type-checking of such signatures is
-discussed further in the section on [dependency](#dependency-and-enso).
+discussed further in the section on [dependency](./dependent-typing.md).
 
 ### Scoping in Type Ascription
 Enso intends to support some form of mutual scoping between the left and right

@@ -17,8 +17,8 @@ arguments.
 - [Universal Call Syntax](#universal-call-syntax)
 - [Code Blocks](#code-blocks)
 - [Operators](#operators)
-    - [Precedence](#precedence)
-    - [Sections](#sections)
+  - [Precedence](#precedence)
+  - [Sections](#sections)
 - [Mixfix Functions](#mixfix-functions)
 
 <!-- /MarkdownTOC -->
@@ -282,7 +282,8 @@ works as follows.
 - Where an argument is not applied to an operator, the missing argument is
   replaced by an implicit `_`.
 - The application is then translated based upon the rules for
-  [underscore arguments](#underscore-arguments) described later.
+  [underscore arguments](./function-arguments.md#underscore-arguments) described
+  later.
 - The whitespace-based precedence rules discussed above also apply to operator
   sections.
 
