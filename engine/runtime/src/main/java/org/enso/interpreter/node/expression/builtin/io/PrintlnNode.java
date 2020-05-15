@@ -23,14 +23,14 @@ public abstract class PrintlnNode extends BuiltinRootNode {
 
   @Specialization
   Stateful doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
-    doPrint(ctx.getOut(), Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1]);
+    print(ctx.getOut(), Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1]);
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
 
     return new Stateful(state, ctx.getUnit().newInstance());
   }
 
   @CompilerDirectives.TruffleBoundary
-  private void doPrint(PrintStream out, Object object) {
+  private void print(PrintStream out, Object object) {
     out.println(object);
   }
 

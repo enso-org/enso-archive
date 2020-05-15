@@ -65,7 +65,7 @@ class TextTest extends InterpreterTest {
     consumeOut shouldEqual List("\"Grzegorz Brzeczyszczykiewicz\"")
   }
 
-  "Raw text literals" should "be able to be printed to standard error" in {
+  "Text literals" should "be able to be printed to standard error" in {
     val errString = "\"My error string\""
     val resultStr = errString.drop(1).dropRight(1)
 
@@ -76,5 +76,19 @@ class TextTest extends InterpreterTest {
 
     eval(code)
     consumeErr shouldEqual List(resultStr)
+  }
+
+  "Text literals" should "be able to be read from standard in" in {
+    val inputString = "foobarbaz"
+
+    val code =
+      """
+        |main =
+        |    IO.readln + " yay!"
+        |""".stripMargin
+
+    feedInput(inputString)
+
+    eval(code) shouldEqual "foobarbaz yay!"
   }
 }

@@ -16,6 +16,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintErrNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnNode;
+import org.enso.interpreter.node.expression.builtin.io.ReadlnNode;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.number.AddNode;
@@ -124,6 +125,7 @@ public class Builtins {
 
     scope.registerMethod(io, "println", PrintlnNode.makeFunction(language));
     scope.registerMethod(io, "print_err", PrintErrNode.makeFunction(language));
+    scope.registerMethod(io, "readln", ReadlnNode.makeFunction(language));
 
     scope.registerMethod(system, "nano_time", NanoTimeNode.makeFunction(language));
 
