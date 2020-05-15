@@ -43,10 +43,7 @@ import scala.concurrent.duration._
   *
   * @param serverConfig configuration for the language server
   */
-class MainModule(
-  serverConfig: LanguageServerConfig,
-  stdOut: ObservableCharOutput
-) {
+class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
@@ -109,12 +106,15 @@ class MainModule(
       "context-registry"
     )
 
+  lazy val stdOut = new ObservableCharOutput
+
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .out(stdOut)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -128,7 +128,7 @@ class MainModule(
     .build()
   context.initialize(LanguageInfo.ID)
 
-  lazy val stdOutController =
+  val stdOutController =
     system.actorOf(
       OutputRedirectionController
         .props(stdOut, OutputKind.StandardOutput, sessionRouter),
