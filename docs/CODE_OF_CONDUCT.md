@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: The Enso Code of Conduct
+category: summary
+tags: [summary, code-of-conduct]
+order: 3
+---
+
 # The Enso Code of Conduct
 
 ## Conduct

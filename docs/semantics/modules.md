@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Modules
+category: semantics
+tags: [semantics, modules, runtime]
+order: 6
+---
+
 # Modules
 Enso has a rudimentary module system in order to aid code modularity.
 

@@ -1,4 +1,12 @@
-# Enso Runtime
+---
+layout: developer-doc
+title: Runtime Features
+category: runtime
+tags: [runtime, design]
+order: 4
+---
+
+# Runtime Features
 This document contains a detailed specification of Enso's runtime. It includes
 a description of the technologies on which it is built, as well as the features
 and functionality that it is required to support. In addition, the document aims

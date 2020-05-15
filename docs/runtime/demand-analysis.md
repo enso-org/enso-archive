@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Demand Analysis
+category: runtime
+tags: [runtime, demand-analysis, execution]
+order: 2
+---
+
 # Demand Analysis
 Demand analysis is the process of deciding when to compute the value of a
 suspended computation in a language which supports suspended computation.

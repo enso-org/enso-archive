@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Evaluation Semantics in Enso
+category: semantics
+tags: [semantics, evaluation, suspension]
+order: 5
+---
+
 # Evaluation Semantics in Enso
 Enso's evaluation semantics can be succinctly described as 'strict, but with
 optional laziness'. By default, expressions in Enso are evaluated strictly, but

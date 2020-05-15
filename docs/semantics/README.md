@@ -1,3 +1,11 @@
+---
+layout: section-summary
+title: Enso's Semantics
+category: semantics
+tags: [semantics, readme]
+order: 0
+---
+
 # Enso's Semantics
 Much like we have specifications for the [syntax](../syntax/README.md) and the
 [type system](../types/README.md) in Enso, we also need a specification of the

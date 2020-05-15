@@ -1,4 +1,12 @@
-# Enso's Errors
+---
+layout: developer-doc
+title: Errors
+category: semantics
+tags: [semantics, errors, runtime]
+order: 4
+---
+
+# Errors
 Due to its hybrid nature, Enso supports two main exception systems that help
 users to deal with errors at runtime in the language.
 

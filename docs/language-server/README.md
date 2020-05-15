@@ -1,5 +1,5 @@
 ---
-layout: developer-doc
+layout: section-summary
 title: Language Server Documentation
 category: language-server
 tags: [language-server, readme]

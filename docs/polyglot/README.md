@@ -1,5 +1,5 @@
 ---
-layout: developer-doc
+layout: section-summary
 title: Enso Polyglot Support
 category: polyglot
 tags: [polyglot, readme]

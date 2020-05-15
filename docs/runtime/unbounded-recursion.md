@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Unbounded Recursion
+category: runtime
+tags: [runtime, recursion, execution]
+order: 5
+---
+
 # Unbounded Recursion
 The JVM (and hence, GraalVM) do not have support for segmented stacks, and hence
 do not allow for computation of unbounded recursion - if you make too many

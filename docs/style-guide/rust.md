@@ -1,3 +1,11 @@
+---
+layout: style-guide
+title: Rust Style Guide
+category: style-guide
+tags: [style-guide]
+order: 3
+---
+
 # Rust Style Guide
 Like many style guides, this Rust style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
@@ -19,6 +27,7 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
   - [Spacing](#spacing)
   - [Impl Definitions](#impl-definitions)
   - [Getters and Setters](#getters-and-setters)
+  - [Trait Exports](#trait-exports)
 - [Naming](#naming)
 - [Package Structure and Naming](#package-structure-and-naming)
   - [The Public API](#the-public-api)

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Dispatch
+category: semantics
+tags: [semantics, dispatch, runtime]
+order: 3
+---
+
 # Dispatch
 Enso has support for functions that are both statically and dynamically
 dispatched. We call the first ones _functions_, while the latter are referred to

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Function Calling Flow
+category: runtime
+tags: [runtime, execution, interpreter]
+order: 3
+---
+
 # Function Calling Flow
 With Enso being a functional language, it is crucial for function calls to be
 efficient and easily inlined. At the same time, the logic of calling functions

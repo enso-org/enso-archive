@@ -1,3 +1,11 @@
+---
+layout: style-guide
+title: Java Style Guide
+category: style-guide
+tags: [style-guide]
+order: 2
+---
+
 # Java Style Guide
 Like many style guides, this Java style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across

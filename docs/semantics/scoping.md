@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Scoping Rules
+category: semantics
+tags: [semantics, scoping]
+order: 7
+---
+
 # Scoping Rules
 Enso's scoping rules should be fairly familiar to those coming from other
 languages that are immutable (or make heavy use of immutability). In essence,
@@ -8,10 +16,10 @@ scopes.
 
 - [Scopes](#scopes)
 - [Introducing New Scopes](#introducing-new-scopes)
-    - [Scoping of Type Signatures](#scoping-of-type-signatures)
+  - [Scoping of Type Signatures](#scoping-of-type-signatures)
 - [Implementation Notes](#implementation-notes)
-    - [Function Call Arguments](#function-call-arguments)
-    - [Collapsing Scopes](#collapsing-scopes)
+  - [Function Call Arguments](#function-call-arguments)
+  - [Collapsing Scopes](#collapsing-scopes)
 
 <!-- /MarkdownTOC -->
 

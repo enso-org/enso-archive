@@ -1,3 +1,11 @@
+---
+layout: style-guide
+title: Haskell Style Guide
+category: style-guide
+tags: [style-guide]
+order: 4
+---
+
 # Haskell Style Guide
 Like many style guides, this Haskell style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across

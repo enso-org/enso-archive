@@ -1,3 +1,11 @@
+---
+layout: section-summary
+title: Enso Runtime
+category: runtime
+tags: [runtime, readme]
+order: 0
+---
+
 # Enso Runtime
 The Enso runtime refers to both the compiler and the optimising JIT runtime for
 Enso. While this might seem like a strange choice, it makes sense internally as

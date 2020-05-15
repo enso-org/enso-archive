@@ -1,3 +1,11 @@
+---
+layout: style-guide
+title: Scala Style Guide
+category: style-guide
+tags: [style-guide]
+order: 1
+---
+
 # Scala Style Guide
 Like many style guides, this Scala style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Contributing to Enso
+category: summary
+tags: [summary, contributing]
+order: 2
+---
+
 # Contributing to Enso
 Thank you for your interest in contributing to Enso! We believe that only
 through community involvement can Enso be the best it can be! There are a whole

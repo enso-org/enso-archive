@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Bindings
+category: semantics
+tags: [semantics, bindings]
+order: 1
+---
+
 # Bindings
 A "binding" is a portion of and Enso program that creates a new name and binds
 a value to that name.

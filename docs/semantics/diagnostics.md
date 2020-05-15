@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Diagnostics
+category: semantics
+tags: [semantics, diagnostics, runtime]
+order: 2
+---
+
 # Diagnostics
 Due to the highly interactive and always-online nature of a running Enso
 program, it is very important that compile diagnostics (such as lints, errors,

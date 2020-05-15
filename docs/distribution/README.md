@@ -1,5 +1,5 @@
 ---
-layout: developer-doc
+layout: section-summary
 title: Enso Distribution
 category: distribution
 tags: [distribution, readme]

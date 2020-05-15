@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Security Policy
+category: summary
+tags: [summary, security, vulnerability, report]
+order: 4
+---
+
 # Security Policy
 This document outlines the security policy for Enso and its libraries.
 

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Developer Documentation
+category: summary
+tags: [summary, design]
+order: 1
+---
+
 # Enso: Simplicity and Correctness
 Enso is an award-winning, general-purpose, purely functional programming
 language with equivalent, first-class visual and textual representations and a
