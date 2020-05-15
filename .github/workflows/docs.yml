@@ -1,0 +1,31 @@
+name: Enso dev docs
+
+on:
+  push:
+    branches: 
+      - master
+    paths:
+      - 'docs/**'
+    
+jobs:
+  checkout:
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: set identity email
+      run: git config --global user.email "actions@github.com"
+    - name: set identity name
+      run: git config --global user.name "GitHub Actions"
+    - name: Fetch
+      run: git fetch
+    - name: Checkout gh-pages
+      run: git checkout gh-pages 
+    - name: Checkout docs in master
+      run: git checkout master -- docs
+    - name: Stage changed files
+      run: git add . 
+    - name: Commit changes
+      run: git commit -m "Updating docs"
+    - name: Push to gh-pages
+      run: git push origin gh-pages
+    
