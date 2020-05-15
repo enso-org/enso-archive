@@ -626,3 +626,18 @@ object Runtime {
   }
 
 }
+
+//HashSet(
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(7b1d56b4-b0c5-4763-9b8c-328d5295e0d8,Some(Number),Some(6),None))))),
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(2b8df57c-5c59-425a-bedf-48b27ed6c2a9,Some(Unit),Some(Unit),None))))),
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(0a393fdd-a7d9-4408-a7f9-9f9d0256754a,Some(Number),Some(6),None))))),
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(58e0e982-82f7-4d79-a029-7028af9692bb,None,Some(UnresolvedSymbol<foo>),None))))),
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(3e4c7015-71ba-42c5-b7c2-d4b8a9223869,Some(Number),Some(5),None)))))
+//)
+//HashSet(
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(cbd76183-e7a9-4f72-9ea1-cd67c9c984e1,Some(Number),Some(45),Some(MethodPointer(/tmp/enso-test-packages3419806637232368383/src/Main.enso,Number,foo))))))),
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(0a393fdd-a7d9-4408-a7f9-9f9d0256754a,Some(Number),Some(6),None))))),
+//  Some(Response(Some(c77821ff-2bfe-46f8-9011-5e854f788384),PushContextResponse(bd74771d-5633-446f-9bdc-0c0e3e4dba44))),
+//  None,
+//  Some(Response(None,ExpressionValuesComputed(bd74771d-5633-446f-9bdc-0c0e3e4dba44,Vector(ExpressionValueUpdate(4e783b9b-fc94-40b2-afab-62b3e08669cb,Some(Number),Some(50),None)))))
+//)

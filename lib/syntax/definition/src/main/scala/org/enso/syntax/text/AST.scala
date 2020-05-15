@@ -281,7 +281,7 @@ object Shape extends ShapeImplicit {
   final case class Infix[T](
     larg: T,
     loff: Int,
-    opr: AST.Opr,
+    opr: T,
     roff: Int,
     rarg: T
   ) extends App[T]
@@ -722,8 +722,10 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[Infix[T]] =
       t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] = t => {
-      val rargIndex = Index(t.larg.span + t.loff + t.opr.span + t.roff)
-      t.copy(larg = (Index.Start, t.larg), rarg = (rargIndex, t.rarg))
+      val larg = Index()                                           -> t.larg
+      val opr  = Index(t.larg.span + t.loff)                       -> t.opr
+      val rarg = Index(t.larg.span + t.loff + t.opr.span + t.roff) -> t.rarg
+      t.copy(larg = larg, opr = opr, rarg = rarg)
     }
     implicit def span[T: HasSpan]: HasSpan[Infix[T]] =
       t => t.larg.span + t.loff + t.opr.span + t.roff + t.rarg.span

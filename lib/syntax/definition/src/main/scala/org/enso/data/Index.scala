@@ -17,4 +17,6 @@ case class Index(value: Int) extends AnyVal with Ordered[Index] {
 
 object Index {
   val Start = Index(0)
+
+  def apply(): Index = Index(0)
 }
