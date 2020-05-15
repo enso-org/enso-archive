@@ -38,7 +38,7 @@ jobs:
       - name: Cancel Stale Runs
         uses: khan/pull-request-workflow-cancel@1.0.0
         with:
-          workflows: "ci.yml"
+          workflows: "ci.yaml"
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
       - uses: actions/checkout@v2
@@ -112,7 +112,7 @@ jobs:
       - name: Cancel Stale Runs
         uses: khan/pull-request-workflow-cancel@1.0.0
         with:
-          workflows: "ci.yml"
+          workflows: "ci.yaml"
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
       - name: Checkout (PR)
