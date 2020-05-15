@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Errors
+category: types
+tags: [types, errors]
+order: 12
+---
+
 # Errors
 Enso supports two notions of errors. One is the standard asynchronous exceptions
 model, while the other is a theory of 'broken values' that propagate through

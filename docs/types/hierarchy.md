@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: The Enso Type Hierarchy
+category: types
+tags: [types, hierarchy, typeset, atom]
+order: 2
+---
+
 # The Enso Type Hierarchy
 Enso is a statically typed language based upon a theory of set-based typing,
 what we call `typesets`. This is a novel approach, and it is key to our intent

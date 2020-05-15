@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Defining Functions
+category: syntax
+tags: [syntax, functions]
+order: 9
+---
+
 # Defining Functions
 Enso is a purely-functional programming language. As a result it has support for
 [first-class and higher-order functions](https://en.wikipedia.org/wiki/Functional_programming#First-class_and_higher-order_functions),

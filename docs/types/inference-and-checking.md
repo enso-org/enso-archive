@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Inference and Checking
+category: types
+tags: [types, inference, checking, compiler]
+order: 13
+---
+
 # Inference and Checking
 As a statically-typed language, Enso is built with a sophisticated type checker
 capable of reasoning about a fully dependently-typed system. However, a type

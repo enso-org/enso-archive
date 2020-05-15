@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Automated Parallelism Analysis
+category: types
+tags: [types, parallelism]
+order: 10
+---
+
 # Automated Parallelism Analysis
 The nature of Enso's type system provides the compiler with a significant
 amount of information about the program as it runs. This information can be

@@ -1,4 +1,12 @@
-# Enso Function Types
+---
+layout: developer-doc
+title: Function Types
+category: types
+tags: [types, functions]
+order: 3
+---
+
+# Function Types
 As a functional programming language, the type of functions in Enso (`->`) is
 key. There are a few things that should be noted about functions in Enso.
 

@@ -1,3 +1,11 @@
+---
+layout: section-summary
+title: Enso's Syntax
+category: syntax
+tags: [syntax, readme]
+order: 0
+---
+
 # Enso's Syntax
 When working with a programming language, the syntax is the first thing that a
 user encounters. This makes it _utterly integral_ to how users experience the

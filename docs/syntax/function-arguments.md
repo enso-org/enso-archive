@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Function Arguments
+category: syntax
+tags: [syntax, functions]
+order: 10
+---
+
 # Function Arguments
 One of the biggest usability innovations of Enso is the set of argument types
 that it supports. The combination of named and defaulted arguments with a

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Projections and Field Access
+category: syntax
+tags: [syntax, projections, field-access, pattern-matching]
+order: 11
+---
+
 # Projections and Field Access
 Enso provides multiple ways for users to access data from their types. It has
 the old functional stalwart of pattern matching, but it also has an inbuilt
@@ -6,7 +14,7 @@ notion of accessors based on lenses (field projections).
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Pattern Matching](#pattern-matching)
-    - [The Underscore in Pattern Matching](#the-underscore-in-pattern-matching)
+  - [The Underscore in Pattern Matching](#the-underscore-in-pattern-matching)
 - [Projections](#projections)
 
 <!-- /MarkdownTOC -->

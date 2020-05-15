@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Top-Level Syntax
+category: syntax
+tags: [syntax, top-level, file]
+order: 8
+---
+
 # Enso Top-Level Syntax
 Like almost all statically-typed programming languages, the top-level of an Enso
 file is non-executable. The top level may contain the following constructs:

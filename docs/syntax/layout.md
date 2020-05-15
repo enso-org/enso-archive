@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Layout Rules
+category: syntax
+tags: [syntax, layout]
+order: 3
+---
+
 # Layout Rules
 Enso is a layout-aware programming language, in that layout rules are used to
 determine code structure. The layout rules in Enso are intended to provide for

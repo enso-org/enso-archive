@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Monadic Contexts
+category: types
+tags: [types, context, monad, effect]
+order: 8
+---
+
 # Monadic Contexts
 Coming from a Haskell background, we have found that Monads provide a great
 abstraction with which to reason about program behaviour, but they have some
@@ -17,6 +25,8 @@ the compiler, and hence can be automatically lifted to aid usability.
 > - Contexts (e.g. IO) are represented using `T in IO`. Multiple contexts are
 >   combined as standard `(IO | State Int)`, and it is written the same in arg
 >   position.
+> - Do we definitely want to use monads, or can we use arrows or other
+>   interpreter-based effects systems? These may aid with parallelism analysis.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

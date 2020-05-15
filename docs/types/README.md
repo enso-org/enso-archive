@@ -1,3 +1,11 @@
+---
+layout: section-summary
+title: Enso's Type System
+category: types
+tags: [types, readme]
+order: 0
+---
+
 # Enso's Type System
 On the spectrum of programming type systems ranging from dynamically typed to
 statically typed, one likes to think that there is a happy medium between the

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: References
+category: types
+tags: [types, references]
+order: 15
+---
+
 # References
 This file contains a variety of useful references for those wanting to 
 understand the concepts and research that underlie Enso's type system and type

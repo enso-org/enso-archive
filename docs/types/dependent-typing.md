@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Dependent Typing
+category: types
+tags: [types, inference, checking, dependent, dependency]
+order: 14
+---
+
 # Dependent Typing
 Enso is a [dependently typed](https://en.wikipedia.org/wiki/Dependent_type)
 programming language. This means that types are first-class values in the

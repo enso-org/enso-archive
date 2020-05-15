@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: The Enso Macro Syntax
+category: syntax
+tags: [syntax, macro]
+order: 7
+---
+
 # The Enso Macro Syntax
 Enso provides a macro system that allows users to perform AST to AST
 transformations on the provided pieces of code. While many languages' macros

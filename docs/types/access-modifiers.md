@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Access Modifiers
+category: types
+tags: [types, access-modifiers]
+order: 4
+---
+
 # Access Modifiers
 While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should

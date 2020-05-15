@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Naming
+category: syntax
+tags: [syntax, naming]
+order: 2
+---
+
 # Naming
 This file describes the syntax for naming language constructs in Enso, as well
 as the various rules that names follow.

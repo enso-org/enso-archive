@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Literals
+category: syntax
+tags: [syntax, literals]
+order: 4
+---
+
 # Literals
 Enso supports a small set of literals that allow the expression of some common
 types in literal form in the source code.
@@ -6,8 +14,8 @@ types in literal form in the source code.
 
 - [Numeric Literals](#numeric-literals)
 - [Text Literals](#text-literals)
-    - [Inline Text Literals](#inline-text-literals)
-    - [Text Block Literals](#text-block-literals)
+  - [Inline Text Literals](#inline-text-literals)
+  - [Text Block Literals](#text-block-literals)
 - [Vector Literals](#vector-literals)
 
 <!-- /MarkdownTOC -->

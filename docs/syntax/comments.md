@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Comments
+category: syntax
+tags: [syntax, comments]
+order: 12
+---
+
 # Comments
 Enso supports a variety of types of comments:
 
@@ -15,12 +23,12 @@ Enso supports a variety of types of comments:
 
 - [Disable Comments](#disable-comments)
 - [Documentation Comments](#documentation-comments)
-    - [Tags](#tags)
-    - [Sections](#sections)
-    - [Links](#links)
-    - [Lists](#lists)
-    - [Code](#code)
-    - [Text Formatting](#text-formatting)
+  - [Tags](#tags)
+  - [Sections](#sections)
+  - [Links](#links)
+  - [Lists](#lists)
+  - [Code](#code)
+  - [Text Formatting](#text-formatting)
 
 <!-- /MarkdownTOC -->
 

@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Types and Type Signatures
+category: syntax
+tags: [syntax, types]
+order: 6
+---
+
 # Types and Type Signatures
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
@@ -20,7 +28,7 @@ is a useful way of thinking about things when discussing type signatures.
 - [Type Signatures](#type-signatures)
 - [Operations on Types](#operations-on-types)
 - [Type Definitions](#type-definitions)
-    - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
+  - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
 
 <!-- /MarkdownTOC -->
 

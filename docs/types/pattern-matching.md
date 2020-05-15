@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Pattern Matching
+category: types
+tags: [types, pattern-matching]
+order: 5
+---
+
 # Pattern Matching
 Pattern matching in Enso works similarly to as you would expect in various other
 functional languages. Typing information is _always_ refined in the branches of

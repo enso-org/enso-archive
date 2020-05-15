@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Modules
+category: types
+tags: [types, modules]
+order: 7
+---
+
 # Modules
 With such a flexible type system in Enso, the need for making modules
 first-class is obviated. Instead, a module is very much its own entity, being

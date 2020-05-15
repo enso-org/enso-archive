@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Dynamic Dispatch
+category: types
+tags: [types, dispatch]
+order: 6
+---
+
 # Dynamic Dispatch
 Enso is a language that supports pervasive dynamic dispatch. This is a big boon
 for usability, as users can write very flexible code that still plays nicely

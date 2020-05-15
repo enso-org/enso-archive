@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Goals for the Enso Type System
+category: types
+tags: [types, goals, design]
+order: 1
+---
+
 # Goals for the Enso Type System
 In our design for Enso, we firmly believe that the type system should be able to
 aid the user in writing correct programs, far and above anything else. However,

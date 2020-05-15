@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Assignment Expressions
+category: syntax
+tags: [syntax, assignment]
+order: 5
+---
+
 # Assignment Expressions
 Assignment syntax in Enso is fairly magical, given that it is the language's
 syntax for monadic bind.
@@ -8,8 +16,8 @@ syntax for monadic bind.
 - [Function Definitions](#function-definitions)
 - [Pattern Match Bindings](#pattern-match-bindings)
 - [Extension Methods](#extension-methods)
-    - [Method Syntax](#method-syntax)
-    - [Function Syntax](#function-syntax)
+  - [Method Syntax](#method-syntax)
+  - [Function Syntax](#function-syntax)
 - [Top-Level Assignments](#top-level-assignments)
 
 <!-- /MarkdownTOC -->

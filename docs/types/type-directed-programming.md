@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Type-Directed Programming
+category: types
+tags: [types, tooling]
+order: 11
+---
+
 # Type-Directed Programming
 When you have a language with as powerful a type system as Enso, you can
 leverage the type system to provide users with tools to write their programs
