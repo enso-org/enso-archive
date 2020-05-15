@@ -19,8 +19,8 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi.{
-  RedirectStdOut,
-  StdOutAppended
+  RedirectStandardOutput,
+  StandardOutputAppended
 }
 import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
@@ -158,10 +158,10 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
-    case InputOutputProtocol.OutputAppended(charSequence, _) =>
+    case InputOutputProtocol.OutputAppended(output, _) =>
       webActor ! Notification(
-        StdOutAppended,
-        StdOutAppended.Params(charSequence)
+        StandardOutputAppended,
+        StandardOutputAppended.Params(output)
       )
 
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
@@ -222,7 +222,7 @@ class JsonConnectionController(
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       ModifyVisualisation -> ModifyVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      RedirectStdOut -> RedirectStdOutHandler
+      RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId)
     )
 

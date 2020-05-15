@@ -131,7 +131,7 @@ class MainModule(
   lazy val stdOutController =
     system.actorOf(
       OutputRedirectionController
-        .props(stdOut, OutputKind.StdOut, sessionRouter),
+        .props(stdOut, OutputKind.StandardOutput, sessionRouter),
       "std-out-controller"
     )
 

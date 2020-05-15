@@ -4,8 +4,8 @@ sealed trait OutputKind
 
 object OutputKind {
 
-  case object StdOut extends OutputKind
+  case object StandardOutput extends OutputKind
 
-  case object StdErr extends OutputKind
+  case object StandardError extends OutputKind
 
 }

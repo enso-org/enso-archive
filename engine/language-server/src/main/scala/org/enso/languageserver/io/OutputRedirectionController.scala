@@ -9,7 +9,7 @@ import org.enso.languageserver.io.InputOutputProtocol.{
   SuppressOutput
 }
 import org.enso.languageserver.io.ObservableCharOutput.Subscriber
-import org.enso.languageserver.io.OutputRedirectionController.CharSequenceAppended
+import org.enso.languageserver.io.OutputRedirectionController.OutputAppended
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -30,11 +30,11 @@ class OutputRedirectionController(
   override def receive: Receive = running()
 
   private def running(subscribers: Set[ClientId] = Set.empty): Receive = {
-    case CharSequenceAppended(charSequence) =>
+    case OutputRedirectionController.OutputAppended(output) =>
       subscribers foreach { subscriber =>
         sessionRouter ! DeliverToJsonController(
           subscriber,
-          OutputAppended(charSequence, outputKind)
+          OutputAppended(output, outputKind)
         )
       }
 
@@ -48,8 +48,8 @@ class OutputRedirectionController(
       context.become(running(subscribers - session.clientId))
   }
 
-  override def update(charSequence: String): Unit =
-    self ! CharSequenceAppended(charSequence)
+  override def update(output: String): Unit =
+    self ! OutputAppended(output)
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     super.preRestart(reason, message)
@@ -64,7 +64,7 @@ class OutputRedirectionController(
 
 object OutputRedirectionController {
 
-  private case class CharSequenceAppended(charSequence: String)
+  private case class OutputAppended(output: String)
 
   def props(
     stdOut: ObservableCharOutput,

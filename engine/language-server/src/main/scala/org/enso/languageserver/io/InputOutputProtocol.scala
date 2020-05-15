@@ -8,6 +8,6 @@ object InputOutputProtocol {
 
   case class SuppressOutput(clientId: ClientId)
 
-  case class OutputAppended(charSequence: String, outputKind: OutputKind)
+  case class OutputAppended(output: String, outputKind: OutputKind)
 
 }

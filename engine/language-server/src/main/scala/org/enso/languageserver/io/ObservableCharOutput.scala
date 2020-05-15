@@ -42,7 +42,7 @@ object ObservableCharOutput {
 
   trait Subscriber {
 
-    def update(charSequence: String): Unit
+    def update(output: String): Unit
 
   }
 
