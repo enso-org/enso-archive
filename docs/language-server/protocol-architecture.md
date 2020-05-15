@@ -634,11 +634,11 @@ process for spawning and connecting to an engine instance is as follows:
     be used to identify the client while it is connected.
 3.  **Protocol Connection Initialisation:** The client performs the init for the
     textual protocol connection, passing its client identifier as it does so.
-    See [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    See [`session/initProtocolConnection`](./protocol-language-server#sessioninitprotocolconnection)
     for more information.
 4.  **Data Connection Initialisation:** The client performs the init for the
     data connection, passing its client identifier as it does so. See
-    [`session/initDataConnection`](#sessioninitdataconnection) below more
+    [`session/initDataConnection`](protocol-language-server#sessioninitdataconnection) below more
     information.
 
 ## Service Connection Teardown
