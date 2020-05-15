@@ -19,6 +19,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi.{
+  FeedStandardInput,
   RedirectStandardOutput,
   StandardOutputAppended
 }
@@ -26,7 +27,10 @@ import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
-import org.enso.languageserver.requesthandler.io.RedirectStdOutHandler
+import org.enso.languageserver.requesthandler.io.{
+  FeedStandardInputHandler,
+  RedirectStdOutHandler
+}
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
@@ -72,6 +76,7 @@ class JsonConnectionController(
   val fileManager: ActorRef,
   val contextRegistry: ActorRef,
   val stdOutController: ActorRef,
+  val stdInController: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -223,7 +228,8 @@ class JsonConnectionController(
       ModifyVisualisation -> ModifyVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
-        .props(stdOutController, rpcSession.clientId)
+        .props(stdOutController, rpcSession.clientId),
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
     )
 
 }
@@ -248,6 +254,7 @@ object JsonConnectionController {
     fileManager: ActorRef,
     contextRegistry: ActorRef,
     stdOutController: ActorRef,
+    stdInController: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -258,6 +265,7 @@ object JsonConnectionController {
         fileManager,
         contextRegistry,
         stdOutController,
+        stdInController,
         requestTimeout
       )
     )

@@ -38,4 +38,16 @@ object InputOutputApi {
     }
   }
 
+  case object FeedStandardInput extends Method("io/feedStandardInput") {
+
+    case class Params(input: String, isLineTerminated: Boolean)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = FeedStandardInput.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
 }

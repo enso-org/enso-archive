@@ -16,6 +16,7 @@ class RedirectStdOutHandler(stdOutController: ActorRef, clientId: ClientId)
     case Request(RedirectStandardOutput, id, _) =>
       stdOutController ! InputOutputProtocol.RedirectOutput(clientId)
       sender() ! ResponseResult(RedirectStandardOutput, id, Unused)
+      context.stop(self)
   }
 
 }

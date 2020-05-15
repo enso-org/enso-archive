@@ -10,4 +10,6 @@ object InputOutputProtocol {
 
   case class OutputAppended(output: String, outputKind: OutputKind)
 
+  case class FeedStandardInput(input: String, isLineTerminated: Boolean)
+
 }

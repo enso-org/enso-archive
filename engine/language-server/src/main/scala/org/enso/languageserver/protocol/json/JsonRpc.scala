@@ -10,6 +10,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi.{
+  FeedStandardInput,
   RedirectStandardOutput,
   StandardOutputAppended,
   SuppressStandardOutput
@@ -46,6 +47,7 @@ object JsonRpc {
     .registerRequest(InfoFile)
     .registerRequest(RedirectStandardOutput)
     .registerRequest(SuppressStandardOutput)
+    .registerRequest(FeedStandardInput)
     .registerRequest(ExecutionContextCreate)
     .registerRequest(ExecutionContextDestroy)
     .registerRequest(ExecutionContextPush)

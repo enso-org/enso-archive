@@ -1,6 +1,6 @@
 package org.enso.languageserver.boot
 
-import java.io.File
+import java.io.{File, PipedInputStream, PipedOutputStream, PrintStream}
 import java.net.URI
 
 import akka.actor.ActorSystem
@@ -16,6 +16,7 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.io.{
+  InputRedirectionController,
   ObservableCharOutput,
   OutputKind,
   OutputRedirectionController
@@ -108,6 +109,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val stdOut = new ObservableCharOutput
 
+  val inOut   = new PipedOutputStream()
+  val pipeEnd = new PrintStream(inOut, true)
+  val stdIn   = new PipedInputStream(inOut)
+
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -115,6 +120,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
     .out(stdOut)
+    .in(stdIn)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -135,12 +141,19 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "std-out-controller"
     )
 
+  val stdInController =
+    system.actorOf(
+      InputRedirectionController.props(pipeEnd),
+      "std-in-controller"
+    )
+
   lazy val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,
     contextRegistry,
-    stdOutController
+    stdOutController,
+    stdInController
   )
 
   lazy val jsonRpcServer =
