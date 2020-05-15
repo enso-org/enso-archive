@@ -35,12 +35,12 @@ jobs:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
-      # - name: Cancel Stale Runs
-        # uses: khan/pull-request-workflow-cancel@1.0.0
-        # with:
-          # workflows: "ci.yaml"
-        # env:
-          # GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Cancel Stale Runs
+        uses: khan/pull-request-workflow-cancel@1.0.0
+        with:
+          workflows: "ci.yaml"
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
       - uses: actions/checkout@v2
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
@@ -109,12 +109,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      # - name: Cancel Stale Runs
-        # uses: khan/pull-request-workflow-cancel@1.0.0
-        # with:
-          # workflows: "ci.yaml"
-        # env:
-          # GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Cancel Stale Runs
+        uses: khan/pull-request-workflow-cancel@1.0.0
+        with:
+          workflows: "ci.yaml"
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
       - name: Checkout (PR)
         uses: actions/checkout@v2
         if: github.event_name == 'pull_request'
