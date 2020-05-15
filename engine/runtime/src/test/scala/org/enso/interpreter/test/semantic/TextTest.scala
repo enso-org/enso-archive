@@ -64,4 +64,17 @@ class TextTest extends InterpreterTest {
     eval(code)
     consumeOut shouldEqual List("\"Grzegorz Brzeczyszczykiewicz\"")
   }
+
+  "Raw text literals" should "be able to be printed to standard error" in {
+    val errString = "\"My error string\""
+    val resultStr = errString.drop(1).dropRight(1)
+
+    val code =
+      s"""
+        |main = IO.print_err $errString
+        |""".stripMargin
+
+    eval(code)
+    consumeErr shouldEqual List(resultStr)
+  }
 }

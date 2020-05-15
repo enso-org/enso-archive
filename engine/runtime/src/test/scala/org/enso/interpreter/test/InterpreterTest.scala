@@ -73,11 +73,13 @@ trait InterpreterRunner {
       )
   }
   val output = new ByteArrayOutputStream()
+  val err = new ByteArrayOutputStream()
   val ctx = Context
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)
     .allowAllAccess(true)
     .out(output)
+    .err(err)
     .build()
   lazy val executionContext = new PolyglotContext(ctx)
 
@@ -125,6 +127,12 @@ trait InterpreterRunner {
       val main = getMain(code)
       main.mainFunction.execute(main.mainConstructor)
     }
+  }
+
+  def consumeErr: List[String] = {
+    val result = err.toString
+    err.reset()
+    result.linesIterator.toList
   }
 
   def consumeOut: List[String] = {
