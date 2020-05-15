@@ -173,6 +173,10 @@ object Shape extends ShapeImplicit {
   import HasSpan.implicits._
   import AST.StreamOf
 
+
+  /// Utils ///
+  val newline = R + '\n'
+
   /////////////////
   //// Invalid ////
   /////////////////
@@ -542,10 +546,10 @@ object Shape extends ShapeImplicit {
 
   object TextBlock extends IntermediateTrait[TextBlock] {
     def lineRepr[T: Repr](off: Int, l: TextBlockLine[SegmentFmt[T]]): Builder =
-      R + l.empty_lines.map(Block.newline + _) + Block.newline + off + l.text
+      R + l.empty_lines.map(newline + _) + newline + off + l.text
     def lineSpan[T: HasSpan](off: Int, l: TextBlockLine[SegmentFmt[T]]): Int = {
-      val emptyLinesSpan = l.empty_lines.map(Block.newline.span + _).sum
-      emptyLinesSpan + Block.newline.span + off + l.text.span()
+      val emptyLinesSpan = l.empty_lines.map(newline.span + _).sum
+      emptyLinesSpan + newline.span + off + l.text.span()
     }
 
     implicit def ftor: Functor[TextBlock]  = semi.functor
@@ -722,7 +726,7 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[Infix[T]] =
       t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] = t => {
-      val larg = Index()                                           -> t.larg
+      val larg = Index.Start                                       -> t.larg
       val opr  = Index(t.larg.span + t.loff)                       -> t.opr
       val rarg = Index(t.larg.span + t.loff + t.opr.span + t.roff) -> t.rarg
       t.copy(larg = larg, opr = opr, rarg = rarg)
@@ -805,8 +809,6 @@ object Shape extends ShapeImplicit {
       headSpan + emptyLinesSpan + firstLineSpan + linesSpan
     }
 
-    /// Utils ///
-    val newline = R + '\n'
 
     /// Block type ///
     sealed trait Type
@@ -833,11 +835,20 @@ object Shape extends ShapeImplicit {
   object Module {
     implicit def ftor: Functor[Module]         = semi.functor
     implicit def fold: Foldable[Module]        = semi.foldable
-    implicit def ozip[T]: OffsetZip[Module, T] = _.map(Index.Start -> _)
+    implicit def ozip[T: HasSpan]: OffsetZip[Module, T] = t => {
+      var index = 0
+      val lines = t.lines.map { line =>
+        val elem = line.elem.map((Index(index), _))
+        index += line.span + newline.span
+        line.copy(elem = elem)
+      }
+      t.copy(lines = lines)
+    }
+
     implicit def repr[T: Repr]: Repr[Module[T]] =
-      t => R + t.lines.head + t.lines.tail.map(Block.newline + _)
+      t => R + t.lines.head + t.lines.tail.map(newline + _)
     implicit def span[T: HasSpan]: HasSpan[Module[T]] =
-      t => t.lines.span() + (t.lines.size - 1) * Block.newline.span
+      t => t.lines.span() + (t.lines.size - 1) * newline.span
   }
 
   object Macro extends IntermediateTrait[Macro] {
@@ -935,9 +946,8 @@ object Shape extends ShapeImplicit {
     implicit def ftor[T]: Functor[Documented]  = semi.functor
     implicit def fold[T]: Foldable[Documented] = semi.foldable
     implicit def repr[T: Repr]: Repr[Documented[T]] = t => {
-      val symbolRepr = R + symbol + symbol
-      val betweenDocAstRepr = R + Block.newline +
-        Block.newline.build * t.emptyLinesBetween
+      val symbolRepr        = R + symbol + symbol
+      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
       R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
     }
     implicit def offsetZip[T]: OffsetZip[Documented, T] =
