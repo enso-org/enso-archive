@@ -2,9 +2,9 @@ name: Enso CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, release/* ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, release/* ]
 
 env:
   # Please ensure that this is in sync with graalAPIVersion in build.sbt
