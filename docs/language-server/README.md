@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Language Server Documentation
+category: language-server
+tags: [language-server, readme]
+order: 0
+---
+
 # Language Server Documentation
 The Enso Language Server is responsible for providing language services to the
 Enso IDE (and other clients). This mainly involves speaking the Enso protocol

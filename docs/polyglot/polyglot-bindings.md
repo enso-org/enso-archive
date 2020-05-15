@@ -1,4 +1,12 @@
-# Polyglot Java Semantics
+---
+layout: developer-doc
+title: Polyglot Bindings
+category: polyglot
+tags: [polyglot, bindings, interop]
+order: 1
+---
+
+# Polyglot Bindings
 This document deals with the specification and design for the polyglot interop
 system provided in the Enso runtime. This system allows users to connect Enso to
 other supported programming languages, to both provide access to a wealth of
@@ -17,13 +25,13 @@ main mechanisms:
 
 - [Impedance Mismatch](#impedance-mismatch)
 - [The Polyglot FFI](#the-polyglot-ffi)
-    - [Importing Polyglot Bindings](#importing-polyglot-bindings)
-    - [Using Polyglot Bindings](#using-polyglot-bindings)
-    - [Importing Polyglot Bindings \(Syntax\)](#importing-polyglot-bindings-syntax)
-    - [Using Polyglot Bindings \(Syntax\)](#using-polyglot-bindings-syntax)
-    - [Finding Polyglot Bindings](#finding-polyglot-bindings)
+  - [Importing Polyglot Bindings](#importing-polyglot-bindings)
+  - [Using Polyglot Bindings](#using-polyglot-bindings)
+  - [Importing Polyglot Bindings \(Syntax\)](#importing-polyglot-bindings-syntax)
+  - [Using Polyglot Bindings \(Syntax\)](#using-polyglot-bindings-syntax)
+  - [Finding Polyglot Bindings](#finding-polyglot-bindings)
 - [Embedded Syntax](#embedded-syntax)
-    - [Embedded Syntax Usage \(Syntax\)](#embedded-syntax-usage-syntax)
+  - [Embedded Syntax Usage \(Syntax\)](#embedded-syntax-usage-syntax)
 
 <!-- /MarkdownTOC -->
 

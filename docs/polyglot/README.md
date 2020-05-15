@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Polyglot Support
+category: polyglot
+tags: [polyglot, readme]
+order: 0
+---
+
 # Enso Polyglot Support
 Enso supports robust polyglot interoperation with other programming languages
 that are supported on its platform. This section of the design documentation

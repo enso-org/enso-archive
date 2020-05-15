@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: The Enso Protocol
+category: language-server
+tags: [language-server, protocol, architecture]
+order: 1
+---
+
 # The Enso Protocol
 Enso is a sophisticated language, but in order to provide a great user
 experience to our users we also need the ability to provide great tooling. This

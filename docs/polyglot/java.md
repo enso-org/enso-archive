@@ -1,4 +1,12 @@
-# Polyglot Java Runtime
+---
+layout: developer-doc
+title: Polyglot Java
+category: polyglot
+tags: [polyglot, java]
+order: 3
+---
+
+# Polyglot Java
 This document deals with the implementation of polyglot interoperation with
 Java in the runtime. Please familiarise yourself with the general operation of
 [polyglot bindings](./polyglot-bindings.md).

@@ -3,7 +3,7 @@ layout: developer-doc
 title: Enso Libraries Packaging
 category: distribution
 tags: [packaging, distribution, layout]
-order: 1
+order: 2
 ---
 
 # Enso Libraries Packaging

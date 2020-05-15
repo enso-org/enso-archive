@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: The Enso Distribution
+category: distribution
+tags: [distribution, layout]
+order: 1
+---
+
 # The Enso Distribution
 This document provides a specification of how the Enso distribution should
 be structured and how it should behave.

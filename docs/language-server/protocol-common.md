@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Protocol Common Message Specification
+category: language-server
+tags: [language-server, protocol, specification]
+order: 2
+---
+
 # Enso Protocol Common Message Specification
 This document contains the specification of the Enso protocol messages that are
 common to multiple sub-components of the protocol. 
@@ -9,9 +17,9 @@ transport formats, please look [here](./protocol-architecture).
 
 - [Protocol Message Specification](#protocol-message-specification)
 - [Common Types](#common-types)
-    - [`Path`](#path)
-    - [`IPWithSocket`](#ipwithsocket)
-    - [`EnsoUUID`](#ensouuid)
+  - [`Path`](#path)
+  - [`IPWithSocket`](#ipwithsocket)
+  - [`EnsoUUID`](#ensouuid)
 
 <!-- /MarkdownTOC -->
 

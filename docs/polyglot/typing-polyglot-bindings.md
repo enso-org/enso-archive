@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Typing the Polyglot Bindings
+category: polyglot
+tags: [polyglot, types]
+order: 2
+---
+
 # Typing the Polyglot Bindings
 The polyglot bindings inherently provide a problem for the Enso type system.
 When many of the languages with which we can interoperate are highly dynamic and

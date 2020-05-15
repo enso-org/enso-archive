@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Enso Protocol Project Manager Message Specification
+category: language-server
+tags: [language-server, protocol, specification]
+order: 3
+---
+
 # Enso Protocol Project Manager Message Specification
 This document contains the specification of the Enso protocol messages that
 pertain to the project manager component. Please familiarise yourself with the
@@ -10,25 +18,25 @@ transport formats, please look [here](./protocol-architecture).
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Types](#types)
-    - [`ProjectMetadata`](#projectmetadata)
+  - [`ProjectMetadata`](#projectmetadata)
 - [Project Management Operations](#project-management-operations)
-    - [`project/open`](#projectopen)
-    - [`project/close`](#projectclose)
-    - [`project/listRecent`](#projectlistrecent)
-    - [`project/create`](#projectcreate)
-    - [`project/delete`](#projectdelete)
-    - [`project/listSample`](#projectlistsample)
+  - [`project/open`](#projectopen)
+  - [`project/close`](#projectclose)
+  - [`project/listRecent`](#projectlistrecent)
+  - [`project/create`](#projectcreate)
+  - [`project/delete`](#projectdelete)
+  - [`project/listSample`](#projectlistsample)
 - [Language Server Management](#language-server-management)
 - [Errors](#errors)
-    - [`ProjectNameValidationError`](#projectnamevalidationerror)
-    - [`ProjectDataStoreError`](#projectdatastoreerror)
-    - [`ProjectExistsError`](#projectexistserror)
-    - [`ProjectNotFoundError`](#projectnotfounderror)
-    - [`ProjectOpenError`](#projectopenerror)
-    - [`ProjectCloseError`](#projectcloseerror)
-    - [`ProjectNotOpenError`](#projectnotopenerror)
-    - [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror)
-    - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror)
+  - [`ProjectNameValidationError`](#projectnamevalidationerror)
+  - [`ProjectDataStoreError`](#projectdatastoreerror)
+  - [`ProjectExistsError`](#projectexistserror)
+  - [`ProjectNotFoundError`](#projectnotfounderror)
+  - [`ProjectOpenError`](#projectopenerror)
+  - [`ProjectCloseError`](#projectcloseerror)
+  - [`ProjectNotOpenError`](#projectnotopenerror)
+  - [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror)
+  - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror)
 
 <!-- /MarkdownTOC -->
 
