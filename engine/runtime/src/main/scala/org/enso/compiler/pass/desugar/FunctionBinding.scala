@@ -23,7 +23,7 @@ import scala.annotation.unused
   *
   * It must have the following passes run before it:
   *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - None
   */
 case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
@@ -52,7 +52,7 @@ case object FunctionBinding extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused inlineContext: InlineContext
+    inlineContext: InlineContext
   ): IR.Expression = ir.transformExpressions {
     case IR.Function.Binding(name, args, body, location, canBeTCO, _, _) =>
       if (args.isEmpty) {
@@ -65,9 +65,9 @@ case object FunctionBinding extends IRPass {
           IR.Function.Lambda(List(arg), body, None)
         )
         .asInstanceOf[IR.Function.Lambda]
-        .copy(location = location, canBeTCO = canBeTCO)
+        .copy(canBeTCO = canBeTCO)
 
-      IR.Expression.Binding(name, lambda, None)
+      IR.Expression.Binding(name, lambda, location)
   }
 
   // === Pass Internals =======================================================
@@ -99,7 +99,7 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[IR.Function.Lambda]
           .copy(location = loc, canBeTCO = true)
 
-        Method.Explicit(typeName, methName, newBody, loc)
+        Method.Explicit(typeName, methName, newBody, None)
       case e: Redefined => e
     }
   }

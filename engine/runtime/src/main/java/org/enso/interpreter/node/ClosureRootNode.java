@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * determined by the API provided by Truffle.
  */
 @ReportPolymorphism
-@NodeInfo(shortName = "Closure", description = "A root node for Enso closures")
+@NodeInfo(shortName = "Closure", description = "A root node for Enso closures.")
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
@@ -83,5 +83,10 @@ public class ClosureRootNode extends EnsoRootNode {
   @Override
   public String getQualifiedName() {
     return qualifiedName;
+  }
+
+  @Override
+  protected boolean isInstrumentable() {
+    return true;
   }
 }
