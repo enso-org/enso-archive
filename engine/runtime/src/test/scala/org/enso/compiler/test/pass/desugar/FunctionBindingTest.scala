@@ -72,26 +72,57 @@ class FunctionBindingTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Sugared method definitions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
+    val ir =
+      """
+        |Unit.foo ~a _ (c = 1) = a + c
+        |""".stripMargin.preprocessModule.desugar
+
     "desugar to standard method definitions" in {
-      pending
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
     }
 
-    "have the function arguments in the body function" in {
-      pending
-    }
+    val explicitMethod =
+      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
 
-    "not have the `this` argument attached" in {
-      // This pass runs before GenerateMethodBodies, which is responsible for
-      // prepending `this`.
-      pending
-    }
+    "have the function arguments in the body functions" in {
+      val lambda1 = explicitMethod.body.asInstanceOf[IR.Function.Lambda]
+      val lambda2 = lambda1.body.asInstanceOf[IR.Function.Lambda]
+      val lambda3 = lambda2.body.asInstanceOf[IR.Function.Lambda]
+      val cArg =
+        lambda3.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
 
-    "work properly with complex argument definition types" in {
-      pending
+      lambda1.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .suspended shouldEqual true
+      lambda1.arguments.head.name.name shouldEqual "a"
+      lambda2.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name shouldBe an[IR.Name.Blank]
+      cArg.name.name shouldEqual "c"
+      cArg.defaultValue shouldBe defined
     }
 
     "desugar nested sugared functions" in {
-      pending
+      val ir =
+        """
+          |Foo.bar a =
+          |    f b = b
+          |    f 1
+          |""".stripMargin.preprocessModule.desugar
+
+      val body = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+
+      body.expressions.head shouldBe an[IR.Expression.Binding]
+      val binding = body.expressions.head.asInstanceOf[IR.Expression.Binding]
+
+      binding.expression shouldBe an[IR.Function.Lambda]
     }
   }
 
