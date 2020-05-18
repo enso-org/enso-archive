@@ -48,8 +48,8 @@ class Compiler(
     * they nevertheless exist.
     */
   val compilerPhaseOrdering: List[IRPass] = List(
-    GenerateMethodBodies,
     FunctionBinding,
+    GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
     LambdaShorthandToLambda,

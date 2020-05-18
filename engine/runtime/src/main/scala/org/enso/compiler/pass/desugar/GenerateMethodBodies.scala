@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 /** This pass is responsible for ensuring that method bodies are in the correct
@@ -19,7 +20,7 @@ import org.enso.compiler.pass.IRPass
   *
   * It must have the following passes run before it:
   *
-  * - None
+  * - [[FunctionBinding]]
   */
 case object GenerateMethodBodies extends IRPass {
 
@@ -66,12 +67,10 @@ case object GenerateMethodBodies extends IRPass {
             case expression       => processBodyExpression(expression)
           }
         )
-      case ir: IR.Module.Scope.Definition.Method.Binding =>
-        ir.copy(
-          body = ir.body match {
-            case fun: IR.Function => processBodyFunction(fun)
-            case expression       => processBodyExpression(expression)
-          }
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Method definition sugar should not be present during method body " +
+          "generation."
         )
     }
   }

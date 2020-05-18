@@ -18,8 +18,8 @@ import org.enso.compiler.pass.IRPass
   *
   * It must have the following passes run before it:
   *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
   * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
   * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
   * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
   * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
