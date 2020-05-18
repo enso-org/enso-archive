@@ -5,6 +5,7 @@ import org.enso.interpreter.node.callable.ApplicationNode
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.scope.AssignmentNode
 import org.enso.interpreter.test.InterpreterTest
+import org.enso.polyglot.MethodNames
 
 class FunctionSugarTest extends InterpreterTest {
 
@@ -44,15 +45,21 @@ class FunctionSugarTest extends InterpreterTest {
   }
 
   "Sugared method definitions" should "get the right locations" in
-  withLocationsInstrumenter { instrumenter =>
+  withLocationsInstrumenter { _ =>
     val code =
       """
-        |Unit.foo a b = a * b - a
+        |Test.foo a b = a * b - a
         |
-        |main = Unit.foo 2 3
+        |main = Test.foo 2 3
         |""".stripMargin
 
-    instrumenter.assertNodeExists(1, 24, classOf[ClosureRootNode])
+//    instrumenter.assertNodeExists(1, 25, classOf[ClosureRootNode])
+    val mod = executionContext.evalModule(code, "Test")
+    val tpe = mod.getAssociatedConstructor
+    val method = mod.getMethod(tpe, "foo")
+    method.value.invokeMember(MethodNames.Function.GET_SOURCE_START) shouldEqual 1
+    method.value.invokeMember(MethodNames.Function.GET_SOURCE_LENGTH) shouldEqual 24
+
     eval(code)
   }
 }

@@ -84,9 +84,4 @@ public class ClosureRootNode extends EnsoRootNode {
   public String getQualifiedName() {
     return qualifiedName;
   }
-
-  @Override
-  protected boolean isInstrumentable() {
-    return true;
-  }
 }
