@@ -32,6 +32,8 @@ than having to recompute the entire program.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Cache Candidates](#cache-candidates)
+  - [Initial Cache Candidates](#initial-cache-candidates)
+  - [Further Development of Cache Candidates](#further-development-of-cache-candidates)
 - [Partial-Evaluation and Side-Effects](#partial-evaluation-and-side-effects)
   - [Side Effects in the Initial Version](#side-effects-in-the-initial-version)
   - [In The Future](#in-the-future)
@@ -42,6 +44,15 @@ than having to recompute the entire program.
   - [Identifying Expressions](#identifying-expressions)
   - [Specifying Dataflow](#specifying-dataflow)
 - [Cache Eviction Strategy](#cache-eviction-strategy)
+- [Cache Backend](#cache-backend)
+  - [Initial Implementation of Cache Backend](#initial-implementation-of-cache-backend)
+  - [Further Development of Cache Backend](#further-development-of-cache-backend)
+- [Memory Management](#memory-management)
+  - [Soft References](#soft-references)
+  - [Serialization](#serialization)
+  - [Instrumentation](#instrumentation)
+  - [Manual Memory Management](#manual-memory-management)
+  - [Comparison of Memory Management Approaches](#comparison-of-memory-management-approaches)
 
 <!-- /MarkdownTOC -->
 
@@ -60,15 +71,37 @@ foo a b =
     a.quux d
 ```
 
-The cache is active for the _currently visible scope_ in Enso Studio, so when a
-user enters the function `foo`, the cache stores the intermediate results in
-this function (in this case `c` and `d`), as well as the inputs to the function
-(in this case `a`, and `b`).
+The cache is active for the currently visible scope in Enso Studio, so when a
+user enters the function foo, the cache stores the intermediate results in this
+function (in this case c and d), as well as the inputs to the function (in this
+case a, and b).
 
 All intermediate results and inputs are considered as candidates, though as the
-cache design evolves, the _selected_ candidates may be refined. Once the values
-for each candidate are stored, changes to the code will re-use these cached
-values as much as possible.
+cache design evolves, the selected candidates may be refined. Ultimately we want
+to cache and reuse as much as possible to minimize the computation costs. At the
+same time, we want to limit the memory consumed by the cache.
+
+### Initial Cache Candidates
+Initial version caches only the right-hand side expressions of the
+bindings. This way, we can guarantee that between the executions, the cache
+stays within the memory limit without implementing [Memory
+Management](#memorymanagement), the eviction strategy based on the overall size
+of the cache.
+
+### Further Development of Cache Candidates
+The next step is caching intermediate expressions. With this approach, we need a
+way to control the overall size of the cache because we can no longer guarantee
+the safe memory limits between the two program executions. Consider the example:
+
+```
+a = (computeHugeObject b).size
+```
+
+Here we compute a considerably large object and discard it, saving only a single
+field - its size. Hence if we want to cache the intermediate result of discarded
+`computeHubeObject b` expression, we need to implement the mechanism of tracking
+the overall size of the cache. See [Memory Management](#memorymanagement)
+section.
 
 ## Partial-Evaluation and Side-Effects
 The more theoretically-minded people among those reading this document may
@@ -344,5 +377,100 @@ changed:
 2. If `k` is a dynamic symbol, all expressions that depend on _any instance_ of
    the dynamic symbol are evicted from the cache.
 
-Expressions that have been evicted from the cache subsequently have to be
-recomputed by the runtime.
+Expressions that have been evicted from the cache subsequently have to be recomputed by the runtime.
+
+Cache eviction takes into account the following aspects:
+
+Visualization. In the first place, we should care about nodes that have
+visualization attached in the IDE. Priority. The runtime can assign a score to
+a node, meaning how valuable this node is. Less valuable nodes should be evicted
+first. Computation time. The runtime can calculate the time that node took to
+compute. Less computationally intensive nodes should be evicted first. Memory
+limit. The cache should not exceed the specified memory limit.
+
+## Cache Backend
+The requirements for eviction strategies and memory management should guide the
+exact implementation of the cache.
+
+### Initial Implementation of Cache Backend
+The cache consists of key-value storage and an eviction function. Key-value
+storage can be as simple as a Hash Map with values wrapped into the Soft
+References as a safety measure. Eviction function purges invalidated expressions
+based on the [Cache Eviction Strategy](#cacheevictionstrategy).
+
+### Further Development of Cache Backend
+The backend implementation should be updated according to the changing
+requirements of the runtime cache.For example, to extend the eviction strategy,
+we can add an asynchronous scoring task that computes some properties of stored
+objects (e.g., the size of the object). Those properties can be used in the
+eviction strategy as optional clues, improving the hit ratio.
+
+## Memory Management
+Memory management refers to a way of controlling the size of the cache, avoiding
+the Out Of Memory errors.
+
+The methods below can be divided into two approaches.
+
+1. Limiting overall JVM memory and relying on garbage collection
+2. Calculating the object's size and using it in the eviction policy
+
+In general, to control the memory size on JVM, anything besides limiting the
+total amount involves some tradeoff.
+
+### Soft References
+Soft References is a way to mark the cache entries available for garbage
+collection whenever JVM runs a GC. In practice, it can cause long GC times and
+reduced overall performance. This strategy is generally considered as a last
+resort measure. The effect of the GC can be mitigated by using the _isolates_
+(JSR121 implemented in GraalVM). One can think of an _isolate_ as a lightweight
+JVM, running in a thread with their own heap, memory limit, and garbage
+collection. The problem is that _isolates_ can't share objects. And even if we
+move the cache to the separate _isolate_, that would require creating a
+mechanism of sharing objects based on pointers, which requires implementing
+serialization.  On the other hand, serialization itself can provide the size of
+the object, which is enough to implement the eviction policy, even without
+running the _isolates_.
+
+### Serialization
+One approach to get the size of the value stored in the cache is
+_serialization_. The downside is the computational overhead of transforming the
+object into a byte sequence.
+
+### Instrumentation
+Another way of getting the object's size is to use JVM instrumentation. This
+approach requires running JVM with _javaagent_ attached, which can complicate
+the deployment and have indirect performance penalties.
+
+### Manual Memory Management
+This method implies tracking the size of the values by hand. It can be done for
+the values of Enso language, knowing the size of its primitive types. For
+interacting with other languages, Enso can provide an interface that developers
+should implement to have a better experience with the cache.
+
+### Comparison of Memory Management Approaches
+Below are some key takeaways after experimenting with the _instrumentation_ and
+_serialization_ approaches.
+
+There are no slowdowns in running the Enso runtime benchmark with the
+instrumentation `javaagent` attached.  Java
+[`Instrumentation#getObjectSize()](https://docs.oracle.com/javase/8/docs/api/java/lang/instrument/Instrumentation.html)
+performs in nanosecond time range. The downside is that it can only get the size
+of the Java primitives and Java classes with __public__ fields.  Serialization
+works in microsecond time range and operates on all Java objects implementing
+_Serializable_ interface.
+
+The resulting approach can be a combination of one of the approaches with the
+introspection of the value. For example, it can be a case statement, analyzing
+the value and applying the appropriate method.
+
+```java
+public long getSize(Object value) {
+  if (value instanceof Primitive) {
+    return getPrimitiveSize(value);
+  } else if (value instanceof EnsoNode) {
+    return introspectNode(value);
+  } else {
+    return null;
+  }
+}
+```
