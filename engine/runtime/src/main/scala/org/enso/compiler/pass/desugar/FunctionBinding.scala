@@ -75,7 +75,7 @@ case object FunctionBinding extends IRPass {
   /** Performs desugaring on a module definition.
     *
     * @param definition the module definition to desugar
-    * @return `defition`, with any function definition sugar removed
+    * @return `definition`, with any function definition sugar removed
     */
   def desugarModuleSymbol(
     definition: IR.Module.Scope.Definition

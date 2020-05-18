@@ -233,7 +233,7 @@ class IRToTruffle(
           )
       }
 
-      // TODO [AA] Remove this
+      // TODO [AA] Remove this and run bench
       funNode.setTail(methodFunIsTail)
 
       val function = new RuntimeFunction(

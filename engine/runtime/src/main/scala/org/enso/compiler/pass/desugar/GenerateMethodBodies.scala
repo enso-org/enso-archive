@@ -88,6 +88,7 @@ case object GenerateMethodBodies extends IRPass {
       case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
         lam.copy(
           // TODO [AA] This is wrong, need to check it hasn't been defined too
+          // TODO [AA] Should create an error.
           arguments = genThisArgument :: args
         )
       case sugar @ IR.Function.Binding(_, args, _, _, _, _, _) =>

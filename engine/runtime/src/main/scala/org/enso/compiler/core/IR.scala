@@ -2899,17 +2899,17 @@ object IR {
   }
   object Diagnostic {
 
-    /** Represents the various kinds of errors in the IR. */
+    /** Represents the various kinds of diagnostics in the IR. */
     sealed trait Kind
     object Kind {
 
-      /** Errors that should be reported during the static compilation phase of
-        * execution.
+      /** Diagnostics that should be reported during the static compilation
+        * phase of execution.
         */
       sealed trait Static extends Kind
 
-      /** Errors that should remain at runtime for display during interactive
-        * execution.
+      /** Diagnostics that should remain at runtime for display during
+        * interactive execution.
         */
       sealed trait Interactive extends Kind
     }
@@ -3159,6 +3159,8 @@ object IR {
       */
     sealed trait Redefined extends Error
     object Redefined {
+
+      // TODO [AA] An error for redefining `this` that blocks the whole method.
 
       /** An error representing the redefinition of a method in a given module.
         * This is also known as a method overload.
