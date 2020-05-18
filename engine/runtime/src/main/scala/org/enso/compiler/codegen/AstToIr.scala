@@ -4,7 +4,7 @@ import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.UnhandledEntity
+import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
@@ -124,7 +124,7 @@ object AstToIr {
               getIdentifiedLocation(inputAST)
             )
         }
-      case AstView.MethodDefinition(targetPath, name, definition) =>
+      case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
             case AST.Ident.Cons.any(c) => c
@@ -147,12 +147,24 @@ object AstToIr {
         }
 
         val nameStr = name match { case AST.Ident.Var.any(name) => name }
-        Module.Scope.Definition.Method(
-          Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
-          Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
-          translateExpression(definition),
-          getIdentifiedLocation(inputAST)
-        )
+
+        if (args.isEmpty) {
+          Module.Scope.Definition.Method.Explicit(
+            Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
+            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
+            translateExpression(definition),
+            getIdentifiedLocation(inputAST)
+          )
+        } else {
+          Module.Scope.Definition.Method.Binding(
+            Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
+            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
+            args.map(translateArgumentDefinition(_)),
+            translateExpression(definition),
+            getIdentifiedLocation(inputAST)
+          )
+        }
+
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -191,6 +203,13 @@ object AstToIr {
               getIdentifiedLocation(inputAST)
             )
         }
+      case AstView.FunctionSugar(name, args, body) =>
+        Function.Binding(
+          translateIdent(name).asInstanceOf[IR.Name.Literal],
+          args.map(translateArgumentDefinition(_)),
+          translateExpression(body),
+          getIdentifiedLocation(inputAST)
+        )
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(

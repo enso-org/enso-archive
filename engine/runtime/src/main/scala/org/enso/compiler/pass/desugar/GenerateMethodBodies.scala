@@ -54,15 +54,26 @@ case object GenerateMethodBodies extends IRPass {
     * @return `ir` potentially with alterations to ensure that it's in the
     *         correct format
     */
+  //noinspection DuplicatedCode
   def processMethodDef(
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
-    ir.copy(
-      body = ir.body match {
-        case fun: IR.Function => processBodyFunction(fun)
-        case expression       => processBodyExpression(expression)
-      }
-    )
+    ir match {
+      case ir: IR.Module.Scope.Definition.Method.Explicit =>
+        ir.copy(
+          body = ir.body match {
+            case fun: IR.Function => processBodyFunction(fun)
+            case expression       => processBodyExpression(expression)
+          }
+        )
+      case ir: IR.Module.Scope.Definition.Method.Binding =>
+        ir.copy(
+          body = ir.body match {
+            case fun: IR.Function => processBodyFunction(fun)
+            case expression       => processBodyExpression(expression)
+          }
+        )
+    }
   }
 
   /** Processes the method body if it's a function.
@@ -77,6 +88,10 @@ case object GenerateMethodBodies extends IRPass {
     fun match {
       case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
         lam.copy(
+          arguments = genThisArgument :: args
+        )
+      case sugar @ IR.Function.Binding(_, args, _, _, _, _, _) =>
+        sugar.copy(
           arguments = genThisArgument :: args
         )
     }

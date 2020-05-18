@@ -49,6 +49,7 @@ class Compiler(
     */
   val compilerPhaseOrdering: List[IRPass] = List(
     GenerateMethodBodies,
+    FunctionBinding,
     SectionsToBinOp,
     OperatorToFunction,
     LambdaShorthandToLambda,

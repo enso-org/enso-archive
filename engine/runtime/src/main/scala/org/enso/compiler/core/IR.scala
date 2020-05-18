@@ -479,84 +479,186 @@ object IR {
           override def children: List[IR] = name :: arguments
         }
 
-        /** The definition of a method for a given constructor [[typeName]].
-          *
-          * @param typeName the name of the atom that the method is being
-          *                 defined for
-          * @param methodName the name of the method being defined on `typename`
-          * @param body the body of the method
-          * @param location the source location that the node corresponds to
-          * @param passData the pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          */
-        // TODO [AA] Separate Method into Method.Binding and Method.Explicit to
-        //  account for syntax sugar later.
-        sealed case class Method(
-          typeName: IR.Name,
-          methodName: IR.Name,
-          body: Expression,
-          override val location: Option[IdentifiedLocation],
-          override val passData: MetadataStorage      = MetadataStorage(),
-          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Definition
-            with IRKind.Primitive {
-          override protected var id: Identifier = _
+        sealed trait Method extends Definition {
+          val typeName: IR.Name
+          val methodName: IR.Name
+          val body: Expression
 
-          /** Creates a copy of `this`.
+          override def mapExpressions(fn: Expression => Expression): Method
+        }
+        object Method {
+
+          /** The definition of a method for a given constructor [[typeName]].
             *
             * @param typeName the name of the atom that the method is being
             *                 defined for
-            * @param methodName the name of the method being defined on `typename`
+            * @param methodName the name of the method being defined on
+            *                   `typename`
             * @param body the body of the method
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
-            * @param id the identifier for the new node
-            * @return a copy of `this`, updated with the specified values
             */
-          def copy(
-            typeName: IR.Name                    = typeName,
-            methodName: IR.Name                  = methodName,
-            body: Expression                     = body,
-            location: Option[IdentifiedLocation] = location,
-            passData: MetadataStorage            = passData,
-            diagnostics: DiagnosticStorage       = diagnostics,
-            id: Identifier                       = id
-          ): Method = {
-            val res = Method(
-              typeName,
-              methodName,
-              body,
-              location,
-              passData,
-              diagnostics
-            )
-            res.id = id
-            res
+          sealed case class Explicit(
+            override val typeName: IR.Name,
+            override val methodName: IR.Name,
+            override val body: Expression,
+            override val location: Option[IdentifiedLocation],
+            override val passData: MetadataStorage      = MetadataStorage(),
+            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+          ) extends Method
+              with IRKind.Primitive {
+            override protected var id: Identifier = _
+
+            /** Creates a copy of `this`.
+              *
+              * @param typeName the name of the atom that the method is being
+              *                 defined for
+              * @param methodName the name of the method being defined on `typename`
+              * @param body the body of the method
+              * @param location the source location that the node corresponds to
+              * @param passData the pass metadata associated with this node
+              * @param diagnostics compiler diagnostics for this node
+              * @param id the identifier for the new node
+              * @return a copy of `this`, updated with the specified values
+              */
+            def copy(
+              typeName: IR.Name                    = typeName,
+              methodName: IR.Name                  = methodName,
+              body: Expression                     = body,
+              location: Option[IdentifiedLocation] = location,
+              passData: MetadataStorage            = passData,
+              diagnostics: DiagnosticStorage       = diagnostics,
+              id: Identifier                       = id
+            ): Explicit = {
+              val res = Explicit(
+                typeName,
+                methodName,
+                body,
+                location,
+                passData,
+                diagnostics
+              )
+              res.id = id
+              res
+            }
+
+            override def mapExpressions(
+              fn: Expression => Expression
+            ): Explicit = {
+              copy(
+                typeName   = typeName.mapExpressions(fn),
+                methodName = methodName.mapExpressions(fn),
+                body       = fn(body)
+              )
+            }
+
+            override def toString: String =
+              s"""
+              |IR.Module.Scope.Definition.Method.Explicit(
+              |typeName = $typeName,
+              |methodName = $methodName,
+              |body = $body,
+              |location = $location,
+              |passData = ${this.showPassData},
+              |diagnostics = $diagnostics,
+              |id = $id
+              |)
+              |""".toSingleLine
+
+            override def children: List[IR] = List(typeName, methodName, body)
           }
 
-          override def mapExpressions(fn: Expression => Expression): Method = {
-            copy(
-              typeName   = typeName.mapExpressions(fn),
-              methodName = methodName.mapExpressions(fn),
-              body       = fn(body)
-            )
+          /** The definition of a method for a given constructor [[typeName]]
+            * using sugared syntax.
+            *
+            * @param typeName the name of the atom that the method is being
+            *                 defined for
+            * @param methodName the name of the method being defined on
+            *                   `typename`
+            * @param arguments the arguments to the method
+            * @param body the body of the method
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            */
+          sealed case class Binding(
+            override val typeName: IR.Name,
+            override val methodName: IR.Name,
+            arguments: List[IR.DefinitionArgument],
+            override val body: Expression,
+            override val location: Option[IdentifiedLocation],
+            override val passData: MetadataStorage      = MetadataStorage(),
+            override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+          ) extends Method
+              with IRKind.Sugar {
+            override protected var id: Identifier = randomId
+
+            /** Creates a copy of `this`.
+              *
+              * @param typeName the name of the atom that the method is being
+              *                 defined for
+              * @param methodName the name of the method being defined on
+              *                   `typename`
+              * @param arguments the arguments to the method
+              * @param body the body of the method
+              * @param location the source location that the node corresponds to
+              * @param passData the pass metadata associated with this node
+              * @param diagnostics compiler diagnostics for this node
+              * @param id the identifier for the new node
+              * @return a copy of `this`, updated with the specified values`
+              */
+            def copy(
+              typeName: IR.Name                      = typeName,
+              methodName: IR.Name                    = methodName,
+              arguments: List[IR.DefinitionArgument] = arguments,
+              body: Expression                       = body,
+              location: Option[IdentifiedLocation]   = location,
+              passData: MetadataStorage              = MetadataStorage(),
+              diagnostics: DiagnosticStorage         = DiagnosticStorage(),
+              id: Identifier                         = id
+            ): Binding = {
+              val res = Binding(
+                typeName,
+                methodName,
+                arguments,
+                body,
+                location,
+                passData,
+                diagnostics
+              )
+              res.id = id
+              res
+            }
+
+            override def mapExpressions(
+              fn: Expression => Expression
+            ): Binding = {
+              copy(
+                typeName   = typeName.mapExpressions(fn),
+                methodName = methodName.mapExpressions(fn),
+                arguments  = arguments.map(_.mapExpressions(fn)),
+                body       = fn(body)
+              )
+            }
+
+            override def toString: String =
+              s"""
+              |IR.Module.Scope.Definition.Method.Binding(
+              |typeName = $typeName,
+              |methodName = $methodName,
+              |arguments = $arguments,
+              |body = $body,
+              |location = $location,
+              |passData = $passData,
+              |diagnostics = $diagnostics,
+              |id = $id
+              |)
+              |""".toSingleLine
+
+            override def children: List[IR] =
+              (typeName :: methodName :: arguments) :+ body
           }
-
-          override def toString: String =
-            s"""
-            |IR.Module.Scope.Definition.Method(
-            |typeName = $typeName,
-            |methodName = $methodName,
-            |body = $body,
-            |location = $location,
-            |passData = ${this.showPassData},
-            |diagnostics = $diagnostics,
-            |id = $id
-            |)
-            |""".toSingleLine
-
-          override def children: List[IR] = List(typeName, methodName, body)
         }
       }
     }
@@ -1738,7 +1840,88 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = arguments :+ body
+    }
 
+    /** A representation of the syntactic sugar for defining functions.
+      *
+      * @param name the name of the function
+      * @param arguments the arguments to the function
+      * @param body the body of the function
+      * @param location the source location that the node corresponds to
+      * @param canBeTCO whether or not the function can be tail-call optimised
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics the compiler diagnostics for this node
+      */
+    sealed case class Binding(
+      name: IR.Name,
+      override val arguments: List[DefinitionArgument],
+      override val body: Expression,
+      override val location: Option[IdentifiedLocation],
+      override val canBeTCO: Boolean              = true,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Function
+        with IRKind.Sugar {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name of the function
+        * @param arguments the arguments to the function
+        * @param body the body of the function
+        * @param location the source location that the node corresponds to
+        * @param canBeTCO whether or not the function can be tail-call optimised
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics the compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: IR.Name                        = name,
+        arguments: List[DefinitionArgument]  = arguments,
+        body: Expression                     = body,
+        location: Option[IdentifiedLocation] = location,
+        canBeTCO: Boolean                    = canBeTCO,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Binding = {
+        val res =
+          Binding(
+            name,
+            arguments,
+            body,
+            location,
+            canBeTCO,
+            passData,
+            diagnostics
+          )
+        res.id = id
+        res
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Function =
+        copy(
+          name      = name.mapExpressions(fn),
+          arguments = arguments.map(_.mapExpressions(fn)),
+          body      = fn(body)
+        )
+
+      override def toString: String =
+        s"""
+        |IR.Function.Sugar(
+        |name = $name,
+        |arguments = $arguments,
+        |body = $body,
+        |location = $location,
+        |canBeTCO = $canBeTCO,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def children: List[IR] = (name :: arguments) :+ body
     }
   }
 

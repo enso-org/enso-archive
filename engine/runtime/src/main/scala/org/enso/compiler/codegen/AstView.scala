@@ -2,8 +2,10 @@ package org.enso.compiler.codegen
 
 import org.enso.data
 import org.enso.data.List1
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, Debug}
 import org.enso.syntax.text.AST.Ident.{Opr, Var}
+
+import scala.annotation.unused
 
 /** This object contains view patterns that allow matching on the parser [[AST]]
   * for more sophisticated constructs.
@@ -142,8 +144,8 @@ object AstView {
 
           if (op == lambdaOpSym) {
             left match {
-              case LambdaParamList(args) => Some((args, right))
-              case _                     => None
+              case FunctionParamList(args) => Some((args, right))
+              case _                       => None
             }
           } else {
             None
@@ -209,7 +211,7 @@ object AstView {
     }
   }
 
-  object LambdaParamList {
+  object FunctionParamList {
 
     /** Matches on the parameter list of a lambda.
       *
@@ -246,6 +248,37 @@ object AstView {
       case AST.App.Infix(entity, AST.Ident.Opr(":"), signature) =>
         Some((entity, signature))
       case _ => None
+    }
+  }
+
+  object FunctionSugar {
+
+    /** Matches on terms that represent long-form function definitions.
+      *
+      * @param ast the structure to try and match on
+      * @return the name of the function, the list of function arguments, and
+      *         the function body
+      */
+    def unapply(ast: AST): Option[(AST.Ident, List[AST], AST)] = {
+      ast match {
+        case AstView.Binding(left, body) =>
+          left match {
+            case FunctionParamList(items) =>
+              if (items.length > 1) {
+                val fnName = items.head
+                val args   = items.tail
+
+                fnName match {
+                  case AST.Ident.Var.any(name) => Some((name, args, body))
+                  case _                       => None
+                }
+              } else {
+                None
+              }
+            case _ => None
+          }
+        case _ => None
+      }
     }
   }
 
@@ -431,18 +464,42 @@ object AstView {
       * @return the path segments of the type reference, the function name, and
       *         the bound expression
       */
-    def unapply(ast: AST): Option[(List[AST], AST, AST)] = {
+    def unapply(ast: AST): Option[(List[AST], AST, List[AST], AST)] = {
       ast match {
         case Binding(lhs, rhs) =>
           lhs match {
             case MethodReference(targetPath, name) =>
-              Some((targetPath, name, rhs))
-            case AST.Ident.Var.any(name) => Some((List(), name, rhs))
+              Some((targetPath, name, List(), rhs))
+            case MethodBindingLHS(path, methodName, args) =>
+              Some((path, methodName, args, rhs))
+            case AST.Ident.Var.any(name) => Some((List(), name, List(), rhs))
             case _ =>
               None
           }
         case _ =>
           None
+      }
+    }
+  }
+
+  object MethodBindingLHS {
+
+    /** Matches on the left hand side of a sugared method definition.
+      *
+      * @param ast the structure to try and match on
+      * @return the path segments of the type reference, the function name, and
+      *         the arguments
+      */
+    def unapply(ast: AST): Option[(List[AST], AST, List[AST])] = {
+      ast match {
+        case SpacedList(MethodReference(path, methodName) :: args) =>
+          val validArgs = args.forall {
+            case AstView.FunctionParam(_) => true
+            case _                        => false
+          }
+
+          if (validArgs) Some((path, methodName, args)) else None
+        case _ => None
       }
     }
   }

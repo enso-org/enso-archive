@@ -78,4 +78,6 @@ class GenerateMethodBodiesTest extends CompilerTest {
       irMethod.body.location shouldEqual irResultMethod.body.location
     }
   }
+
+  // TODO [AA] Test with sugared methods
 }
