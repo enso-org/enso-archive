@@ -1,4 +1,4 @@
-name: Publish Enso Dev Docs
+name: Publish Developer Docs
 
 on:
   push:
@@ -36,4 +36,3 @@ jobs:
         git commit -m "Update submodules"
         git push origin sources
       if: steps.status.outputs.has_changes == '1'
-
