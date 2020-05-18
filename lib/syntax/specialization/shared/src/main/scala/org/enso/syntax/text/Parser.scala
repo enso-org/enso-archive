@@ -5,6 +5,7 @@ import java.util.UUID
 import cats.Foldable
 import org.enso.data.List1
 import org.enso.data.Span
+import org.enso.data.Index
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.AST.Block.Line
@@ -170,7 +171,7 @@ class Parser {
   private def splitMeta(code: String): (String, IDMap, Json) = {
     import SourceFile._
     code.split(METATAG) match {
-      case Array(input) => (input, Seq(), Json.obj())
+      case Array(input) => (input, Vector(), Json.obj())
       case Array(input, rest) =>
         val meta = rest.split('\n')
         if (meta.length < 2) {
@@ -223,7 +224,7 @@ class Parser {
   }
 
   /** Parse simple string with empty IdMap into AST. */
-  def run(input: String): AST.Module = run(new Reader(input), Nil)
+  def run(input: String): AST.Module = run(new Reader(input), Vector())
 
   /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
@@ -320,21 +321,30 @@ class Parser {
 
   def annotateModule(
     idMap: IDMap,
-    mod: AST.Module
+    ast: AST.Module
   ): AST.Module = {
-    var ids = idMap.sorted.toList
+    var idx = 0
+
+    val mod = if (idx < idMap.size) {
+      val (k, id) = idMap(idx)
+      if (k == Span(Index.Start, ast)) {
+        idx += 1
+        ast.setID(id)
+      } else ast.withNewID()
+    } else ast.withNewID()
+
     mod.traverseWithOff { (off, ast) =>
       val key = Span(off, ast)
 
-      while (ids.nonEmpty && ids.head._1 < key) ids = ids.tail
+      while (idx < idMap.size && idMap(idx)._1 < key) idx += 1
 
-      ids match {
-        case (k, id) :: _ if k == key =>
-          ids = ids.tail
+      if (idx < idMap.size) {
+        val (k, id) = idMap(idx)
+        if (k == key) {
+          idx += 1
           ast.setID(id)
-        case _ =>
-          ast.withNewID()
-      }
+        } else ast.withNewID()
+      } else ast.withNewID()
     }
   }
 
@@ -424,7 +434,7 @@ class Parser {
 
 object Parser {
 
-  type IDMap = Seq[(Span, AST.ID)]
+  type IDMap = Vector[(Span, AST.ID)]
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
