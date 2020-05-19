@@ -36,33 +36,35 @@ class LanguageServerSupervisorSpec
     with MockitoSugar
     with FlakySpec {
 
-  "A language supervisor" should "monitor language server by sending ping requests on regular basis" in flakyTest(new TestCtx {
-    //given
-    val probe = TestProbe()
-    fakeServer.withBehaviour {
-      case ping @ PingMatcher(requestId) =>
-        probe.ref ! ping
-        ReplyWith(
-          s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
-        )
-    }
-    probe.expectNoMessage()
-    //when
-    virtualTimeAdvances(testInitialDelay)
-    (1 to 2).foreach { _ =>
-      probe.expectMsgPF() { case PingMatcher(_) => () }
-      virtualTimeAdvances(testHeartbeatInterval / 2)
+  "A language supervisor" should "monitor language server by sending ping requests on regular basis" in flakyTest(
+    new TestCtx {
+      //given
+      val probe = TestProbe()
+      fakeServer.withBehaviour {
+        case ping @ PingMatcher(requestId) =>
+          probe.ref ! ping
+          ReplyWith(
+            s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
+          )
+      }
       probe.expectNoMessage()
-      virtualTimeAdvances(testHeartbeatInterval / 2)
+      //when
+      virtualTimeAdvances(testInitialDelay)
+      (1 to 2).foreach { _ =>
+        probe.expectMsgPF() { case PingMatcher(_) => () }
+        virtualTimeAdvances(testHeartbeatInterval / 2)
+        probe.expectNoMessage()
+        virtualTimeAdvances(testHeartbeatInterval / 2)
+      }
+      //then
+      `then`(serverComponent.restart()).shouldHaveNoInteractions()
+      //teardown
+      parent ! GracefulStop
+      parentProbe.expectMsg(ChildTerminated)
+      system.stop(parent)
+      fakeServer.stop()
     }
-    //then
-    `then`(serverComponent.restart()).shouldHaveNoInteractions()
-    //teardown
-    parent ! GracefulStop
-    parentProbe.expectMsg(ChildTerminated)
-    system.stop(parent)
-    fakeServer.stop()
-  })
+  )
 
   it should "restart server when pong message doesn't arrive on time" in new TestCtx {
     //given
