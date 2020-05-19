@@ -1,6 +1,6 @@
 package org.enso.languageserver.boot
 
-import java.io.{File, PipedInputStream, PipedOutputStream, PrintStream}
+import java.io.File
 import java.net.URI
 
 import akka.actor.ActorSystem
@@ -15,12 +15,7 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
-import org.enso.languageserver.io.{
-  InputRedirectionController,
-  ObservableCharOutput,
-  OutputKind,
-  OutputRedirectionController
-}
+import org.enso.languageserver.io._
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -107,13 +102,12 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "context-registry"
     )
 
-  lazy val stdOut = new ObservableCharOutput
+  lazy val stdOut = new ObservableOutputStream
 
-  lazy val stdErr = new ObservableCharOutput
+  lazy val stdErr = new ObservableOutputStream
 
-  val pipeOutEnd   = new PipedOutputStream()
-  val pipePrintEnd = new PrintStream(pipeOutEnd, true)
-  val stdIn        = new PipedInputStream(pipeOutEnd)
+  val stdInSink = new ObservableOutputStream
+  val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   val context = Context
     .newBuilder(LanguageInfo.ID)
@@ -153,7 +147,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   val stdInController =
     system.actorOf(
-      InputRedirectionController.props(pipePrintEnd),
+      InputRedirectionController.props(stdIn, stdInSink),
       "std-in-controller"
     )
 

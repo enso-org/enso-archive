@@ -27,7 +27,9 @@ import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io.{
   FeedStandardInputHandler,
   RedirectStdErrHandler,
-  RedirectStdOutHandler
+  RedirectStdOutHandler,
+  SuppressStdErrHandler,
+  SuppressStdOutHandler
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
@@ -241,6 +243,10 @@ class JsonConnectionController(
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
+      SuppressStandardOutput -> SuppressStdOutHandler
+        .props(stdOutController, rpcSession.clientId),
+      SuppressStandardError -> SuppressStdErrHandler
+        .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
       FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
