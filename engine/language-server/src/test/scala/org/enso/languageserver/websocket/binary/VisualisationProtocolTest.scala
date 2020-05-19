@@ -3,6 +3,7 @@ package org.enso.languageserver.websocket.binary
 import java.nio.ByteBuffer
 import java.util.UUID
 
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload,
@@ -14,7 +15,14 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
 }
 import org.scalatest.concurrent.Eventually
 
-class VisualisationProtocolTest extends BaseBinaryServerTest with Eventually {
+class VisualisationProtocolTest
+    extends BaseBinaryServerTest
+    with Eventually
+    with FlakySpec {
+
+  override val FLAKY_TESTS = Seq(
+    "push visualisation updates when controller receives notification"
+  )
 
   implicit private val decoder = OutboundMessageDecoder
 
