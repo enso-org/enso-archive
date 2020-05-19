@@ -16,13 +16,11 @@ import org.enso.languageserver.websocket.binary.factory.{
 
 class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
 
-  override val FLAKY_TESTS = Seq("return empty SessionInitResponse")
-
   implicit private val decoder = OutboundMessageDecoder
 
   "Session Init cmd" must {
 
-    "return empty SessionInitResponse" in {
+    "return empty SessionInitResponse" in flakyTest {
       //given
       val client           = newWsClient()
       val clientId         = UUID.randomUUID()

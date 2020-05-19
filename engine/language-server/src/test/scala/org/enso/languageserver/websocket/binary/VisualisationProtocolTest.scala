@@ -20,15 +20,11 @@ class VisualisationProtocolTest
     with Eventually
     with FlakySpec {
 
-  override val FLAKY_TESTS = Seq(
-    "push visualisation updates when controller receives notification"
-  )
-
   implicit private val decoder = OutboundMessageDecoder
 
   "A visualisation binary protocol" must {
 
-    "push visualisation updates when controller receives notification" in {
+    "push visualisation updates when controller receives notification" in flakyTest {
       //given
       val client = newWsClient()
       val data   = Array[Byte](1, 2, 3)

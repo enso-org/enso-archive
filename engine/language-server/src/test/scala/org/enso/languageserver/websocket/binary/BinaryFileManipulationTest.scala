@@ -24,13 +24,11 @@ import scala.io.Source
 
 class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
-  override val FLAKY_TESTS = Seq("persist binary contents of a file")
-
   implicit private val decoder = OutboundMessageDecoder
 
   "A WriteFileCommand" must {
 
-    "persist binary contents of a file" in {
+    "persist binary contents of a file" in flakyTest {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"

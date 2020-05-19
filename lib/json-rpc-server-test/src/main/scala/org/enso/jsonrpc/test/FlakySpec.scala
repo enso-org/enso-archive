@@ -9,14 +9,12 @@ import org.scalatest._
   */
 trait FlakySpec extends TestSuite {
 
-  /** Tests that will pass even after a failed run. */
-  def FLAKY_TESTS: Seq[String]
-
-  override def withFixture(test: NoArgTest): Outcome =
-    super.withFixture(test) match {
-      case Failed(_) | Canceled(_) if FLAKY_TESTS.exists(test.name.contains) =>
-        Pending
-      case outcome =>
-        outcome
+  /** Allow test to pass after a failed run marking it as _pending_. */
+  def flakyTest(test: => Any): Unit = {
+    try test
+    catch {
+      case _: Exception      => pending
+      case _: AssertionError => pending
     }
+  }
 }
