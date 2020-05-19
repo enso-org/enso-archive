@@ -147,7 +147,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   val stdInController =
     system.actorOf(
-      InputRedirectionController.props(stdIn, stdInSink),
+      InputRedirectionController.props(stdIn, stdInSink, sessionRouter),
       "std-in-controller"
     )
 

@@ -10,6 +10,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.io.InputOutputApi.{
+  BlockedOnStandardInputRead,
   FeedStandardInput,
   RedirectStandardError,
   RedirectStandardOutput,
@@ -68,5 +69,6 @@ object JsonRpc {
     .registerNotification(ExecutionContextExpressionValuesComputed)
     .registerNotification(StandardOutputAppended)
     .registerNotification(StandardErrorAppended)
+    .registerNotification(BlockedOnStandardInputRead)
 
 }

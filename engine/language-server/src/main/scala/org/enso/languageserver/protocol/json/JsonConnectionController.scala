@@ -19,7 +19,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
-import org.enso.languageserver.io.InputOutputProtocol
+import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
@@ -179,6 +179,9 @@ class JsonConnectionController(
           )
 
       }
+
+    case InputOutputProtocol.BlockedOnStandardInputRead =>
+      webActor ! Notification(InputOutputApi.BlockedOnStandardInputRead, Unused)
 
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(

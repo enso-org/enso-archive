@@ -12,4 +12,6 @@ object InputOutputProtocol {
 
   case class FeedStandardInput(input: String, isLineTerminated: Boolean)
 
+  case object BlockedOnStandardInputRead
+
 }

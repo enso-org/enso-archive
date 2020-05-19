@@ -82,4 +82,15 @@ object InputOutputApi {
     }
   }
 
+  case object BlockedOnStandardInputRead
+      extends Method("io/blockedOnStandardInputRead") {
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
 }

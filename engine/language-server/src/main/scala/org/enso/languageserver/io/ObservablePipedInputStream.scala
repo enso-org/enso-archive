@@ -27,7 +27,6 @@ class ObservablePipedInputStream(sink: ObservableOutputStream)
     val byte = buffer.head
     buffer = buffer.tail
     lock.notifyAll()
-    println(s"read 1 byte")
     byte.toInt
   }
 

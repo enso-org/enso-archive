@@ -1,18 +1,32 @@
 package org.enso.languageserver.io
 
-import akka.actor.{Actor, ActorLogging, Props}
+import java.util.UUID
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.ByteString
-import org.enso.languageserver.io.InputOutputProtocol.FeedStandardInput
+import org.enso.languageserver.data.ClientId
+import org.enso.languageserver.event.{
+  ExecutionContextCreated,
+  ExecutionContextDestroyed,
+  ExecutionContextEvent
+}
+import org.enso.languageserver.io.InputOutputProtocol.{
+  BlockedOnStandardInputRead,
+  FeedStandardInput
+}
+import org.enso.languageserver.io.InputRedirectionController.ContextData
 import org.enso.languageserver.io.ObservablePipedInputStream.{
   InputObserver,
   InputStreamEvent,
   ReadBlocked
 }
+import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 
 class InputRedirectionController(
   stdIn: ObservablePipedInputStream,
-  stdInSink: ObservableOutputStream
+  stdInSink: ObservableOutputStream,
+  sessionRouter: ActorRef
 ) extends Actor
     with ActorLogging
     with UnhandledLogging
@@ -20,9 +34,12 @@ class InputRedirectionController(
 
   override def preStart(): Unit = {
     stdIn.attach(this)
+    context.system.eventStream.subscribe(self, classOf[ExecutionContextEvent])
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = running()
+
+  private def running(liveContexts: Set[ContextData] = Set.empty): Receive = {
     case FeedStandardInput(input, isLineTerminated) =>
       if (isLineTerminated) {
         val bytes =
@@ -36,8 +53,21 @@ class InputRedirectionController(
         stdInSink.write(input.getBytes)
       }
 
+    case ExecutionContextCreated(contextId, owner) =>
+      context.become(running(liveContexts + ContextData(contextId, owner)))
+
+    case ExecutionContextDestroyed(contextId, owner) =>
+      context.become(running(liveContexts - ContextData(contextId, owner)))
+
     case ReadBlocked =>
-      println("blocking read detected")
+      log.debug("Blocked read detected")
+      liveContexts foreach {
+        case ContextData(_, owner) =>
+          sessionRouter ! DeliverToJsonController(
+            owner,
+            BlockedOnStandardInputRead
+          )
+      }
   }
 
   override def update(event: InputStreamEvent): Unit = { self ! event }
@@ -55,10 +85,13 @@ class InputRedirectionController(
 
 object InputRedirectionController {
 
+  private case class ContextData(contextId: UUID, owner: ClientId)
+
   def props(
     stdIn: ObservablePipedInputStream,
-    sink: ObservableOutputStream
+    sink: ObservableOutputStream,
+    sessionRouter: ActorRef
   ): Props =
-    Props(new InputRedirectionController(stdIn, sink))
+    Props(new InputRedirectionController(stdIn, sink, sessionRouter))
 
 }
