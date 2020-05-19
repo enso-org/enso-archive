@@ -6,20 +6,22 @@ import org.enso.languageserver.io.ObservableOutputStream.OutputObserver
 
 class ObservableOutputStream extends OutputStream {
 
+  private val lock = new AnyRef
+
   private var observers = Set.empty[OutputObserver]
 
-  override def write(byte: Int): Unit = this.synchronized {
+  override def write(byte: Int): Unit = lock.synchronized {
     notify(Array[Byte](byte.toByte))
   }
 
-  override def write(bytes: Array[Byte]): Unit = this.synchronized {
+  override def write(bytes: Array[Byte]): Unit = lock.synchronized {
     if (bytes.length > 0) {
       notify(bytes)
     }
   }
 
   override def write(bytes: Array[Byte], off: Int, len: Int): Unit =
-    this.synchronized {
+    lock.synchronized {
       if (len > 0) {
         val buf = new Array[Byte](len)
         Array.copy(bytes, off, buf, 0, len)
@@ -27,11 +29,11 @@ class ObservableOutputStream extends OutputStream {
       }
     }
 
-  def attach(observer: OutputObserver): Unit = this.synchronized {
+  def attach(observer: OutputObserver): Unit = lock.synchronized {
     observers += observer
   }
 
-  def detach(observer: OutputObserver): Unit = this.synchronized {
+  def detach(observer: OutputObserver): Unit = lock.synchronized {
     observers -= observer
   }
 
