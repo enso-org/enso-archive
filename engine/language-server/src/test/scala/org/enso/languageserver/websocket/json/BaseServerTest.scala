@@ -53,6 +53,26 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
+  val sessionRouter =
+    system.actorOf(SessionRouter.props())
+
+  val stdOutController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdOut, OutputKind.StandardOutput, sessionRouter)
+    )
+
+  val stdErrController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdErr, OutputKind.StandardError, sessionRouter)
+    )
+
+  val stdInController =
+    system.actorOf(
+      InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
+    )
+
   override def clientControllerFactory: ClientControllerFactory = {
     val zioExec = ZioExec(zio.Runtime.default)
     val fileManager =
@@ -68,32 +88,12 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
       )
 
-    val sessionRouter =
-      system.actorOf(SessionRouter.props())
-
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
       )
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
-
-    val stdOutController =
-      system.actorOf(
-        OutputRedirectionController
-          .props(stdOut, OutputKind.StandardOutput, sessionRouter)
-      )
-
-    val stdErrController =
-      system.actorOf(
-        OutputRedirectionController
-          .props(stdErr, OutputKind.StandardError, sessionRouter)
-      )
-
-    val stdInController =
-      system.actorOf(
-        InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
-      )
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket.json
 import io.circe.literal._
+import org.enso.polyglot.runtime.Runtime.Api
 
 class InputOutputRedirectionTest extends BaseServerTest {
 
@@ -91,6 +92,54 @@ class InputOutputRedirectionTest extends BaseServerTest {
           """)
       stdErr.write("test3".getBytes)
       client.expectNoMessage()
+    }
+
+  }
+
+  "Standard input controller" must {
+
+    "notify context owners when read is blocked" in {
+      val client = getInitialisedWsClient()
+      client.send(ExecutionContextJsonMessages.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(
+        ExecutionContextJsonMessages
+          .executionContextCreateResponse(1, contextId)
+      )
+      val buffer = new Array[Byte](3)
+      new Thread(() => stdIn.read(buffer)).start()
+      client.expectJson(json"""
+           {
+             "jsonrpc":"2.0",
+             "method":"io/waitingForStandardInput",
+             "params":null
+           }
+          """)
+      client.send(json"""
+            {
+              "jsonrpc": "2.0",
+              "method": "io/feedStandardInput",
+              "id": 2,
+              "params": {
+                "input": "abc",
+                "isLineTerminated": false
+              }
+            }
+          """)
+      client.expectJson(json"""
+             {"jsonrpc":"2.0","id":2,"result":null}
+          """)
+      buffer.toList shouldBe List(97.byteValue, 98.byteValue, 99.byteValue)
     }
 
   }
