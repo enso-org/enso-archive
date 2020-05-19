@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Error.Redefined
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
@@ -55,7 +56,6 @@ case object GenerateMethodBodies extends IRPass {
     * @return `ir` potentially with alterations to ensure that it's in the
     *         correct format
     */
-  //noinspection DuplicatedCode
   def processMethodDef(
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
@@ -83,19 +83,24 @@ case object GenerateMethodBodies extends IRPass {
     * @param fun the body function
     * @return the body function with the `this` argument
     */
-  def processBodyFunction(fun: IR.Function): IR.Function = {
-    fun match {
-      case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
-        lam.copy(
-          // TODO [AA] This is wrong, need to check it hasn't been defined too
-          // TODO [AA] Should create an error.
-          arguments = genThisArgument :: args
-        )
-      case sugar @ IR.Function.Binding(_, args, _, _, _, _, _) =>
-        sugar.copy(
-          // TODO [AA] This is wrong, need to check if `this` is defined
-          arguments = genThisArgument :: args
-        )
+  def processBodyFunction(fun: IR.Function): IR.Expression = {
+    val containsThis = collectChainedFunctionArgs(fun).exists(arg =>
+      arg.name == IR.Name.This(arg.name.location)
+    )
+
+    if (!containsThis) {
+      fun match {
+        case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
+          lam.copy(
+            arguments = genThisArgument :: args
+          )
+        case sugar @ IR.Function.Binding(_, args, _, _, _, _, _) =>
+          sugar.copy(
+            arguments = genThisArgument :: args
+          )
+      }
+    } else {
+      IR.Error.Redefined.ThisArg(fun.location)
     }
   }
 
@@ -140,4 +145,20 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** Collects the argument list of a chain of function definitions.
+    *
+    * @param function the function to collect args for
+    * @return the list of arguments for `function`
+    */
+  def collectChainedFunctionArgs(
+    function: IR.Function
+  ): List[IR.DefinitionArgument] = {
+    val bodyArgs = function.body match {
+      case f: IR.Function => (collectChainedFunctionArgs(f))
+      case _              => List()
+    }
+
+    function.arguments ::: bodyArgs
+  }
 }

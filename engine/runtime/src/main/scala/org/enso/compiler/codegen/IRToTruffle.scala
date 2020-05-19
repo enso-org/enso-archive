@@ -216,9 +216,6 @@ class IRToTruffle(
         dataflowInfo
       )
 
-      val methodFunIsTail = methodDef.body
-        .unsafeGetMetadata(TailCall, "Method body missing tail call info.")
-
       val funNode = methodDef.body match {
         case fn: IR.Function =>
           expressionProcessor.processFunctionBody(
@@ -232,9 +229,6 @@ class IRToTruffle(
             "Method bodies must be functions at the point of codegen."
           )
       }
-
-      // TODO [AA] Remove this and run bench
-      funNode.setTail(methodFunIsTail)
 
       val function = new RuntimeFunction(
         funNode.getCallTarget,
@@ -607,21 +601,15 @@ class IRToTruffle(
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
-          context.getBuiltins
-            .syntaxError()
-            .newInstance(err.message)
+          context.getBuiltins.syntaxError().newInstance(err.message)
         case err: Error.Redefined.Binding =>
-          context.getBuiltins
-            .compileError()
-            .newInstance(err.message)
+          context.getBuiltins.compileError().newInstance(err.message)
         case err: Error.Redefined.Method =>
-          context.getBuiltins
-            .compileError()
-            .newInstance(err.message)
+          context.getBuiltins.compileError().newInstance(err.message)
         case err: Error.Redefined.Atom =>
-          context.getBuiltins
-            .compileError()
-            .newInstance(err.message)
+          context.getBuiltins.compileError().newInstance(err.message)
+        case err: Error.Redefined.ThisArg =>
+          context.getBuiltins.compileError().newInstance(err.message)
       }
       setLocation(ErrorNode.build(payload), error.location)
     }

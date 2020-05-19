@@ -9,7 +9,7 @@ import org.enso.compiler.test.CompilerTest
 class GenerateMethodBodiesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
-  val ctx = ModuleContext()
+  val ctx: ModuleContext = ModuleContext()
 
   // === The Tests ============================================================
 
@@ -76,6 +76,20 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have the body function's location equivalent to the original body" in {
       irMethod.body.location shouldEqual irResultMethod.body.location
+    }
+  }
+
+  "Methods that redefine `this`" should {
+    val ir =
+      """Unit.method = this -> this + 1
+        |""".stripMargin.toIrModule
+
+    val irResult = GenerateMethodBodies.runModule(ir, ctx)
+    val method =
+      irResult.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+
+    "have their bodies replaced by an error" in {
+      method.body shouldBe an[IR.Error.Redefined.ThisArg]
     }
   }
 }

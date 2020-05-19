@@ -3160,7 +3160,50 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
-      // TODO [AA] An error for redefining `this` that blocks the whole method.
+      /** An error representing the redefinition or incorrect positioning of
+        * the `this` argument to methods.
+        *
+        * @param location the source location of the error
+        * @param passData the pass metadata for this node
+        * @param diagnostics compiler diagnostics associated with the node
+        */
+      sealed case class ThisArg(
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param location the source location of the error
+          * @param passData the pass metadata for this node
+          * @param diagnostics compiler diagnostics associated with the node
+          * @param id the node's identifier
+          * @return a copy of `this`, with the specified values updated
+          */
+        def copy(
+          location: Option[IdentifiedLocation],
+          passData: MetadataStorage      = passData,
+          diagnostics: DiagnosticStorage = diagnostics,
+          id: Identifier                 = id
+        ): ThisArg = {
+          val res = ThisArg(location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def mapExpressions(fn: Expression => Expression): ThisArg =
+          this
+
+        override def message: String =
+          "Methods must have only one definition of the `this` argument, and " +
+          "it must be the first."
+
+        override def children: List[IR] = List()
+      }
 
       /** An error representing the redefinition of a method in a given module.
         * This is also known as a method overload.
