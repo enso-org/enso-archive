@@ -95,6 +95,11 @@ case object TailCall extends IRPass {
             arguments = args.map(analyseDefArgument)
           )
           .updateMetadata(this -->> TailPosition.Tail)
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+            "alias analysis."
+        )
       case err: IR.Error.Redefined => err
     }
   }

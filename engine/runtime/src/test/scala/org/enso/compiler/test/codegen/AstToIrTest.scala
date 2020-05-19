@@ -328,4 +328,27 @@ class AstToIrTest extends CompilerTest {
         .reason shouldBe an[IR.Error.Syntax.TypeDefinedInline]
     }
   }
+
+  "AST translation for type definitions" should {
+    "translate atoms properly" in {
+      val ir =
+        """
+          |type MyAtom a b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Module.Scope.Definition.Atom]
+    }
+
+    "translate complex type defs properly" in {
+      pending
+    }
+
+    "disallow complex type defs without atoms defined in the body" in {
+      pending
+    }
+
+    "disallow unexpected expressions in the type body" in {
+      pending
+    }
+  }
 }

@@ -4,7 +4,7 @@ import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
@@ -161,27 +161,44 @@ object AstToIr {
     }
   }
 
-  /** Translates an arbitrary program expression from [[AST]] into [[IR]].
+  /** Translates any expression that can be found in the body of a type
+    * declaration from [[AST]] into [[IR]].
     *
-    * @param maybeParensedInput the expresion to be translated
-    * @return the [[IR]] representation of `inputAST`
+    * @param maybeParensedInput the expression to be translated
+    * @return the [[IR]] representation of `maybeParensedInput`
     */
-  def translateExpression(maybeParensedInput: AST): Expression = {
-    val inputAST = AstView.MaybeParensed
+  def translateTypeBodyExpression(maybeParensedInput: AST): IR = {
+    val inputAst = AstView.MaybeParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
-    inputAST match {
+    inputAst match {
+      case _ =>
+        IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
+    }
+  }
+
+  /** Translates an arbitrary program expression from [[AST]] into [[IR]].
+    *
+    * @param maybeParensedInput the expresion to be translated
+    * @return the [[IR]] representation of `maybeParensedInput`
+    */
+  def translateExpression(maybeParensedInput: AST): Expression = {
+    val inputAst = AstView.MaybeParensed
+      .unapply(maybeParensedInput)
+      .getOrElse(maybeParensedInput)
+
+    inputAst match {
       case AST.Def(consName, _, _) =>
         IR.Error
-          .Syntax(inputAST, IR.Error.Syntax.TypeDefinedInline(consName.name))
+          .Syntax(inputAst, IR.Error.Syntax.TypeDefinedInline(consName.name))
       case AstView.UnaryMinus(expression) =>
         expression match {
           case AST.Literal.Number(base, number) =>
             translateExpression(
               AST.Literal
                 .Number(base, s"-$number")
-                .setLocation(inputAST.location)
+                .setLocation(inputAst.location)
             )
           case _ =>
             IR.Application.Prefix(
@@ -194,7 +211,7 @@ object AstToIr {
                 )
               ),
               hasDefaultsSuspended = false,
-              getIdentifiedLocation(inputAST)
+              getIdentifiedLocation(inputAst)
             )
         }
       case AstView.FunctionSugar(name, args, body) =>
@@ -202,7 +219,7 @@ object AstToIr {
           translateIdent(name).asInstanceOf[IR.Name.Literal],
           args.map(translateArgumentDefinition(_)),
           translateExpression(body),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
@@ -214,13 +231,13 @@ object AstToIr {
             getIdentifiedLocation(block),
             suspended = true
           ),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AstView.Assignment(name, expr) =>
-        translateBinding(getIdentifiedLocation(inputAST), name, expr)
+        translateBinding(getIdentifiedLocation(inputAst), name, expr)
       case AstView.MethodDefinition(_, name, _, _) =>
         IR.Error.Syntax(
-          inputAST,
+          inputAst,
           IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
         )
       case AstView.MethodCall(target, name, args) =>
@@ -232,7 +249,7 @@ object AstToIr {
           translateExpression(name),
           (target :: validArguments).map(translateCallArgument),
           hasDefaultsSuspended = hasDefaultsSuspended,
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
@@ -249,7 +266,7 @@ object AstToIr {
           actualScrutinee,
           nonFallbackBranches,
           potentialFallback,
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
@@ -262,17 +279,17 @@ object AstToIr {
         Expression.Block(
           lines.map(translateExpression),
           translateExpression(retLine),
-          location = getIdentifiedLocation(inputAST)
+          location = getIdentifiedLocation(inputAst)
         )
       case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AST.Invalid.any(inputAST) => translateInvalid(inputAST)
       case AST.Foreign(_, _, _) =>
         Error.Syntax(
-          inputAST,
+          inputAst,
           Error.Syntax.UnsupportedSyntax("foreign blocks")
         )
       case _ =>
-        throw new UnhandledEntity(inputAST, "translateExpression")
+        throw new UnhandledEntity(inputAst, "translateExpression")
     }
   }
 

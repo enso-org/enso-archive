@@ -106,6 +106,11 @@ case object FunctionBinding extends IRPass {
           )
 
         Method.Explicit(typeName, methName, newBody, loc)
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+            "alias analysis."
+        )
       case e: Redefined => e
     }
   }
