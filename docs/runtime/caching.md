@@ -82,26 +82,30 @@ to cache and reuse as much as possible to minimize the computation costs. At the
 same time, we want to limit the memory consumed by the cache.
 
 ### Initial Cache Candidates
-Initial version caches only the right-hand side expressions of the
-bindings. This way, we can guarantee that between the executions, the cache
-stays within the memory limit without implementing [Memory
-Management](#memorymanagement), the eviction strategy based on the overall size
-of the cache.
+The initial version of the cache only stores the right-hand-sides of binding
+expressions. This is for two main reasons:
+
+- Firstly, this allows us to ensure that the cache does not cause the JVM to
+  go out of memory between executions, allowing us to avoid the implementation
+  of a [memory-bounded cache](#memory-management) for now.
+- It also simplifies the initial implementation of weighting program components.
 
 ### Further Development of Cache Candidates
-The next step is caching intermediate expressions. With this approach, we need a
-way to control the overall size of the cache because we can no longer guarantee
-the safe memory limits between the two program executions. Consider the example:
+The next step for the cache is to expand the portions of the introspected scope
+that we cache. In general, this means the caching of intermediate expressions.
+
+However, once we do this, we can no longer guarantee that we do not push the
+JVM out of memory between two program executions. This is best demonstrated
+by example. 
 
 ```
 a = (computeHugeObject b).size
 ```
 
-Here we compute a considerably large object and discard it, saving only a single
-field - its size. Hence if we want to cache the intermediate result of discarded
-`computeHubeObject b` expression, we need to implement the mechanism of tracking
-the overall size of the cache. See [Memory Management](#memorymanagement)
-section.
+Here we compute a value that takes up a significant amount of memory, but from it we
+only compute a small derived value (its size). Hence, if we want to cache the intermediate
+result of the discarded `computeHugeObject b` expression, we need some way of tracking
+the sizes of individual cache entries. 
 
 ## Partial-Evaluation and Side-Effects
 The more theoretically-minded people among those reading this document may
@@ -411,11 +415,11 @@ the Out Of Memory errors.
 
 The methods below can be divided into two approaches.
 
-1. Limiting overall JVM memory and relying on garbage collection
-2. Calculating the object's size and using it in the eviction policy
+1. Limiting the overall JVM memory and relying on garbage collection.
+2. Calculating the object's size and using it in the eviction strategy.
 
 In general, to control the memory size on JVM, anything besides limiting the
-total amount involves some tradeoff.
+total amount involves some tradeoffs.
 
 ### Soft References
 Soft References is a way to mark the cache entries available for garbage
