@@ -2,10 +2,8 @@ package org.enso.compiler.codegen
 
 import org.enso.data
 import org.enso.data.List1
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident.{Opr, Var}
-
-import scala.annotation.unused
 
 /** This object contains view patterns that allow matching on the parser [[AST]]
   * for more sophisticated constructs.
@@ -462,7 +460,7 @@ object AstView {
       *
       * @param ast the structure to try and match on
       * @return the path segments of the type reference, the function name, the
-     *          arguments to the method, and the bound expression
+      *         arguments to the method, and the bound expression
       */
     def unapply(ast: AST): Option[(List[AST], AST, List[AST], AST)] = {
       ast match {
