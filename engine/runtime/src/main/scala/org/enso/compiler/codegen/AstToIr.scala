@@ -148,22 +148,13 @@ object AstToIr {
 
         val nameStr = name match { case AST.Ident.Var.any(name) => name }
 
-        if (args.isEmpty) {
-          Module.Scope.Definition.Method.Explicit(
-            Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
-            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
-            translateExpression(definition),
-            getIdentifiedLocation(inputAST)
-          )
-        } else {
-          Module.Scope.Definition.Method.Binding(
-            Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
-            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
-            args.map(translateArgumentDefinition(_)),
-            translateExpression(definition),
-            getIdentifiedLocation(inputAST)
-          )
-        }
+        Module.Scope.Definition.Method.Binding(
+          Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
+          Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
+          args.map(translateArgumentDefinition(_)),
+          translateExpression(definition),
+          getIdentifiedLocation(inputAST)
+        )
 
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")

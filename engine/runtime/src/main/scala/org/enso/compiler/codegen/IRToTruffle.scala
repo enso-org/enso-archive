@@ -221,7 +221,7 @@ class IRToTruffle(
           expressionProcessor.processFunctionBody(
             fn.arguments,
             fn.body,
-            fn.location,
+            methodDef.location,
             Some(methodDef.methodName.name)
           )
         case _ =>

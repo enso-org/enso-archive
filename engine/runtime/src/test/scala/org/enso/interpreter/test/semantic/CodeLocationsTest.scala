@@ -9,6 +9,7 @@ import org.enso.interpreter.test.InterpreterTest
 import org.enso.polyglot.MethodNames
 
 class CodeLocationsTest extends InterpreterTest {
+
   def debugPrintCodeLocations(code: String): Unit = {
     var off = 0
     code.linesIterator.toList.foreach { line =>

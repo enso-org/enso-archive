@@ -25,6 +25,7 @@ import scala.annotation.unused
   *
   * - None
   */
+//noinspection DuplicatedCode
 case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
@@ -75,7 +76,7 @@ case object FunctionBinding extends IRPass {
             IR.Function.Lambda(List(arg), body, None)
           )
           .asInstanceOf[IR.Function.Lambda]
-          .copy(canBeTCO = canBeTCO)
+          .copy(canBeTCO = canBeTCO, location = location)
 
         IR.Expression.Binding(name, lambda, location)
     }
@@ -92,19 +93,19 @@ case object FunctionBinding extends IRPass {
     definition match {
       case a @ Definition.Atom(_, arguments, _, _, _) =>
         a.copy(arguments = arguments.map(_.mapExpressions(desugarExpression)))
-      case method @ Method.Explicit(_, _, body, _, _, _) =>
-        // TODO [AA] Error here
-        method.copy(body = runExpression(body, InlineContext()))
+      case _: Method.Explicit =>
+        throw new CompilerError(
+          "Explicit method definitions should not exist during function " +
+          "binding desugaring."
+        )
       case Method.Binding(typeName, methName, args, body, loc, _, _) =>
         val newBody = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
             IR.Function.Lambda(List(arg), body, None)
           )
-          .asInstanceOf[IR.Function.Lambda]
-          .copy(location = loc)
 
-        Method.Explicit(typeName, methName, newBody, None)
+        Method.Explicit(typeName, methName, newBody, loc)
       case e: Redefined => e
     }
   }
