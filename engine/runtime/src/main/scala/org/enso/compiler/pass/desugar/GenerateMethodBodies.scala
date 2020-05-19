@@ -94,9 +94,10 @@ case object GenerateMethodBodies extends IRPass {
           lam.copy(
             arguments = genThisArgument :: args
           )
-        case sugar @ IR.Function.Binding(_, args, _, _, _, _, _) =>
-          sugar.copy(
-            arguments = genThisArgument :: args
+        case _: IR.Function.Binding =>
+          throw new CompilerError(
+            "Function definition sugar should not be present during method " +
+            "body generation."
           )
       }
     } else {

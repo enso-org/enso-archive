@@ -52,25 +52,34 @@ case object FunctionBinding extends IRPass {
     */
   override def runExpression(
     ir: IR.Expression,
-    inlineContext: InlineContext
-  ): IR.Expression = ir.transformExpressions {
-    case IR.Function.Binding(name, args, body, location, canBeTCO, _, _) =>
-      if (args.isEmpty) {
-        throw new CompilerError("The arguments list should not be empty.")
-      }
-
-      val lambda = args
-        .map(_.mapExpressions(runExpression(_, inlineContext)))
-        .foldRight(runExpression(body, inlineContext))((arg, body) =>
-          IR.Function.Lambda(List(arg), body, None)
-        )
-        .asInstanceOf[IR.Function.Lambda]
-        .copy(canBeTCO = canBeTCO)
-
-      IR.Expression.Binding(name, lambda, location)
-  }
+    @unused inlineContext: InlineContext
+  ): IR.Expression = desugarExpression(ir)
 
   // === Pass Internals =======================================================
+
+  /** Performs desugaring on an arbitrary Enso expression.
+    *
+    * @param ir the expression to desugar
+    * @return `ir`, with any function definition sugar removed
+    */
+  def desugarExpression(ir: IR.Expression): IR.Expression = {
+    ir.transformExpressions {
+      case IR.Function.Binding(name, args, body, location, canBeTCO, _, _) =>
+        if (args.isEmpty) {
+          throw new CompilerError("The arguments list should not be empty.")
+        }
+
+        val lambda = args
+          .map(_.mapExpressions(desugarExpression))
+          .foldRight(desugarExpression(body))((arg, body) =>
+            IR.Function.Lambda(List(arg), body, None)
+          )
+          .asInstanceOf[IR.Function.Lambda]
+          .copy(canBeTCO = canBeTCO)
+
+        IR.Expression.Binding(name, lambda, location)
+    }
+  }
 
   /** Performs desugaring on a module definition.
     *
@@ -82,18 +91,14 @@ case object FunctionBinding extends IRPass {
   ): IR.Module.Scope.Definition = {
     definition match {
       case a @ Definition.Atom(_, arguments, _, _, _) =>
-        a.copy(
-          arguments =
-            arguments.map(_.mapExpressions(runExpression(_, InlineContext())))
-        )
+        a.copy(arguments = arguments.map(_.mapExpressions(desugarExpression)))
       case method @ Method.Explicit(_, _, body, _, _, _) =>
-        method.copy(
-          body = runExpression(body, InlineContext())
-        )
+        // TODO [AA] Error here
+        method.copy(body = runExpression(body, InlineContext()))
       case Method.Binding(typeName, methName, args, body, loc, _, _) =>
         val newBody = args
-          .map(_.mapExpressions(runExpression(_, InlineContext())))
-          .foldRight(runExpression(body, InlineContext()))((arg, body) =>
+          .map(_.mapExpressions(desugarExpression))
+          .foldRight(desugarExpression(body))((arg, body) =>
             IR.Function.Lambda(List(arg), body, None)
           )
           .asInstanceOf[IR.Function.Lambda]

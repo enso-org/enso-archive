@@ -479,6 +479,7 @@ object IR {
           override def children: List[IR] = name :: arguments
         }
 
+        /** A trait representing method definitions in Enso. */
         sealed trait Method extends Definition {
           val typeName: IR.Name
           val methodName: IR.Name
