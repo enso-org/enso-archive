@@ -6,6 +6,7 @@ import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
@@ -21,7 +22,9 @@ import org.enso.languageserver.websocket.binary.factory.{
 
 import scala.io.Source
 
-class BinaryFileManipulationTest extends BaseBinaryServerTest {
+class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
+
+  override val FLAKY_TESTS = Seq("persist binary contents of a file")
 
   implicit private val decoder = OutboundMessageDecoder
 

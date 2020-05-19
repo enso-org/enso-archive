@@ -3,6 +3,7 @@ package org.enso.languageserver.websocket.binary
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
@@ -13,7 +14,9 @@ import org.enso.languageserver.websocket.binary.factory.{
   SessionInitFactory
 }
 
-class BinarySessionManagementTest extends BaseBinaryServerTest {
+class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
+
+  override val FLAKY_TESTS = Seq("return empty SessionInitResponse")
 
   implicit private val decoder = OutboundMessageDecoder
 

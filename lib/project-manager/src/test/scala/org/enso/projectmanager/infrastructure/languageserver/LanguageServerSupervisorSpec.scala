@@ -36,7 +36,9 @@ class LanguageServerSupervisorSpec
     with MockitoSugar
     with FlakySpec {
 
-  override val FLAKY_TESTS = Seq("restart server limited number of times")
+  override val FLAKY_TESTS = Seq(
+    "monitor language server by sending ping requests on regular basis"
+  )
 
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" in new TestCtx {
     //given
