@@ -461,8 +461,8 @@ object AstView {
       * arbitrary program expression.
       *
       * @param ast the structure to try and match on
-      * @return the path segments of the type reference, the function name, and
-      *         the bound expression
+      * @return the path segments of the type reference, the function name, the
+     *          arguments to the method, and the bound expression
       */
     def unapply(ast: AST): Option[(List[AST], AST, List[AST], AST)] = {
       ast match {

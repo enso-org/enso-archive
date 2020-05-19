@@ -181,6 +181,9 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAST match {
+      case AST.Def(consName, _, _) =>
+        IR.Error
+          .Syntax(inputAST, IR.Error.Syntax.TypeDefinedInline(consName.name))
       case AstView.UnaryMinus(expression) =>
         expression match {
           case AST.Literal.Number(base, number) =>
@@ -224,6 +227,11 @@ object AstToIr {
         )
       case AstView.Assignment(name, expr) =>
         translateBinding(getIdentifiedLocation(inputAST), name, expr)
+      case AstView.MethodDefinition(_, name, _, _) =>
+        IR.Error.Syntax(
+          inputAST,
+          IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
+        )
       case AstView.MethodCall(target, name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)

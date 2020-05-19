@@ -3064,6 +3064,18 @@ object IR {
           s"Syntax is not supported yet: $syntaxName."
       }
 
+      case class MethodDefinedInline(methodName: String) extends Reason {
+        override def explanation: String =
+          s"Cannot define $methodName, methods are not supported in the " +
+          s"inline flow."
+      }
+
+      case class TypeDefinedInline(typeName: String) extends Reason {
+        override def explanation: String =
+          s"Cannot define $typeName, type definitions are not supported " +
+          s"in the inline flow."
+      }
+
       case object EmptyParentheses extends Reason {
         override def explanation: String = "Parentheses can't be empty."
       }

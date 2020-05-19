@@ -304,4 +304,28 @@ class AstToIrTest extends CompilerTest {
       ir shouldBe an[IR.Function.Binding]
     }
   }
+
+  "AST translation for the inline flow" should {
+    "disallow method definitions without exploding" in {
+      val ir =
+        """
+          |Unit.foo a b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.MethodDefinedInline]
+    }
+
+    "disallow type definitions without explocing" in {
+      val ir =
+        """
+          |type MyAtom a b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.TypeDefinedInline]
+    }
+  }
 }
