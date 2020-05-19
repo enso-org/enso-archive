@@ -180,8 +180,8 @@ class JsonConnectionController(
 
       }
 
-    case InputOutputProtocol.BlockedOnStandardInputRead =>
-      webActor ! Notification(InputOutputApi.BlockedOnStandardInputRead, Unused)
+    case InputOutputProtocol.WaitingForStandardInput =>
+      webActor ! Notification(InputOutputApi.WaitingForStandardInput, Unused)
 
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(

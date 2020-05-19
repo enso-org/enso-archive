@@ -11,8 +11,8 @@ import org.enso.languageserver.event.{
   ExecutionContextEvent
 }
 import org.enso.languageserver.io.InputOutputProtocol.{
-  BlockedOnStandardInputRead,
-  FeedStandardInput
+  FeedStandardInput,
+  WaitingForStandardInput
 }
 import org.enso.languageserver.io.InputRedirectionController.ContextData
 import org.enso.languageserver.io.ObservablePipedInputStream.{
@@ -65,7 +65,7 @@ class InputRedirectionController(
         case ContextData(_, owner) =>
           sessionRouter ! DeliverToJsonController(
             owner,
-            BlockedOnStandardInputRead
+            WaitingForStandardInput
           )
       }
   }
