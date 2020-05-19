@@ -41,6 +41,13 @@ sealed trait IR {
   /** The source location that the node corresponds to. */
   val location: Option[IdentifiedLocation]
 
+  /** Sets the location for an IR node.
+    *
+    * @param location the new location for the IR node
+    * @return the IR node with its location set to `location`
+    */
+  def setLocation(location: Option[IdentifiedLocation]): IR
+
   /** Gets the external identifier from an IR node, if it is present.
     *
     * @return the external identifier for this IR node
@@ -175,6 +182,9 @@ object IR {
       res
     }
 
+    override def setLocation(location: Option[IdentifiedLocation]): Empty =
+      copy(location = location)
+
     override def mapExpressions(fn: Expression => Expression): Empty = this
 
     override def toString: String =
@@ -239,6 +249,9 @@ object IR {
       res
     }
 
+    override def setLocation(location: Option[IdentifiedLocation]): Module =
+      copy(location = location)
+
     override def mapExpressions(fn: Expression => Expression): Module = {
       copy(
         imports  = imports.map(_.mapExpressions(fn)),
@@ -274,13 +287,15 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def mapExpressions(fn: Expression => Expression): Scope
+      override def mapExpressions(fn: Expression => Expression):      Scope
+      override def setLocation(location: Option[IdentifiedLocation]): Scope
     }
     object Scope {
 
       /** Module-level import statements. */
       sealed trait Import extends Scope {
-        override def mapExpressions(fn: Expression => Expression): Import
+        override def mapExpressions(fn: Expression => Expression):      Import
+        override def setLocation(location: Option[IdentifiedLocation]): Import
       }
 
       object Import {
@@ -321,6 +336,11 @@ object IR {
             res.id = id
             res
           }
+
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): Module =
+            copy(location = location)
 
           override def mapExpressions(
             fn: Expression => Expression
@@ -380,7 +400,7 @@ object IR {
             * @return a copy of `this`, updated with the specified values
             */
           def copy(
-            entity: Polyglot.Entity,
+            entity: Polyglot.Entity              = entity,
             location: Option[IdentifiedLocation] = location,
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
@@ -391,6 +411,10 @@ object IR {
             res.id = id
             res
           }
+
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): Polyglot = copy(location = location)
 
           override def mapExpressions(fn: Expression => Expression): Polyglot =
             this
@@ -413,6 +437,9 @@ object IR {
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
         override def mapExpressions(fn: Expression => Expression): Definition
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Definition
       }
       object Definition {
 
@@ -457,6 +484,9 @@ object IR {
             res
           }
 
+          override def setLocation(location: Option[IdentifiedLocation]): Atom =
+            copy(location = location)
+
           override def mapExpressions(fn: Expression => Expression): Atom = {
             copy(
               name      = name.mapExpressions(fn),
@@ -485,7 +515,8 @@ object IR {
           val methodName: IR.Name
           val body: Expression
 
-          override def mapExpressions(fn: Expression => Expression): Method
+          override def setLocation(location: Option[IdentifiedLocation]): Method
+          override def mapExpressions(fn: Expression => Expression):      Method
         }
         object Method {
 
@@ -543,6 +574,11 @@ object IR {
               res.id = id
               res
             }
+
+            override def setLocation(
+              location: Option[IdentifiedLocation]
+            ): Explicit =
+              copy(location = location)
 
             override def mapExpressions(
               fn: Expression => Expression
@@ -607,7 +643,7 @@ object IR {
               * @param passData the pass metadata associated with this node
               * @param diagnostics compiler diagnostics for this node
               * @param id the identifier for the new node
-              * @return a copy of `this`, updated with the specified values`
+              * @return a copy of `this`, updated with the specified values
               */
             def copy(
               typeName: IR.Name                      = typeName,
@@ -631,6 +667,11 @@ object IR {
               res.id = id
               res
             }
+
+            override def setLocation(
+              location: Option[IdentifiedLocation]
+            ): Binding =
+              copy(location = location)
 
             override def mapExpressions(
               fn: Expression => Expression
@@ -685,7 +726,8 @@ object IR {
       }
     }
 
-    override def mapExpressions(fn: Expression => Expression): Expression
+    override def mapExpressions(fn: Expression => Expression):      Expression
+    override def setLocation(location: Option[IdentifiedLocation]): Expression
   }
   object Expression {
 
@@ -741,6 +783,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Block =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Block = {
         copy(
@@ -809,6 +854,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Binding =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Binding = {
         copy(name = name.mapExpressions(fn), expression = fn(expression))
       }
@@ -833,7 +881,8 @@ object IR {
 
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
-    override def mapExpressions(fn: Expression => Expression): Literal
+    override def mapExpressions(fn: Expression => Expression):      Literal
+    override def setLocation(location: Option[IdentifiedLocation]): Literal
   }
   object Literal {
 
@@ -872,6 +921,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Number =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Number = this
 
@@ -924,6 +976,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Text =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Text = this
 
       override def toString: String =
@@ -947,7 +1002,8 @@ object IR {
   sealed trait Name extends Expression with IRKind.Primitive {
     val name: String
 
-    override def mapExpressions(fn: Expression => Expression): Name
+    override def mapExpressions(fn: Expression => Expression):      Name
+    override def setLocation(location: Option[IdentifiedLocation]): Name
   }
   object Name {
 
@@ -966,6 +1022,14 @@ object IR {
       override val name: String             = "_"
       override protected var id: Identifier = randomId
 
+      /** Creates a copy of `this`.`
+        *
+        * @param location the soure location that the node corresponds to.
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the node
+        * @return a copy of `this`, updated with the specified values
+        */
       def copy(
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -979,6 +1043,9 @@ object IR {
 
       override def mapExpressions(fn: Expression => Expression): Blank =
         this
+
+      override def setLocation(location: Option[IdentifiedLocation]): Blank =
+        copy(location = location)
 
       override def toString: String =
         s"""
@@ -1029,6 +1096,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Literal =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Literal = this
 
       override def toString: String =
@@ -1077,6 +1147,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): This =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): This = this
 
@@ -1127,6 +1200,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Here =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Here = this
 
       override def toString: String =
@@ -1146,7 +1222,8 @@ object IR {
 
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Type
+    override def mapExpressions(fn: Expression => Expression):      Type
+    override def setLocation(location: Option[IdentifiedLocation]): Type
   }
   object Type {
 
@@ -1195,6 +1272,10 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Ascription = copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Ascription = {
         copy(typed = fn(typed), signature = fn(signature))
@@ -1259,6 +1340,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Context =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Context = {
         copy(typed = fn(typed), context = fn(context))
       }
@@ -1283,7 +1367,8 @@ object IR {
 
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
-      override def mapExpressions(fn: Expression => Expression): Set
+      override def mapExpressions(fn: Expression => Expression):      Set
+      override def setLocation(location: Option[IdentifiedLocation]): Set
     }
     object Set {
 
@@ -1332,6 +1417,9 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(location: Option[IdentifiedLocation]): Member =
+          copy(location = location)
 
         override def mapExpressions(fn: Expression => Expression): Member = {
           copy(
@@ -1402,6 +1490,10 @@ object IR {
           res
         }
 
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Subsumption = copy(location = location)
+
         override def mapExpressions(
           fn: Expression => Expression
         ): Subsumption = {
@@ -1467,6 +1559,10 @@ object IR {
           res
         }
 
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Equality = copy(location = location)
+
         override def mapExpressions(fn: Expression => Expression): Equality = {
           copy(left = fn(left), right = fn(right))
         }
@@ -1529,6 +1625,9 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(location: Option[IdentifiedLocation]): Concat =
+          copy(location = location)
 
         override def mapExpressions(fn: Expression => Expression): Concat = {
           copy(left = fn(left), right = fn(right))
@@ -1593,6 +1692,9 @@ object IR {
           res
         }
 
+        override def setLocation(location: Option[IdentifiedLocation]): Union =
+          copy(location = location)
+
         override def mapExpressions(fn: Expression => Expression): Union = {
           copy(left = fn(left), right = fn(right))
         }
@@ -1655,6 +1757,10 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Intersection = copy(location = location)
 
         override def mapExpressions(
           fn: Expression => Expression
@@ -1721,6 +1827,10 @@ object IR {
           res
         }
 
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Subtraction = copy(location = location)
+
         override def mapExpressions(
           fn: Expression => Expression
         ): Subtraction = {
@@ -1769,7 +1879,8 @@ object IR {
       */
     val canBeTCO: Boolean
 
-    override def mapExpressions(fn: Expression => Expression): Function
+    override def mapExpressions(fn: Expression => Expression):      Function
+    override def setLocation(location: Option[IdentifiedLocation]): Function
   }
   object Function {
 
@@ -1822,6 +1933,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Lambda =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Lambda = {
         copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
@@ -1901,7 +2015,10 @@ object IR {
         res
       }
 
-      override def mapExpressions(fn: Expression => Expression): Function =
+      override def setLocation(location: Option[IdentifiedLocation]): Binding =
+        copy(location = location)
+
+      override def mapExpressions(fn: Expression => Expression): Binding =
         copy(
           name      = name.mapExpressions(fn),
           arguments = arguments.map(_.mapExpressions(fn)),
@@ -1942,6 +2059,10 @@ object IR {
 
     override def mapExpressions(
       fn: Expression => Expression
+    ): DefinitionArgument
+
+    override def setLocation(
+      location: Option[IdentifiedLocation]
     ): DefinitionArgument
   }
   object DefinitionArgument {
@@ -2002,6 +2123,10 @@ object IR {
         res
       }
 
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Specified = copy(location = location)
+
       def mapExpressions(fn: Expression => Expression): Specified = {
         copy(
           name         = name.mapExpressions(fn),
@@ -2030,7 +2155,8 @@ object IR {
 
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Application
+    override def mapExpressions(fn: Expression => Expression):      Application
+    override def setLocation(location: Option[IdentifiedLocation]): Application
   }
   object Application {
 
@@ -2088,6 +2214,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Prefix =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Prefix = {
         copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
@@ -2147,6 +2276,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Force =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Force = {
         copy(target = fn(target))
       }
@@ -2168,7 +2300,8 @@ object IR {
 
     /** Literal applications in Enso. */
     sealed trait Literal extends Application {
-      override def mapExpressions(fn: Expression => Expression): Literal
+      override def mapExpressions(fn: Expression => Expression):      Literal
+      override def setLocation(location: Option[IdentifiedLocation]): Literal
     }
 
     object Literal {
@@ -2213,6 +2346,10 @@ object IR {
           res
         }
 
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Sequence = copy(location = location)
+
         override def toString: String =
           s"""
           |IR.Application.Literal.Vector(
@@ -2230,7 +2367,8 @@ object IR {
 
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
-      override def mapExpressions(fn: Expression => Expression): Operator
+      override def mapExpressions(fn: Expression => Expression):      Operator
+      override def setLocation(location: Option[IdentifiedLocation]): Operator
     }
     object Operator {
 
@@ -2280,6 +2418,9 @@ object IR {
           res
         }
 
+        override def setLocation(location: Option[IdentifiedLocation]): Binary =
+          copy(location = location)
+
         override def mapExpressions(fn: Expression => Expression): Binary = {
           copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
         }
@@ -2303,7 +2444,8 @@ object IR {
 
       /** Operator sections. */
       sealed trait Section extends Operator {
-        override def mapExpressions(fn: Expression => Expression): Section
+        override def mapExpressions(fn: Expression => Expression):      Section
+        override def setLocation(location: Option[IdentifiedLocation]): Section
       }
       object Section {
 
@@ -2347,6 +2489,9 @@ object IR {
             res.id = id
             res
           }
+
+          override def setLocation(location: Option[IdentifiedLocation]): Left =
+            copy(location = location)
 
           override def mapExpressions(fn: Expression => Expression): Section =
             copy(
@@ -2406,6 +2551,10 @@ object IR {
             res
           }
 
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): Sides = copy(location = location)
+
           override def mapExpressions(fn: Expression => Expression): Section =
             copy(operator = operator.mapExpressions(fn))
 
@@ -2464,6 +2613,10 @@ object IR {
             res
           }
 
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): Right = copy(location = location)
+
           override def mapExpressions(fn: Expression => Expression): Section = {
             copy(
               operator = operator.mapExpressions(fn),
@@ -2509,7 +2662,8 @@ object IR {
       */
     val shouldBeSuspended: Option[Boolean]
 
-    override def mapExpressions(fn: Expression => Expression): CallArgument
+    override def mapExpressions(fn: Expression => Expression):      CallArgument
+    override def setLocation(location: Option[IdentifiedLocation]): CallArgument
   }
   object CallArgument {
 
@@ -2570,6 +2724,10 @@ object IR {
         res
       }
 
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Specified = copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Specified = {
         copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
       }
@@ -2595,7 +2753,8 @@ object IR {
 
   /** The Enso case expression. */
   sealed trait Case extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Case
+    override def mapExpressions(fn: Expression => Expression):      Case
+    override def setLocation(location: Option[IdentifiedLocation]): Case
   }
   object Case {
 
@@ -2644,6 +2803,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Expr =
+        copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Expr = {
         copy(
@@ -2712,6 +2874,9 @@ object IR {
         res
       }
 
+      override def setLocation(location: Option[IdentifiedLocation]): Branch =
+        copy(location = location)
+
       override def mapExpressions(fn: Expression => Expression): Branch = {
         copy(pattern = fn(pattern), expression = fn(expression))
       }
@@ -2745,7 +2910,8 @@ object IR {
 
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Comment
+    override def mapExpressions(fn: Expression => Expression):      Comment
+    override def setLocation(location: Option[IdentifiedLocation]): Comment
 
     /** The expression being commented. */
     val commented: Expression
@@ -2793,6 +2959,10 @@ object IR {
         res
       }
 
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Documentation = copy(location = location)
+
       override def mapExpressions(
         fn: Expression => Expression
       ): Documentation = {
@@ -2820,7 +2990,8 @@ object IR {
 
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Foreign
+    override def mapExpressions(fn: Expression => Expression):      Foreign
+    override def setLocation(location: Option[IdentifiedLocation]): Foreign
   }
   object Foreign {
 
@@ -2864,6 +3035,10 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Definition = copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Definition =
         this
@@ -2984,7 +3159,8 @@ object IR {
 
   /** A trait for all errors in Enso's IR. */
   sealed trait Error extends Expression with Diagnostic {
-    override def mapExpressions(fn: Expression => Expression): Error
+    override def mapExpressions(fn: Expression => Expression):      Error
+    override def setLocation(location: Option[IdentifiedLocation]): Error
   }
   object Error {
 
@@ -3025,6 +3201,9 @@ object IR {
         res.id = id
         res
       }
+
+      override def setLocation(location: Option[IdentifiedLocation]): Syntax =
+        this
 
       override val location: Option[IdentifiedLocation] =
         ast.location.map(IdentifiedLocation(_, ast.id))
@@ -3144,6 +3323,10 @@ object IR {
         res
       }
 
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): InvalidIR = this
+
       override val location: Option[IdentifiedLocation] = ir.location
 
       override def mapExpressions(fn: Expression => Expression): InvalidIR =
@@ -3170,7 +3353,9 @@ object IR {
     /** Errors pertaining to the redefinition of language constructs that are
       * not allowed to be.
       */
-    sealed trait Redefined extends Error
+    sealed trait Redefined extends Error {
+      override def setLocation(location: Option[IdentifiedLocation]): Redefined
+    }
     object Redefined {
 
       /** An error representing the redefinition or incorrect positioning of
@@ -3207,6 +3392,10 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): ThisArg = copy(location = location)
 
         override def mapExpressions(fn: Expression => Expression): ThisArg =
           this
@@ -3264,6 +3453,9 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(location: Option[IdentifiedLocation]): Method =
+          copy(location = location)
 
         override def message: String =
           s"Method overloads are not supported: ${atomName.name}." +
@@ -3329,6 +3521,9 @@ object IR {
           res
         }
 
+        override def setLocation(location: Option[IdentifiedLocation]): Atom =
+          copy(location = location)
+
         override def message: String =
           s"Redefining atoms is not supported: ${atomName.name} is " +
           s"defined multiple times in this module."
@@ -3385,6 +3580,10 @@ object IR {
           res.id = id
           res
         }
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Binding = this
 
         override val location: Option[IdentifiedLocation] =
           invalidBinding.location

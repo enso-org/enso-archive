@@ -102,7 +102,7 @@ case object FunctionBinding extends IRPass {
             IR.Function.Lambda(List(arg), body, None)
           )
           .asInstanceOf[IR.Function.Lambda]
-          .copy(location = loc, canBeTCO = true)
+          .copy(location = loc)
 
         Method.Explicit(typeName, methName, newBody, None)
       case e: Redefined => e
