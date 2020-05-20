@@ -6,6 +6,11 @@ import org.enso.languageserver.io.InputOutputApi.FeedStandardInput
 import org.enso.languageserver.io.InputOutputProtocol
 import org.enso.languageserver.util.UnhandledLogging
 
+/**
+  * A request handler for `io/feedStandardInput` commands.
+  *
+  * @param stdInController the stdin redirection controller
+  */
 class FeedStandardInputHandler(stdInController: ActorRef)
     extends Actor
     with ActorLogging
@@ -25,6 +30,13 @@ class FeedStandardInputHandler(stdInController: ActorRef)
 
 object FeedStandardInputHandler {
 
+  /**
+    * Creates a configuration object used to create a
+    * [[FeedStandardInputHandler]].
+    *
+    * @param stdInController the stdin redirection controller
+    * @return a configuration object
+    */
   def props(stdInController: ActorRef): Props =
     Props(new FeedStandardInputHandler(stdInController))
 
