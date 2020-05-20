@@ -102,10 +102,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "context-registry"
     )
 
-  lazy val stdOut = new ObservableOutputStream
-
-  lazy val stdErr = new ObservableOutputStream
-
+  val stdOut    = new ObservableOutputStream
+  val stdErr    = new ObservableOutputStream
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
