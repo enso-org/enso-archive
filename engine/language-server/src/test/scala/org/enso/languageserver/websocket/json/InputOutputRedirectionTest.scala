@@ -139,6 +139,7 @@ class InputOutputRedirectionTest extends BaseServerTest {
       client.expectJson(json"""
              {"jsonrpc":"2.0","id":2,"result":null}
           """)
+      Thread.sleep(1000)
       buffer.toList shouldBe List(97.byteValue, 98.byteValue, 99.byteValue)
     }
 
