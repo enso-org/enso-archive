@@ -457,13 +457,59 @@ should implement to have a better experience with the cache.
 Below are some key takeaways after experimenting with the _instrumentation_ and
 _serialization_ approaches.
 
-There are no slowdowns in running the Enso runtime benchmark with the
-instrumentation `javaagent` attached.  Java
+#### Enso Runtime Benchmark
+The existing runtime benchmark was executed with the java agent attached to
+measure the impact of instrumentation.
+
+#### Serialization Benchmark
+[FST](https://github.com/RuedigerMoeller/fast-serialization) library was used
+for the serialization benchmark. It doesn't require an explicit scheme and
+relies on Java `Serializable` interface.
+
+#### Instrumentation Benchmark
+Java
 [`Instrumentation#getObjectSize()](https://docs.oracle.com/javase/8/docs/api/java/lang/instrument/Instrumentation.html)
-performs in nanosecond time range. The downside is that it can only get the size
-of the Java primitives and Java classes with __public__ fields.  Serialization
-works in microsecond time range and operates on all Java objects implementing
-_Serializable_ interface.
+can only provide a _shallow_ memory of the object. It does not follow the
+references and only takes into account public fields containing primitive types.
+
+Benchmark used the `MemoryUtil#deepMemoryUsageOf` function of
+[Classmexer](https://www.javamex.com/classmexer/) library. It utilizes Java
+reflection to follow the references and access the private fields of the object.
+
+#### Benchmark Results
+Benchmarks measured Java array, `java.util.LinkedList`, and a custom
+implementation of lined list `ConsList`, an object that maintains references for
+its head and tail.
+
+``` java
+  public static class ConsList<A> {
+
+    private A head;
+    private ConsList<A> tail;
+...
+}
+```
+
+Function execution time measured in milliseconds per operation (lower is
+better).
+
+``` text
+Benchmark                               (size)  Mode  Cnt     Score     Error  Units
+FstBenchmark.serializeArray               1000  avgt    5    21.862 ±   0.503  us/op
+FstBenchmark.serializeConsList            1000  avgt    5   151.791 ±  45.200  us/op
+FstBenchmark.serializeLinkedList          1000  avgt    5    38.139 ±  12.932  us/op
+InstrumentBenchmark.memoryOfArray         1000  avgt    5    17.700 ±   0.068  us/op
+InstrumentBenchmark.memoryOfConsList      1000  avgt    5  1706.224 ±  61.631  us/op
+InstrumentBenchmark.memoryOfLinkedList    1000  avgt    5  1866.783 ± 557.296  us/op
+```
+
+- There are no slowdowns in running the Enso runtime benchmark with the
+  instrumentation `javaagent` attached.
+- Serialization works in microsecond time range and operates on all Java objects
+  implementing _Serializable_ interface.
+- Java `Instrumentation#getObjectSize() performs in nanosecond time range. The
+  _deep_ inspection approach based on the reflection was significantly slower
+  than the serialization.
 
 The resulting approach can be a combination of one of the approaches with the
 introspection of the value. For example, it can be a case statement, analyzing
