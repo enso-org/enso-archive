@@ -38,7 +38,7 @@ than having to recompute the entire program.
   - [Side Effects in the Initial Version](#side-effects-in-the-initial-version)
   - [In The Future](#in-the-future)
 - [Cache Eviction Strategy](#cache-eviction-strategy)
-  - [Initial Eviction Strategies](#initial-eviction-strategies)
+  - [Initial Eviction Strategy](#initial-eviction-strategy)
   - [Future Eviction Strategies](#future-eviction-strategies)
 - [Dataflow Analysis](#dataflow-analysis)
   - [Identifying Expressions](#identifying-expressions)
@@ -174,14 +174,22 @@ brief sketch of how this might work:
 The cache eviction strategy refers to the method by which we determine which
 entries in the cache are invalidated (if any) after a given change to the code.
 
-### Initial Eviction Strategies
+### Initial Eviction Strategy
 In the initial version of the caching mechanism, the eviction strategies are
 intended to be fairly simplistic and conservative to ensure correctness.
 
 - The compiler performs data-dependency analysis between expressions.
 - If an expression is changed, all cached values for expressions that depend on
   it are evicted from the cache.
-- These evicted values must be computed.
+- Expressions that have been evicted from the cache subsequently have to be
+  recomputed by the runtime.
+
+The following rules are applied when an expression identified by some key `k` is
+changed:
+
+1. All expressions that depend on the result of `k` are evicted from the cache.
+2. If `k` is a dynamic symbol, all expressions that depend on _any instance_ of
+   the dynamic symbol are evicted from the cache.
 
 ### Future Eviction Strategies
 In the future, however, the increasing sophistication of the front-end compiler
