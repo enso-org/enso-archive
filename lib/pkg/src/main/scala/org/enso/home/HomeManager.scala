@@ -23,13 +23,15 @@ class HomeManager[F](languageHomePath: F, implicit val fs: FileSystem[F]) {
     * @return a stream of packages found in the `std-lib` home directory.
     */
   def loadStdLib: Stream[Package[F]] = {
-    libPath.list
-      .filter(_.isDirectory)
-      .flatMap(path =>
-        packageManager
-          .fromDirectory(path)
-          .map(s => Stream.of(s))
-          .getOrElse(Stream.empty())
-      )
+    if (libPath.exists)
+      libPath.list
+        .filter(_.isDirectory)
+        .flatMap(path =>
+          packageManager
+            .fromDirectory(path)
+            .map(s => Stream.of(s))
+            .getOrElse(Stream.empty())
+        )
+    else Stream.empty()
   }
 }
