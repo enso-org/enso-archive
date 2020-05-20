@@ -395,21 +395,29 @@ Cache eviction takes into account the following aspects:
   limit. The cache should not exceed the specified memory limit.
 
 ## Cache Backend
-The requirements for eviction strategies and memory management should guide the
-exact implementation of the cache.
+The cache is implemented as key-value storage with an eviction function.
 
-### Initial Implementation of Cache Backend
-The cache consists of key-value storage and an eviction function. Key-value
-storage can be as simple as a Hash Map with values wrapped into the Soft
-References as a safety measure. Eviction function purges invalidated expressions
-based on the [Cache Eviction Strategy](#cacheevictionstrategy).
+The cache stores the right-hand side expressions of the bindings in the
+key-value storage. The storage can be as simple as a Hash Map with values
+wrapped into the Soft References as a fallback strategy of clearing the
+cache. The eviction function purges invalidated expressions from previous
+program execution.
 
-### Further Development of Cache Backend
-The backend implementation should be updated according to the changing
-requirements of the runtime cache.For example, to extend the eviction strategy,
-we can add an asynchronous scoring task that computes some properties of stored
-objects (e.g., the size of the object). Those properties can be used in the
-eviction strategy as optional clues, improving the hit ratio.
+### Further development
+Cache intermediate results of expressions to reduce the cost of new computations
+and extend the eviction strategy to clear the cache based on memory consumption.
+
+Extend the eviction strategy by adding an asynchronous scoring task that
+computes some properties of stored objects (e.g., the size of the object). Those
+properties can be used in the eviction strategy as optional clues, improving the
+hit ratio.
+
+> The actionables for this section are:
+>
+> - Evolve the cache by storing the results of intermediate expressions
+>
+> - Evolve the cache eviction strategy implementation by employing more
+>   information of the stored values
 
 ## Memory Bounded Caches
 Memory management refers to a way of controlling the size of the cache, avoiding
