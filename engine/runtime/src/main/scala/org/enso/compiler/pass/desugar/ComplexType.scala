@@ -3,6 +3,8 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
+import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 import scala.annotation.unused
@@ -71,6 +73,55 @@ case object ComplexType extends IRPass {
   def desugarComplexType(
     @unused typ: IR.Module.Scope.Definition.Type
   ): List[IR.Module.Scope.Definition] = {
-    List()
+    val atomDefs = typ.body.collect {
+      case d: IR.Module.Scope.Definition.Atom => d
+    }
+    val atomIncludes = typ.body.collect {
+      case n: IR.Name => n
+    }
+    val namesToDefineMethodsOn = typ.body.collect {
+      case d: IR.Module.Scope.Definition.Atom => d.name
+      case n: IR.Name                         => n
+    }
+    val methods = typ.body.collect {
+      case b: IR.Expression.Binding => b
+      case f: IR.Function.Binding   => f
+    }
+
+    if ((atomDefs ::: atomIncludes ::: methods).length != typ.body.length) {
+      throw new CompilerError(
+        "All bindings in a type definition body should be accounted for."
+      )
+    }
+
+    val methodDefs = methods.flatMap(genMethodDef(_, namesToDefineMethodsOn))
+
+    atomDefs ::: methodDefs
+  }
+
+  /** Generates a method definition from a definition in complex type def body.
+    *
+    * @param ir the definition to generate a method from
+    * @param names the names on which the method is being defined
+    * @return `ir` as a method
+    */
+  def genMethodDef(
+    ir: IR,
+    names: List[IR.Name]
+  ): List[IR.Module.Scope.Definition.Method] = {
+    ir match {
+      case IR.Expression.Binding(name, expr, location, _, _) =>
+        names.map(typeName => {
+          Method.Binding(typeName, name, List(), expr, location)
+        })
+      case IR.Function.Binding(name, args, body, location, _, _, _) =>
+        names.map(typeName => {
+          Method.Binding(typeName, name, args, body, location)
+        })
+      case _ =>
+        throw new CompilerError(
+          "Unexpected IR node during complex type desugaring."
+        )
+    }
   }
 }
