@@ -13,6 +13,15 @@ import org.enso.languageserver.io.OutputRedirectionController.CharOutputAppended
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 
+/**
+  * A redirection controller that listen to stdout or stderr data changes and
+  * dispatches new output to clients that has redirected stdout or err.
+  *
+  * @param outputStream stdout or stderr
+  * @param outputKind a kind of the output
+  * @param sessionRouter used to deliver stdout/stderr updates to subscribed
+  *                      clients
+  */
 class OutputRedirectionController(
   outputStream: ObservableOutputStream,
   outputKind: OutputKind,
@@ -48,6 +57,7 @@ class OutputRedirectionController(
       context.become(running(subscribers - session.clientId))
   }
 
+  /** @inheritdoc **/
   override def update(output: Array[Byte]): Unit =
     self ! CharOutputAppended(new String(output))
 
@@ -66,11 +76,23 @@ object OutputRedirectionController {
 
   private case class CharOutputAppended(output: String)
 
+  /**
+    * Creates a configuration object used to create a
+    * [[OutputRedirectionController]].
+    *
+    * @param outputStream stdout or stderr
+    * @param outputKind a kind of the output
+    * @param sessionRouter used to deliver stdout/stderr updates to subscribed
+    *                      clients
+    * @return a configuration object
+    */
   def props(
-    stdOut: ObservableOutputStream,
+    outputStream: ObservableOutputStream,
     outputKind: OutputKind,
     sessionRouter: ActorRef
   ): Props =
-    Props(new OutputRedirectionController(stdOut, outputKind, sessionRouter))
+    Props(
+      new OutputRedirectionController(outputStream, outputKind, sessionRouter)
+    )
 
 }

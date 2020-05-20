@@ -23,6 +23,14 @@ import org.enso.languageserver.io.ObservablePipedInputStream.{
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 
+/**
+  * A stdin redirection controller responsible for feeding stdin and notifying
+  * execution context owners that executed program is blocked on `IO.readln`.
+  *
+  * @param stdIn a stream from which programs read its input data
+  * @param stdInSink     a sink used to feed stdin
+  * @param sessionRouter used to deliver stdin updates to context owners
+  */
 class InputRedirectionController(
   stdIn: ObservablePipedInputStream,
   stdInSink: ObservableOutputStream,
@@ -41,6 +49,7 @@ class InputRedirectionController(
 
   private def running(liveContexts: Set[ContextData] = Set.empty): Receive = {
     case FeedStandardInput(input, isLineTerminated) =>
+      log.debug(s"Feeding stdin [${input.length} bytes]")
       if (isLineTerminated) {
         val bytes =
           ByteString.createBuilder
@@ -70,6 +79,7 @@ class InputRedirectionController(
       }
   }
 
+  /** @inheritdoc **/
   override def update(event: InputStreamEvent): Unit = { self ! event }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -87,11 +97,20 @@ object InputRedirectionController {
 
   private case class ContextData(contextId: UUID, owner: ClientId)
 
+  /**
+    * Creates a configuration object used to create a
+    * [[InputRedirectionController]].
+    *
+    * @param stdIn a stream from which programs read its input data
+    * @param stdInSink     a sink used to feed stdin
+    * @param sessionRouter used to deliver stdin updates to context owners
+    * @return a configuration object
+    */
   def props(
     stdIn: ObservablePipedInputStream,
-    sink: ObservableOutputStream,
+    stdInSink: ObservableOutputStream,
     sessionRouter: ActorRef
   ): Props =
-    Props(new InputRedirectionController(stdIn, sink, sessionRouter))
+    Props(new InputRedirectionController(stdIn, stdInSink, sessionRouter))
 
 }
