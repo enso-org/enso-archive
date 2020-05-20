@@ -38,7 +38,7 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name of the type, the arguments to it, and the type body
       */
-    def unapply(ast: AST): Option[(AST, List[AST], AST)] = ast match {
+    def unapply(ast: AST): Option[(AST.Ident, List[AST], AST)] = ast match {
       case AST.Def(name, args, body) if body.isDefined =>
         Some((name, args, body.get))
       case _ => None

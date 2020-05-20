@@ -164,7 +164,7 @@ case object AliasAnalysis extends IRPass {
           "Complex type definitions should not be present during " +
           "alias analysis."
         )
-      case err: IR.Error.Redefined => err
+      case err: IR.Error => err
     }
   }
 

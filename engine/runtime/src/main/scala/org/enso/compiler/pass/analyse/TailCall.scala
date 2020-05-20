@@ -98,9 +98,9 @@ case object TailCall extends IRPass {
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
-            "alias analysis."
+          "alias analysis."
         )
-      case err: IR.Error.Redefined => err
+      case err: IR.Error => err
     }
   }
 

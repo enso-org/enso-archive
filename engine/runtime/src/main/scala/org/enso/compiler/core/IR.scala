@@ -3253,6 +3253,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
         with Diagnostic.Kind.Interactive
+        with IR.Module.Scope.Definition
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -3327,6 +3328,16 @@ object IR {
       case object UnexpectedDeclarationInType extends Reason {
         override def explanation: String =
           "Unexpected declaration in the body of a type."
+      }
+
+      case object InvalidTypeDefinition extends Reason {
+        override def explanation: String =
+          "Invalid definition for a type."
+      }
+
+      case object InterfaceDefinition extends Reason {
+        override def explanation: String =
+          "Interface definitions are not supported yet."
       }
 
       case class TypeDefinedInline(typeName: String) extends Reason {

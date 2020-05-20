@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, Debug}
 
 import scala.annotation.tailrec
 
@@ -120,8 +120,26 @@ object AstToIr {
             args.map(translateArgumentDefinition(_)),
             getIdentifiedLocation(inputAST)
           )
-      case AstView.TypeDef(_, _, _) =>
-        throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+      case AstView.TypeDef(typeName, args, body) =>
+        val translatedBody = translateTypeBody(body)
+        val containsAtomDefOrInclude = translatedBody.exists {
+          case _: IR.Module.Scope.Definition.Atom => true
+          case _: IR.Name.Literal => true
+          case _ => false
+        }
+        val hasArgs = args.nonEmpty
+
+        if (containsAtomDefOrInclude && !hasArgs) {
+          Module.Scope.Definition.Type(
+            Name.Literal(typeName.name, getIdentifiedLocation(typeName)),
+            args.map(translateArgumentDefinition(_)),
+            translatedBody,
+            getIdentifiedLocation(inputAST)
+          )
+        } else {
+          Error.Syntax(inputAST, Error.Syntax.InvalidTypeDefinition)
+        }
+
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
@@ -156,6 +174,26 @@ object AstToIr {
 
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+    }
+  }
+
+  /** Translates the body of a type expression.
+    *
+    * @param body the body to be translated
+    * @return the [[IR]] representation of `body`
+    */
+  def translateTypeBody(body: AST): List[IR] = {
+    body match {
+      case AST.Block.any(block) =>
+        val actualLines: List[AST] =
+          block.firstLine.elem :: block.lines.flatMap(_.elem)
+
+        if (actualLines.nonEmpty) {
+          actualLines.map(translateTypeBodyExpression)
+        } else {
+          List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
+        }
+      case _ => List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
     }
   }
 
