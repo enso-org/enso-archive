@@ -61,6 +61,10 @@ In essence, the RFC process provides a way to propose major changes to the
 language, the compiler, and the runtime in a way that ensures that they get
 seen and discussed by all the major stakeholders involved.
 
+If, on the other hand, you're asking for a smaller feature, please feel free to
+submit a [feature request](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
+to the repository.
+
 ## Bug Reports
 While it's never great to find a bug, they are a reality of software and
 software development! We can't fix or improve on the things that we don't know
