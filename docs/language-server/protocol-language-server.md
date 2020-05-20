@@ -2154,8 +2154,8 @@ null
 N/A
 
 ### `io/standardOutputAppended`
-Sent from the server to the client to inform about new output data for the
-standard output.
+Sent from the server to the client to inform that new output data are available 
+for the standard output.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
@@ -2216,8 +2216,8 @@ null
 N/A
 
 ### `io/standardErrorAppended`
-Sent from the server to the client to inform about new output data for the
-standard error.
+Sent from the server to the client to inform that new output data are available 
+for the standard error.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
