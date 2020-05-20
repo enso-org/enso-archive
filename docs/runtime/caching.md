@@ -47,7 +47,7 @@ than having to recompute the entire program.
 - [Cache Backend](#cache-backend)
   - [Initial Implementation of Cache Backend](#initial-implementation-of-cache-backend)
   - [Further Development of Cache Backend](#further-development-of-cache-backend)
-- [Memory Management](#memory-management)
+- [Memory Bounded Caches](#memory-bounded-caches)
   - [Soft References](#soft-references)
   - [Serialization](#serialization)
   - [Instrumentation](#instrumentation)
@@ -411,7 +411,7 @@ we can add an asynchronous scoring task that computes some properties of stored
 objects (e.g., the size of the object). Those properties can be used in the
 eviction strategy as optional clues, improving the hit ratio.
 
-## Memory Management
+## Memory Bounded Caches
 Memory management refers to a way of controlling the size of the cache, avoiding
 the Out Of Memory errors.
 
@@ -427,15 +427,17 @@ total amount involves some tradeoffs.
 Soft References is a way to mark the cache entries available for garbage
 collection whenever JVM runs a GC. In practice, it can cause long GC times and
 reduced overall performance. This strategy is generally considered as a last
-resort measure. The effect of the GC can be mitigated by using the _isolates_
-(JSR121 implemented in GraalVM). One can think of an _isolate_ as a lightweight
-JVM, running in a thread with their own heap, memory limit, and garbage
-collection. The problem is that _isolates_ can't share objects. And even if we
-move the cache to the separate _isolate_, that would require creating a
-mechanism of sharing objects based on pointers, which requires implementing
-serialization.  On the other hand, serialization itself can provide the size of
-the object, which is enough to implement the eviction policy, even without
-running the _isolates_.
+resort measure.
+
+The effect of the GC can be mitigated by using the _isolates_ (JSR121
+implemented in GraalVM). One can think of an _isolate_ as a lightweight JVM,
+running in a thread with their own heap, memory limit, and garbage collection.
+
+The problem is that _isolates_ can't share objects. And even if we move the
+cache to the separate _isolate_, that would require creating a mechanism of
+sharing objects based on pointers, which requires implementing serialization. On
+the other hand, serialization itself can provide the size of the object, which
+is enough to implement the eviction policy, even without running the _isolates_.
 
 ### Serialization
 One approach to get the size of the value stored in the cache is
