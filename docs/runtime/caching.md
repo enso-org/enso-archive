@@ -43,7 +43,6 @@ than having to recompute the entire program.
 - [Dataflow Analysis](#dataflow-analysis)
   - [Identifying Expressions](#identifying-expressions)
   - [Specifying Dataflow](#specifying-dataflow)
-- [Cache Eviction Strategy](#cache-eviction-strategy)
 - [Cache Backend](#cache-backend)
   - [Initial Implementation of Cache Backend](#initial-implementation-of-cache-backend)
   - [Further Development of Cache Backend](#further-development-of-cache-backend)
@@ -188,6 +187,16 @@ intended to be fairly simplistic and conservative to ensure correctness.
 In the future, however, the increasing sophistication of the front-end compiler
 for Enso will allow us to do better than this by accounting for more granular
 information in the eviction decisions.
+
+Cache eviction takes into account the following aspects:
+
+* **Visualization:** In the first place, we should care about nodes that have
+  visualization attached in the IDE.
+* **Priority:** The runtime can assign a score to a node, meaning how valuable
+  this node is. Less valuable nodes should be evicted first.
+* **Computation time:** The runtime can calculate the time that node took to
+  compute. Less computationally intensive nodes should be evicted first. Memory
+  limit. The cache should not exceed the specified memory limit.
 
 > The actionables for this section are:
 >
@@ -370,29 +379,6 @@ The value of a comment is purely dependent on the value of the commented entity.
 ```
 comment <- commented
 ```
-
-## Cache Eviction Strategy
-The cache eviction strategy refers to the process by which, for a given change,
-we decide which elements should be evicted from the cache. In the current form,
-the following rules are applied when an expression identified by some key `k` is
-changed:
-
-1. All expressions that depend on the result of `k` are evicted from the cache.
-2. If `k` is a dynamic symbol, all expressions that depend on _any instance_ of
-   the dynamic symbol are evicted from the cache.
-
-Expressions that have been evicted from the cache subsequently have to be
-recomputed by the runtime.
-
-Cache eviction takes into account the following aspects:
-
-* **Visualization:** In the first place, we should care about nodes that have
-  visualization attached in the IDE.
-* **Priority:** The runtime can assign a score to a node, meaning how valuable
-  this node is. Less valuable nodes should be evicted first.
-* **Computation time:** The runtime can calculate the time that node took to
-  compute. Less computationally intensive nodes should be evicted first. Memory
-  limit. The cache should not exceed the specified memory limit.
 
 ## Cache Backend
 The cache is implemented as key-value storage with an eviction function.
