@@ -113,17 +113,15 @@ object AstToIr {
     */
   def translateModuleSymbol(inputAST: AST): Module.Scope.Definition = {
     inputAST match {
-      case AST.Def(consName, args, body) =>
-        if (body.isDefined) {
-          throw new UnhandledEntity(inputAST, "translateModuleSymbol")
-        } else {
-          Module.Scope.Definition
-            .Atom(
-              Name.Literal(consName.name, getIdentifiedLocation(consName)),
-              args.map(translateArgumentDefinition(_)),
-              getIdentifiedLocation(inputAST)
-            )
-        }
+      case AstView.Atom(consName, args) =>
+        Module.Scope.Definition
+          .Atom(
+            Name.Literal(consName.name, getIdentifiedLocation(consName)),
+            args.map(translateArgumentDefinition(_)),
+            getIdentifiedLocation(inputAST)
+          )
+      case AstView.TypeDef(_, _, _) =>
+        throw new UnhandledEntity(inputAST, "translateModuleSymbol")
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
@@ -173,6 +171,11 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAst match {
+      case AST.Ident.Cons.any(include)         => translateIdent(include)
+      case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
+      case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
+      case assignment @ AstView.BasicAssignment(_, _) =>
+        translateExpression(assignment)
       case _ =>
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
     }
@@ -233,7 +236,7 @@ object AstToIr {
           ),
           getIdentifiedLocation(inputAst)
         )
-      case AstView.Assignment(name, expr) =>
+      case AstView.BasicAssignment(name, expr) =>
         translateBinding(getIdentifiedLocation(inputAst), name, expr)
       case AstView.MethodDefinition(_, name, _, _) =>
         IR.Error.Syntax(
