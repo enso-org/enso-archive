@@ -421,7 +421,7 @@ class AstToIrTest extends CompilerTest {
 
       ir shouldBe an[IR.Error.Syntax]
       ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.InvalidTypeDefinition.type]
+        .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
     }
   }
 }

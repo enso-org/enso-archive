@@ -124,6 +124,16 @@ class FunctionBindingTest extends CompilerTest {
 
       binding.expression shouldBe an[IR.Function.Lambda]
     }
+
+    "desugar module-level methods" in {
+      val ir =
+      """
+          |foo x =
+          |    y -> x + y
+          |""".stripMargin.preprocessModule.desugar
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Explicit]
+    }
   }
 
   "Sugared function definitions" should {

@@ -77,10 +77,7 @@ case object ComplexType extends IRPass {
     val atomIncludes = typ.body.collect {
       case n: IR.Name => n
     }
-    val namesToDefineMethodsOn = typ.body.collect {
-      case d: IR.Module.Scope.Definition.Atom => d.name
-      case n: IR.Name                         => n
-    }
+    val namesToDefineMethodsOn = atomIncludes ++ atomDefs.map(_.name)
     val methods = typ.body.collect {
       case b: IR.Expression.Binding => b
       case f: IR.Function.Binding   => f
@@ -109,8 +106,14 @@ case object ComplexType extends IRPass {
   ): List[IR.Module.Scope.Definition.Method] = {
     ir match {
       case IR.Expression.Binding(name, expr, location, _, _) =>
+        val realExpr = expr match {
+          case b @ IR.Expression.Block(_, _, _, suspended, _, _) if suspended =>
+            b.copy(suspended = false)
+          case _ => expr
+        }
+
         names.map(typeName => {
-          Method.Binding(typeName, name, List(), expr, location)
+          Method.Binding(typeName, name, List(), realExpr, location)
         })
       case IR.Function.Binding(name, args, body, location, _, _, _) =>
         names.map(typeName => {

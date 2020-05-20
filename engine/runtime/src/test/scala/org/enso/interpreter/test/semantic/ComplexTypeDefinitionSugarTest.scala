@@ -61,4 +61,31 @@ class ComplexTypeDefinitionSugarTest extends InterpreterTest {
 
     eval(code) shouldEqual 0
   }
+
+  subject should "work with methods appearing to be suspended blocks" in {
+    val code =
+      """
+        |type Foo
+        |    type Bar
+        |    x =
+        |        IO.println "foobar"
+        |
+        |main = Bar.x
+        |""".stripMargin
+
+    eval(code)
+    consumeOut shouldEqual List("foobar")
+  }
+
+  subject should "work with lambda consolidation" in {
+    val code =
+      """
+        |foo x =
+        |    y -> x + y
+        |
+        |main = here.foo 1 2
+        |""".stripMargin
+
+    eval(code) shouldEqual 3
+  }
 }

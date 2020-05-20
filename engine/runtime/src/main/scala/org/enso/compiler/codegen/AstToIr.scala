@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.AST
 
 import scala.annotation.tailrec
 
@@ -108,24 +108,24 @@ object AstToIr {
   /** Translates a module-level definition from its [[AST]] representation into
     * [[IR]].
     *
-    * @param inputAST the definition to be translated
+    * @param inputAst the definition to be translated
     * @return the [[IR]] representation of `inputAST`
     */
-  def translateModuleSymbol(inputAST: AST): Module.Scope.Definition = {
-    inputAST match {
+  def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
+    inputAst match {
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(
             Name.Literal(consName.name, getIdentifiedLocation(consName)),
             args.map(translateArgumentDefinition(_)),
-            getIdentifiedLocation(inputAST)
+            getIdentifiedLocation(inputAst)
           )
       case AstView.TypeDef(typeName, args, body) =>
         val translatedBody = translateTypeBody(body)
         val containsAtomDefOrInclude = translatedBody.exists {
           case _: IR.Module.Scope.Definition.Atom => true
-          case _: IR.Name.Literal => true
-          case _ => false
+          case _: IR.Name.Literal                 => true
+          case _                                  => false
         }
         val hasArgs = args.nonEmpty
 
@@ -134,12 +134,13 @@ object AstToIr {
             Name.Literal(typeName.name, getIdentifiedLocation(typeName)),
             args.map(translateArgumentDefinition(_)),
             translatedBody,
-            getIdentifiedLocation(inputAST)
+            getIdentifiedLocation(inputAst)
           )
+        } else if (!containsAtomDefOrInclude) {
+          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
         } else {
-          Error.Syntax(inputAST, Error.Syntax.InvalidTypeDefinition)
+          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
-
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
@@ -169,11 +170,18 @@ object AstToIr {
           Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
           args.map(translateArgumentDefinition(_)),
           translateExpression(definition),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
-
+      case AstView.FunctionSugar(name, args, body) =>
+        Module.Scope.Definition.Method.Binding(
+          Name.Here(None),
+          Name.Literal(name.name, getIdentifiedLocation(name)),
+          args.map(translateArgumentDefinition(_)),
+          translateExpression(body),
+          getIdentifiedLocation(inputAst)
+        )
       case _ =>
-        throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+        throw new UnhandledEntity(inputAst, "translateModuleSymbol")
     }
   }
 

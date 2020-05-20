@@ -526,7 +526,8 @@ object IR {
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
           override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-        ) extends Definition {
+        ) extends Definition
+            with IRKind.Sugar {
           override protected var id: Identifier = randomId
 
           /** Creates a copy of `this`.
@@ -3332,7 +3333,7 @@ object IR {
 
       case object InvalidTypeDefinition extends Reason {
         override def explanation: String =
-          "Invalid definition for a type."
+          "Invalid definition of a type."
       }
 
       case object InterfaceDefinition extends Reason {
