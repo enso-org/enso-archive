@@ -151,7 +151,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
     }
 
-    "fail when project is running" in {
+    "fail when project is running" taggedAs (Flaky) in {
       //given
       implicit val client = new WsTestClient(address)
       val projectId       = createProject("foo")
