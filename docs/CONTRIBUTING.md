@@ -53,7 +53,13 @@ issue to get a better idea of how much work a given issue might be.
 
 ## Feature Enhancements
 If you feel like you have a suggestion for a change to the way that Enso works
-as a language, please feel free to open a discussion issue to talk about it!
+as a language, please take a look at the
+[Enso RFC process](./rfcs/README.md) to learn how to file an RFC for the
+project.
+
+In essence, the RFC process provides a way to propose major changes to the
+language, the compiler, and the runtime in a way that ensures that they get
+seen and discussed by all the major stakeholders involved.
 
 ## Bug Reports
 While it's never great to find a bug, they are a reality of software and
