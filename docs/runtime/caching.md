@@ -37,7 +37,7 @@ than having to recompute the entire program.
 - [Partial-Evaluation and Side-Effects](#partial-evaluation-and-side-effects)
   - [Side Effects in the Initial Version](#side-effects-in-the-initial-version)
   - [In The Future](#in-the-future)
-- [Cache Eviction Strategies](#cache-eviction-strategies)
+- [Cache Eviction Strategy](#cache-eviction-strategy)
   - [Initial Eviction Strategies](#initial-eviction-strategies)
   - [Future Eviction Strategies](#future-eviction-strategies)
 - [Dataflow Analysis](#dataflow-analysis)
@@ -170,7 +170,7 @@ brief sketch of how this might work:
 > - Evolve the strategy for handling side effects as the compiler provides more
 >   capabilities that will be useful in doing so.
 
-## Cache Eviction Strategies
+## Cache Eviction Strategy
 The cache eviction strategy refers to the method by which we determine which
 entries in the cache are invalidated (if any) after a given change to the code.
 
