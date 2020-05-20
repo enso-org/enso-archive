@@ -26,8 +26,6 @@ import scala.annotation.unused
   *
   * - None
   */
-// TODO [AA] Need to disallow interface definitions for now as a syntax error.
-// TODO [AA] Params should currently be a syntax error.
 case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
@@ -71,7 +69,7 @@ case object ComplexType extends IRPass {
     * @return the top-level definitions corresponding to the desugaring of `typ`
     */
   def desugarComplexType(
-    @unused typ: IR.Module.Scope.Definition.Type
+    typ: IR.Module.Scope.Definition.Type
   ): List[IR.Module.Scope.Definition] = {
     val atomDefs = typ.body.collect {
       case d: IR.Module.Scope.Definition.Atom => d
