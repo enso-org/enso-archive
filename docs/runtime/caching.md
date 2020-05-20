@@ -71,15 +71,15 @@ foo a b =
     a.quux d
 ```
 
-The cache is active for the currently visible scope in Enso Studio, so when a
-user enters the function foo, the cache stores the intermediate results in this
-function (in this case c and d), as well as the inputs to the function (in this
-case a, and b).
+The cache is active for the _currently visible scope_ in Enso Studio, so when a
+user enters the function `foo`, the cache stores the intermediate results in
+this function (in this case `c` and `d`), as well as the inputs to the function
+(in this case `a`, and `b`).
 
 All intermediate results and inputs are considered as candidates, though as the
-cache design evolves, the selected candidates may be refined. Ultimately we want
-to cache and reuse as much as possible to minimize the computation costs. At the
-same time, we want to limit the memory consumed by the cache.
+cache design evolves, the _selected_ candidates may be refined. Ultimately we
+want to cache and reuse as much as possible to minimize the computation
+costs. At the same time, we want to limit the memory consumed by the cache.
 
 ### Initial Cache Candidates
 The initial version of the cache only stores the right-hand-sides of binding
@@ -96,16 +96,16 @@ that we cache. In general, this means the caching of intermediate expressions.
 
 However, once we do this, we can no longer guarantee that we do not push the
 JVM out of memory between two program executions. This is best demonstrated
-by example. 
+by example.
 
 ```
 a = (computeHugeObject b).size
 ```
 
-Here we compute a value that takes up a significant amount of memory, but from it we
-only compute a small derived value (its size). Hence, if we want to cache the intermediate
-result of the discarded `computeHugeObject b` expression, we need some way of tracking
-the sizes of individual cache entries. 
+Here we compute a value that takes up a significant amount of memory, but from
+it we only compute a small derived value (its size). Hence, if we want to cache
+the intermediate result of the discarded `computeHugeObject b` expression, we
+need some way of tracking the sizes of individual cache entries.
 
 ## Partial-Evaluation and Side-Effects
 The more theoretically-minded people among those reading this document may
@@ -381,16 +381,18 @@ changed:
 2. If `k` is a dynamic symbol, all expressions that depend on _any instance_ of
    the dynamic symbol are evicted from the cache.
 
-Expressions that have been evicted from the cache subsequently have to be recomputed by the runtime.
+Expressions that have been evicted from the cache subsequently have to be
+recomputed by the runtime.
 
 Cache eviction takes into account the following aspects:
 
-Visualization. In the first place, we should care about nodes that have
-visualization attached in the IDE. Priority. The runtime can assign a score to
-a node, meaning how valuable this node is. Less valuable nodes should be evicted
-first. Computation time. The runtime can calculate the time that node took to
-compute. Less computationally intensive nodes should be evicted first. Memory
-limit. The cache should not exceed the specified memory limit.
+* **Visualization:** In the first place, we should care about nodes that have
+  visualization attached in the IDE.
+* **Priority:** The runtime can assign a score to a node, meaning how valuable
+  this node is. Less valuable nodes should be evicted first.
+* **Computation time:** The runtime can calculate the time that node took to
+  compute. Less computationally intensive nodes should be evicted first. Memory
+  limit. The cache should not exceed the specified memory limit.
 
 ## Cache Backend
 The requirements for eviction strategies and memory management should guide the
