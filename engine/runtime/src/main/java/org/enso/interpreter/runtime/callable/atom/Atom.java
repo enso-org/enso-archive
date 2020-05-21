@@ -87,6 +87,7 @@ public class Atom implements TruffleObject {
   /**
    * Displays a human-readable string representation of this atom.
    *
+   * @param allowSideEffects whether or not to allow side effects in displaying the string
    * @return a string representation of this atom
    */
   @ExportMessage
