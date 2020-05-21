@@ -149,7 +149,7 @@ class Compiler(
   def processImport(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
-      module.get().getScope(context)
+      module.get().parseScope(context)
     } else {
       throw new ModuleDoesNotExistException(qualifiedName)
     }

@@ -145,7 +145,7 @@ public class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope getScope(Context context) {
+  public ModuleScope parseScope(Context context) {
     ensureScopeExists(context);
     if (!isParsed) {
       parse(context);
@@ -207,7 +207,7 @@ public class Module implements TruffleObject {
 
     private static Module patch(Module module, Object[] args, Context context)
         throws ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.getScope(context);
+      ModuleScope scope = module.parseScope(context);
       String sourceString = Types.extractArguments(args, String.class);
       Source source =
           Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
@@ -268,7 +268,7 @@ public class Module implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached(value = "build()", allowUncached = true) CallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.getScope(context);
+      ModuleScope scope = module.parseScope(context);
       switch (member) {
         case MethodNames.Module.GET_METHOD:
           return getMethod(scope, arguments);
