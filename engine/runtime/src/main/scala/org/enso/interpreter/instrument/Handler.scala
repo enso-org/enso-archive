@@ -75,7 +75,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
-  val cache          = new Cache
+  val cache          = new RuntimeCache
 
   var executionService: ExecutionService = _
   var truffleContext: TruffleContext     = _
