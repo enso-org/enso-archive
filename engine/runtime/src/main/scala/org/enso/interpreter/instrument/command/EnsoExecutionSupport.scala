@@ -5,17 +5,19 @@ import java.util.UUID
 import java.util.function.Consumer
 import java.util.logging.Level
 
+import cats.implicits._
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.RuntimeContext
 import org.enso.interpreter.instrument.command.EnsoExecutionSupport.ExecutionItem
+import org.enso.interpreter.instrument.{RuntimeContext, Visualisation}
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
-import cats.implicits._
+import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
-import scala.annotation.unused
+import scala.jdk.javaapi.OptionConverters
 
 trait EnsoExecutionSupport {
 
@@ -107,9 +109,112 @@ trait EnsoExecutionSupport {
   }
 
   private def onExpressionValueComputed(
-    @unused contextId: Api.ContextId,
-    @unused value: ExpressionValue
-  ): Unit = {}
+    contextId: Api.ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    sendValueUpdate(contextId, value)
+    fireVisualisationUpdates(contextId, value)
+  }
+
+  private def sendValueUpdate(
+    contextId: ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    ctx.endpoint.sendToClient(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              value.getExpressionId,
+              OptionConverters.toScala(value.getType),
+              Some(value.getValue.toString),
+              toMethodPointer(value)
+            )
+          )
+        )
+      )
+    )
+  }
+
+  private def fireVisualisationUpdates(
+    contextId: ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    val visualisations =
+      ctx.contextManager.findVisualisationForExpression(
+        contextId,
+        value.getExpressionId
+      )
+    visualisations foreach { visualisation =>
+      emitVisualisationUpdate(contextId, value, visualisation)
+    }
+  }
+
+  private def emitVisualisationUpdate(
+    contextId: ContextId,
+    value: ExpressionValue,
+    visualisation: Visualisation
+  )(implicit ctx: RuntimeContext): Unit = {
+    val errorMsgOrVisualisationData =
+      Either
+        .catchNonFatal {
+          ctx.executionService.callFunction(
+            visualisation.callback,
+            value.getValue
+          )
+        }
+        .leftMap(_.getMessage)
+        .flatMap {
+          case text: String       => Right(text.getBytes("UTF-8"))
+          case bytes: Array[Byte] => Right(bytes)
+          case other =>
+            Left(s"Cannot encode ${other.getClass} to byte array")
+        }
+
+    errorMsgOrVisualisationData match {
+      case Left(msg) =>
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.VisualisationEvaluationFailed(msg))
+        )
+
+      case Right(data) =>
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                visualisation.id,
+                contextId,
+                value.getExpressionId
+              ),
+              data
+            )
+          )
+        )
+    }
+  }
+
+  private def toMethodPointer(
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
+    for {
+      call <- Option(value.getCall)
+      qualifiedName <- QualifiedName.fromString(
+        call.getFunction.getCallTarget.getRootNode.getQualifiedName
+      )
+      moduleName   <- qualifiedName.getParent
+      functionName <- QualifiedName.fromString(call.getFunction.getName)
+      typeName     <- functionName.getParent
+      module <- OptionConverters.toScala(
+        ctx.executionService.getContext.getCompiler.topScope
+          .getModule(moduleName.toString)
+      )
+      modulePath <- Option(module.getPath)
+    } yield Api.MethodPointer(
+      new File(modulePath),
+      typeName.toString,
+      functionName.module
+    )
 
   private def toExecutionItem(
     call: Api.StackItem.ExplicitCall

@@ -4,30 +4,25 @@ import org.enso.interpreter.instrument.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
-class PushContextCmd(
+class PopContextCmd(
   maybeRequestId: Option[RequestId],
-  request: Api.PushContextRequest
+  request: Api.PopContextRequest
 ) extends Command
     with EnsoExecutionSupport {
 
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.get(request.contextId).isDefined) {
-      val stack = ctx.contextManager.getStack(request.contextId)
-      val payload = request.stackItem match {
-        case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
-          withContext(runEnso(request.contextId, List(call))) match {
-            case Right(()) => Api.PushContextResponse(request.contextId)
-            case Left(e)   => Api.ExecutionFailed(request.contextId, e)
-          }
-        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
+      val payload = ctx.contextManager.pop(request.contextId) match {
+        case Some(_: Api.StackItem.ExplicitCall) =>
+          Api.PopContextResponse(request.contextId)
+        case Some(_: Api.StackItem.LocalCall) =>
+          val stack = ctx.contextManager.getStack(request.contextId)
           withContext(runEnso(request.contextId, stack.toList)) match {
-            case Right(()) => Api.PushContextResponse(request.contextId)
+            case Right(()) => Api.PopContextResponse(request.contextId)
             case Left(e)   => Api.ExecutionFailed(request.contextId, e)
           }
-        case _ =>
-          Api.InvalidStackItemError(request.contextId)
+        case None =>
+          Api.EmptyStackError(request.contextId)
       }
       ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
     } else {
