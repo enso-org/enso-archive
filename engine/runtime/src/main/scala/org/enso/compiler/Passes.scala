@@ -1,7 +1,7 @@
 package org.enso.compiler
 
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
@@ -35,6 +35,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       TailCall,
       AliasAnalysis,
       DataflowAnalysis,
+      CachePreferenceAnalysis,
       UnusedBindings
     )
   )
