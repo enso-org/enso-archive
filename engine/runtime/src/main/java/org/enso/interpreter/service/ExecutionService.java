@@ -5,6 +5,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.instrument.ExecutionMode;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -87,6 +88,7 @@ public class ExecutionService {
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
+      ExecutionMode mode,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -101,6 +103,7 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
+            mode,
             valueCallback,
             funCallCallback);
     interopLibrary.execute(call);
@@ -123,6 +126,7 @@ public class ExecutionService {
       String consName,
       String methodName,
       RuntimeCache cache,
+      ExecutionMode mode,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -133,7 +137,7 @@ public class ExecutionService {
     if (!callMay.isPresent()) {
       return;
     }
-    execute(callMay.get(), cache, valueCallback, funCallCallback);
+    execute(callMay.get(), cache, mode, valueCallback, funCallCallback);
   }
 
     /**

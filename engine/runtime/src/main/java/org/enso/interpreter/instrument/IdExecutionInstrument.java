@@ -9,6 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -125,13 +126,171 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
-  /** The listener class used by this instrument. */
-  private static class IdExecutionEventListener implements ExecutionEventListener {
-    private final CallTarget entryCallTarget;
-    private final Consumer<ExpressionCall> functionCallCallback;
-    private final Consumer<ExpressionValue> valueCallback;
-    private final RuntimeCache cache;
-    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
+  /** A builder creating an instance of event listener. */
+  private static class IdExecutionEventListenerBuilder {
+
+    /**
+     * Build an event listener.
+     *
+     * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
+     * @param mode the execution mode.
+     * @param functionCallCallback the consumer of function call events.
+     * @param valueCallback the consumer of the node value events.
+     * @return new execution event lister.
+     */
+    public static IdExecutionEventListener build(
+        CallTarget entryCallTarget,
+        RuntimeCache cache,
+        ExecutionMode mode,
+        Consumer<ExpressionCall> functionCallCallback,
+        Consumer<ExpressionValue> valueCallback) {
+      if (mode instanceof ExecutionMode.Default) {
+        return new CachingIdExecutionEventListener(
+            entryCallTarget, cache, functionCallCallback, valueCallback);
+      } else if (mode instanceof ExecutionMode.InvalidateAll) {
+        return new InvalidatingAllIdExecutionEventListener(
+            entryCallTarget, cache, functionCallCallback, valueCallback);
+      } else if (mode instanceof ExecutionMode.InvalidateExpressions) {
+        return new InvalidatingExpressionsIdExecutionEventListener(
+            entryCallTarget,
+            cache,
+            ((ExecutionMode.InvalidateExpressions) mode).getExpressionIds(),
+            functionCallCallback,
+            valueCallback);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  /** An event listener that invalidates cached expressions from list. */
+  private static final class InvalidatingExpressionsIdExecutionEventListener
+      extends IdExecutionEventListener {
+
+    private final List<UUID> invalidatedExpressions;
+
+    /**
+     * Creates a new listener invalidating cached expressions form list.
+     *
+     * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
+     * @param invalidatedExpressions a list of expressions to invalidate.
+     * @param functionCallCallback the consumer of function call events.
+     * @param valueCallback the consumer of the node value events.
+     */
+    public InvalidatingExpressionsIdExecutionEventListener(
+        CallTarget entryCallTarget,
+        RuntimeCache cache,
+        List<UUID> invalidatedExpressions,
+        Consumer<ExpressionCall> functionCallCallback,
+        Consumer<ExpressionValue> valueCallback) {
+      super(entryCallTarget, cache, functionCallCallback, valueCallback);
+      this.invalidatedExpressions = invalidatedExpressions;
+    }
+
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (!isTopFrame(entryCallTarget)) {
+        return;
+      }
+      Node node = context.getInstrumentedNode();
+      UUID nodeId = null;
+      if (node instanceof FunctionCallInstrumentationNode) {
+        nodeId = ((FunctionCallInstrumentationNode) node).getId();
+      } else if (node instanceof ExpressionNode) {
+        nodeId = ((ExpressionNode) node).getId();
+      }
+
+      if (invalidatedExpressions.contains(nodeId)) {
+        cache.remove(nodeId);
+      }
+    }
+  }
+
+  /** An event listener that invalidates all cached expressions. */
+  private static final class InvalidatingAllIdExecutionEventListener
+      extends IdExecutionEventListener {
+
+    /**
+     * Creates a new listener invalidating all cached expressions.
+     *
+     * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
+     * @param functionCallCallback the consumer of function call events.
+     * @param valueCallback the consumer of the node value events.
+     */
+    public InvalidatingAllIdExecutionEventListener(
+        CallTarget entryCallTarget,
+        RuntimeCache cache,
+        Consumer<ExpressionCall> functionCallCallback,
+        Consumer<ExpressionValue> valueCallback) {
+      super(entryCallTarget, cache, functionCallCallback, valueCallback);
+    }
+
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (!isTopFrame(entryCallTarget)) {
+        return;
+      }
+      Node node = context.getInstrumentedNode();
+      UUID nodeId = null;
+      if (node instanceof FunctionCallInstrumentationNode) {
+        nodeId = ((FunctionCallInstrumentationNode) node).getId();
+      } else if (node instanceof ExpressionNode) {
+        nodeId = ((ExpressionNode) node).getId();
+      }
+
+      cache.remove(nodeId);
+    }
+  }
+
+  /** An event listener that tries to get values from the cache before execution. */
+  private static final class CachingIdExecutionEventListener extends IdExecutionEventListener {
+
+    /**
+     * Creates a new listener trying to get values from the cache.
+     *
+     * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
+     * @param functionCallCallback the consumer of function call events.
+     * @param valueCallback the consumer of the node value events.
+     */
+    public CachingIdExecutionEventListener(
+        CallTarget entryCallTarget,
+        RuntimeCache cache,
+        Consumer<ExpressionCall> functionCallCallback,
+        Consumer<ExpressionValue> valueCallback) {
+      super(entryCallTarget, cache, functionCallCallback, valueCallback);
+    }
+
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (!isTopFrame(entryCallTarget)) {
+        return;
+      }
+      Node node = context.getInstrumentedNode();
+      UUID nodeId = null;
+      if (node instanceof FunctionCallInstrumentationNode) {
+        nodeId = ((FunctionCallInstrumentationNode) node).getId();
+      } else if (node instanceof ExpressionNode) {
+        nodeId = ((ExpressionNode) node).getId();
+      }
+
+      Object overrideValue = cache.get(nodeId);
+      if (overrideValue != null) {
+        throw context.createUnwind(overrideValue);
+      }
+    }
+  }
+
+  /** Base class for execution listeners. */
+  private abstract static class IdExecutionEventListener implements ExecutionEventListener {
+    protected final CallTarget entryCallTarget;
+    protected final Consumer<ExpressionCall> functionCallCallback;
+    protected final Consumer<ExpressionValue> valueCallback;
+    protected final RuntimeCache cache;
+    protected final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
      * Creates a new listener.
@@ -157,25 +316,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
       return info;
     }
 
-    @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {
-      if (!isTopFrame(entryCallTarget)) {
-        return;
-      }
-      Node node = context.getInstrumentedNode();
-      UUID nodeId = null;
-      if (node instanceof FunctionCallInstrumentationNode) {
-        nodeId = ((FunctionCallInstrumentationNode) node).getId();
-      } else if (node instanceof ExpressionNode) {
-        nodeId = ((ExpressionNode) node).getId();
-      }
-
-      Object overrideValue = cache.get(nodeId);
-      if (overrideValue != null) {
-        throw context.createUnwind(overrideValue);
-      }
-    }
-
     /**
      * Triggered when a node (either a function call sentry or an identified expression) finishes
      * execution.
@@ -196,10 +336,14 @@ public class IdExecutionInstrument extends TruffleInstrument {
             new ExpressionCall(
                 ((FunctionCallInstrumentationNode) node).getId(),
                 (FunctionCallInstrumentationNode.FunctionCall) result);
+        // TODO: weighting pass
+        // cache.put(expressionCall.getExpressionId(), result);
         calls.put(expressionCall.getExpressionId(), expressionCall.getCall());
         functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
+        // TODO: weighting pass
+        // cache.put(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
                 nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
@@ -216,7 +360,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      *
      * @return {@code true} if it's not a recursive call, {@code false} otherwise.
      */
-    private boolean isTopFrame(CallTarget entryCallTarget) {
+    protected boolean isTopFrame(CallTarget entryCallTarget) {
       Object result =
           Truffle.getRuntime()
               .iterateFrames(
@@ -257,6 +401,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       int funSourceStart,
       int funSourceLength,
       RuntimeCache cache,
+      ExecutionMode mode,
       Consumer<ExpressionValue> valueCallback,
       Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =
@@ -270,7 +415,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         env.getInstrumenter()
             .attachExecutionEventListener(
                 filter,
-                new IdExecutionEventListener(entryCallTarget, cache, functionCallCallback, valueCallback));
+                IdExecutionEventListenerBuilder.build(
+                    entryCallTarget, cache, mode, functionCallCallback, valueCallback));
     return binding;
   }
 }

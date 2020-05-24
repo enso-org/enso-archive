@@ -220,6 +220,7 @@ final class Handler {
   private def execute(
     executionItem: ExecutionItem,
     callStack: List[UUID],
+    mode: ExecutionMode,
     valueCallback: Consumer[ExpressionValue]
   ): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
@@ -234,6 +235,7 @@ final class Handler {
           cons,
           function,
           cache,
+          mode,
           valsCallback,
           callablesCallback
         )
@@ -241,6 +243,7 @@ final class Handler {
         executionService.execute(
           callData,
           cache,
+          mode,
           valsCallback,
           callablesCallback
         )
@@ -251,7 +254,7 @@ final class Handler {
       case item :: tail =>
         enterables.get(item) match {
           case Some(call) =>
-            execute(ExecutionItem.CallData(call), tail, valueCallback)
+            execute(ExecutionItem.CallData(call), tail, mode, valueCallback)
           case None =>
             ()
         }
@@ -260,7 +263,8 @@ final class Handler {
 
   private def execute(
     contextId: Api.ContextId,
-    stack: List[Api.StackItem]
+    stack: List[Api.StackItem],
+    mode: ExecutionMode
   ): Either[String, Unit] = {
     def unwind(
       stack: List[Api.StackItem],
@@ -281,7 +285,12 @@ final class Handler {
       item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
-          execute(item, localCalls, onExpressionValueComputed(contextId, _))
+          execute(
+            item,
+            localCalls,
+            mode,
+            onExpressionValueComputed(contextId, _)
+          )
         )
         .leftMap { ex =>
           executionService.getLogger.log(
@@ -293,6 +302,12 @@ final class Handler {
         }
     } yield ()
   }
+
+  private def execute(
+    contextId: Api.ContextId,
+    stack: List[Api.StackItem]
+  ): Either[String, Unit] =
+    execute(contextId, stack, new ExecutionMode.Default())
 
   private def executeAll(): Unit =
     contextManager.getAll
@@ -392,13 +407,21 @@ final class Handler {
           )
         }
 
-      case Api.RecomputeContextRequest(contextId, _) =>
+      case Api.RecomputeContextRequest(contextId, invalidatedExpressions) =>
         if (contextManager.get(contextId).isDefined) {
           val stack = contextManager.getStack(contextId)
           val payload = if (stack.isEmpty) {
             Api.EmptyStackError(contextId)
           } else {
-            withContext(execute(contextId, stack.toList)) match {
+            val mode = invalidatedExpressions match {
+              case Some(Api.InvalidatedExpressions.All()) =>
+                new ExecutionMode.InvalidateAll()
+              case Some(Api.InvalidatedExpressions.Expressions(list)) =>
+                new ExecutionMode.InvalidateExpressions(list.asJava)
+              case None =>
+                new ExecutionMode.Default()
+            }
+            withContext(execute(contextId, stack.toList, mode)) match {
               case Right(()) => Api.RecomputeContextResponse(contextId)
               case Left(e)   => Api.ExecutionFailed(contextId, e)
             }

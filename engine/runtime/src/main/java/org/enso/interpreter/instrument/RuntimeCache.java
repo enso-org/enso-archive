@@ -20,4 +20,9 @@ public class RuntimeCache {
     SoftReference<Object> ref = cache.get(key);
     return ref != null ? ref.get() : null;
   }
+
+  public Object remove(UUID key) {
+    SoftReference<Object> ref = cache.remove(key);
+    return ref == null ? null : ref.get();
+  }
 }
