@@ -85,13 +85,14 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Unit = {
+  def run(source: Source, scope: ModuleScope): IR = {
     val moduleContext  = ModuleContext(Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
     runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
+    expr
   }
 
   /**
@@ -103,7 +104,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Unit = {
+  def run(file: TruffleFile, scope: ModuleScope): IR = {
     run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
   }
 

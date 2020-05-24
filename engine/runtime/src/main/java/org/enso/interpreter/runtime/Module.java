@@ -1,5 +1,7 @@
 package org.enso.interpreter.runtime;
 
+import java.io.File;
+
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -12,7 +14,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
-import java.io.File;
+import org.enso.compiler.core.IR;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -33,7 +35,7 @@ public class Module implements TruffleObject {
   private ModuleScope scope;
   private TruffleFile sourceFile;
   private Rope literalSource;
-  private boolean isParsed = false;
+  private IR ir;
   private final QualifiedName name;
 
   /**
@@ -77,7 +79,6 @@ public class Module implements TruffleObject {
   private Module(QualifiedName name) {
     this.name = name;
     this.scope = new ModuleScope(this);
-    this.isParsed = true;
   }
 
   /**
@@ -93,7 +94,8 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.literalSource = null;
-    this.isParsed = false;
+    this.ir = null;
+    this.scope = null;
   }
 
   /** @return the literal source of this module. */
@@ -117,7 +119,8 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(Rope source) {
     this.literalSource = source;
-    this.isParsed = false;
+    this.ir = null;
+    this.scope = null;
   }
 
   /**
@@ -128,7 +131,8 @@ public class Module implements TruffleObject {
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
-    this.isParsed = false;
+    this.ir = null;
+    this.scope = null;
   }
 
   /** @return the location of this module. */
@@ -146,36 +150,46 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope parseScope(Context context) {
-    ensureScopeExists(context);
-    if (!isParsed) {
+    if (!ensureScopeExists(context)) {
       parse(context);
     }
     return scope;
   }
 
-  private void ensureScopeExists(Context context) {
+  /**
+   * Create scope if not exists.
+   *
+   * @param context the language context.
+   * @return false if new scope was created and true if scope existed.
+   */
+  private boolean ensureScopeExists(Context context) {
+    boolean scopeExists = scope != null;
     if (scope == null) {
       scope = context.createScope(this);
-      isParsed = false;
     }
+    return scopeExists;
   }
 
   private void parse(Context context) {
     ensureScopeExists(context);
     context.resetScope(scope);
-    isParsed = true;
     if (literalSource != null) {
       Source source =
           Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-      context.getCompiler().run(source, scope);
+      ir = context.getCompiler().run(source, scope);
     } else if (sourceFile != null) {
-      context.getCompiler().run(sourceFile, scope);
+      ir = context.getCompiler().run(sourceFile, scope);
     }
   }
 
   /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
+  }
+
+  /** @return cached ir of this module. */
+  public IR getIr() {
+    return ir;
   }
 
   /**
