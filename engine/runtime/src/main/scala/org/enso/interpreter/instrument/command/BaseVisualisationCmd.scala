@@ -17,6 +17,9 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import scala.util.control.NonFatal
 
+/**
+  * Base class for visualisation modification commands.
+  */
 abstract class BaseVisualisationCmd extends Command with EnsoExecutionSupport {
 
   protected def upsertVisualisation(

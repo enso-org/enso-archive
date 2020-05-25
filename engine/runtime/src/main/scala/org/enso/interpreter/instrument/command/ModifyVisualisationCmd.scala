@@ -4,6 +4,12 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+/**
+  * A command that modifies a visualisation.
+  *
+  * @param maybeRequestId an option with request id
+  * @param request a request for a service
+  */
 class ModifyVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.ModifyVisualisation

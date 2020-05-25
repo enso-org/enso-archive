@@ -4,6 +4,12 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+/**
+  * A command that detaches a visualisation from the expression.
+  *
+  * @param maybeRequestId an option with request id
+  * @param request a request for a service
+  */
 class DetachVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DetachVisualisation

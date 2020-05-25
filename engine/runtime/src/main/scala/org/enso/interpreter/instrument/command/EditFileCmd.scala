@@ -5,6 +5,11 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.CollectionConverters._
 
+/**
+  * A command that edits a file.
+  *
+  * @param request a request for a service
+  */
 class EditFileCmd(request: Api.EditFileNotification)
     extends Command
     with EnsoExecutionSupport {

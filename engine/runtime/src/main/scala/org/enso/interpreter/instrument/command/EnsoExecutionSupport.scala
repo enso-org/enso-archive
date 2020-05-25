@@ -20,8 +20,19 @@ import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
 import scala.jdk.javaapi.OptionConverters
 
+/**
+  * Provides support for executing Enso code. Adds convenient methods to
+  * run Enso programs in a Truffle context.
+  */
 trait EnsoExecutionSupport {
 
+  /**
+    * Executes action in a newly created Truffle context.
+    *
+    * @param action an action
+    * @param ctx a runtime context
+    * @return a result of executing the action
+    */
   def withContext[A](action: => A)(implicit ctx: RuntimeContext): A = {
     val token = ctx.truffleContext.enter()
     try {
@@ -31,6 +42,14 @@ trait EnsoExecutionSupport {
     }
   }
 
+  /**
+    * Runs an Enso program.
+    *
+    * @param executionItem an execution item
+    * @param callStack a call stack
+    * @param valueCallback a listener of computed values
+    * @param ctx a runtime context
+    */
   @scala.annotation.tailrec
   final def runEnso(
     executionItem: ExecutionItem,
@@ -73,6 +92,14 @@ trait EnsoExecutionSupport {
     }
   }
 
+  /**
+    * Runs an Enso program.
+    *
+    * @param contextId an identifier of an execution context
+    * @param stack a call stack
+    * @param ctx a runtime context
+    * @return either an error message or Unit signaling completion of a program
+    */
   def runEnso(
     contextId: Api.ContextId,
     stack: List[Api.StackItem]

@@ -4,6 +4,12 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+/**
+  * A command that pushes an item onto a stack.
+  *
+  * @param maybeRequestId an option with request id
+  * @param request a request for a service
+  */
 class PushContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PushContextRequest
