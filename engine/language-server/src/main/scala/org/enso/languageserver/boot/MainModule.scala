@@ -160,7 +160,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
   )
 
   lazy val jsonRpcServer =
-    new JsonRpcServer(JsonRpc.protocol, jsonRpcControllerFactory)
+    new JsonRpcServer(
+      JsonRpc.protocol,
+      jsonRpcControllerFactory,
+      JsonRpcServer.Config(10000, 10.seconds)
+    )
 
   lazy val binaryServer =
     new BinaryWebSocketServer(
