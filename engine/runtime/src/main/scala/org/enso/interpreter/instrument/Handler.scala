@@ -5,6 +5,7 @@ import java.nio.ByteBuffer
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.CommandFactory
 import org.enso.interpreter.instrument.execution.{
+  CommandProcessor,
   EnsoCommandProcessor,
   RuntimeContext
 }
@@ -59,9 +60,9 @@ final class Handler {
   val contextManager = new ExecutionContextManager
   val cache          = new Cache
 
-  var executionService: ExecutionService     = _
-  var truffleContext: TruffleContext         = _
-  var commandProcessor: EnsoCommandProcessor = _
+  var executionService: ExecutionService = _
+  var truffleContext: TruffleContext     = _
+  var commandProcessor: CommandProcessor = _
 
   /**
     * Initializes the handler with relevant Truffle objects, allowing it to
