@@ -88,8 +88,12 @@ final class DiffChangeset(source: CharSequence, ir: IR) {
     * @param node location of the node.
     * @return true if the node and edit locations are intersecting.
     */
-  private def intersect(edit: Location, node: Location): Boolean =
-    inside(node.start, edit) || inside(node.end, edit)
+  private def intersect(edit: Location, node: Location): Boolean = {
+    inside(node.start, edit) ||
+    inside(node.end, edit) ||
+    inside(edit.start, node) ||
+    inside(edit.end, node)
+  }
 
   /**
     * Checks if the character position index is inside the location.

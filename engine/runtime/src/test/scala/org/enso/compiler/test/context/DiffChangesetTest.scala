@@ -48,6 +48,30 @@ class DiffChangesetTest extends CompilerTest {
       )
     }
 
+    "single literal partial" in {
+      val code = """x1 = 42"""
+      val edit = TextEdit(Range(Position(0, 1), Position(0, 2)), "")
+
+      val ir = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
+      val x  = ir.name
+
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
+        x.getId
+      )
+    }
+
+    "single literal inside" in {
+      val code = """baz = 42"""
+      val edit = TextEdit(Range(Position(0, 1), Position(0, 2)), "oo")
+
+      val ir = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
+      val x  = ir.name
+
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
+        x.getId
+      )
+    }
+
     "application and literal" in {
       val code = """x = 1 + 2"""
       val edit = TextEdit(Range(Position(0, 6), Position(0, 9)), "- 42")
@@ -82,26 +106,14 @@ class DiffChangesetTest extends CompilerTest {
       val code = """x = 1 + 2"""
       val edit = TextEdit(Range(Position(0, 0), Position(0, 4)), "y = ")
 
-      val ir  = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
-      val x   = ir.name
+      val ir = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
+      val x  = ir.name
       val one =
         ir.expression.asInstanceOf[IR.Application.Operator.Binary].left.value
 
       invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         x.getId,
         one.getId
-      )
-    }
-
-    "partial" in {
-      val code = """x1 = 42"""
-      val edit = TextEdit(Range(Position(0, 1), Position(0, 2)), "")
-
-      val ir = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
-      val x  = ir.name
-
-      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
-        x.getId
       )
     }
 
@@ -129,20 +141,21 @@ class DiffChangesetTest extends CompilerTest {
     "multiline across lines" in {
       val code =
         """x ->
-          |    y = 5
+          |    z = 1
+          |    y = z
           |    y + x""".stripMargin.linesIterator.mkString("\n")
-      val edit = TextEdit(Range(Position(1, 8), Position(2, 7)), "42\n    y -")
+      val edit = TextEdit(Range(Position(2, 8), Position(3, 7)), "42\n    y -")
 
-      val ir        = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
-      val firstLine = ir.body.children(0).asInstanceOf[IR.Expression.Binding]
-      val five      = firstLine.expression
-      val secondLine =
-        ir.body.children(1).asInstanceOf[IR.Application.Operator.Binary]
-      val y    = secondLine.left.value
-      val plus = secondLine.operator
+      val ir         = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+      val secondLine = ir.body.children(1).asInstanceOf[IR.Expression.Binding]
+      val z          = secondLine.expression
+      val thirdLine =
+        ir.body.children(2).asInstanceOf[IR.Application.Operator.Binary]
+      val y    = thirdLine.left.value
+      val plus = thirdLine.operator
 
       invalidated(edit, code, ir) should contain theSameElementsAs Seq(
-        five.getId,
+        z.getId,
         y.getId,
         plus.getId
       )
