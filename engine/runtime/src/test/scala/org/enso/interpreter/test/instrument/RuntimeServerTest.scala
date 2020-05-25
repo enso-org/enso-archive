@@ -463,7 +463,7 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
-  it should "recompute expressions" in {
+  it should "recompute expressions without invalidation" in {
     val mainFile  = context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -491,14 +491,120 @@ class RuntimeServerTest
       None
     )
 
+    // override
+    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
+    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
+    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    Set.fill(2)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
+      None
+    )
+  }
+
+  it should "recompute expressions invalidating all" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+
+    // override
+    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
+    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
+    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All())
+        )
+      )
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+  }
+
+  it should "recompute expressions invalidating some" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+
+    // override
+    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
+    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
+    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
+          )
+        )
+      )
+    )
+    Set.fill(3)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainZ(contextId)),
       None
     )

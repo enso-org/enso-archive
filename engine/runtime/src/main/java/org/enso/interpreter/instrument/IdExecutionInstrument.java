@@ -204,6 +204,11 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       if (invalidatedExpressions.contains(nodeId)) {
         cache.remove(nodeId);
+        return;
+      }
+      Object overrideValue = cache.get(nodeId);
+      if (overrideValue != null) {
+        throw context.createUnwind(overrideValue);
       }
     }
   }
@@ -336,14 +341,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
             new ExpressionCall(
                 ((FunctionCallInstrumentationNode) node).getId(),
                 (FunctionCallInstrumentationNode.FunctionCall) result);
-        // TODO: weighting pass
-        // cache.put(expressionCall.getExpressionId(), result);
         calls.put(expressionCall.getExpressionId(), expressionCall.getCall());
         functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
-        // TODO: weighting pass
-        // cache.put(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
                 nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
