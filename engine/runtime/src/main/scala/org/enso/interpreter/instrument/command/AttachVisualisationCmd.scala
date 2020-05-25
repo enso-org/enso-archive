@@ -9,6 +9,7 @@ class AttachVisualisationCmd(
   request: Api.AttachVisualisation
 ) extends BaseVisualisationCmd {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.contains(
           request.visualisationConfig.executionContextId

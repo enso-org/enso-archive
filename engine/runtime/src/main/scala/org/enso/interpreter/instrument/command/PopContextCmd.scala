@@ -10,6 +10,7 @@ class PopContextCmd(
 ) extends Command
     with EnsoExecutionSupport {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.get(request.contextId).isDefined) {
       val payload = ctx.contextManager.pop(request.contextId) match {

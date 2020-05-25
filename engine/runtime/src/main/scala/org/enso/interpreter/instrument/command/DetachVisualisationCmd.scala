@@ -9,6 +9,7 @@ class DetachVisualisationCmd(
   request: Api.DetachVisualisation
 ) extends Command {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.contains(request.contextId)) {
       ctx.contextManager.removeVisualisation(

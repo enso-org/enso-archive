@@ -5,6 +5,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 class OpenFileCmd(request: Api.OpenFileNotification) extends Command {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.setModuleSources(request.path, request.contents)
   }

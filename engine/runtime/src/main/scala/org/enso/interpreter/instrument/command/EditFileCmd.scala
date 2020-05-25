@@ -9,6 +9,7 @@ class EditFileCmd(request: Api.EditFileNotification)
     extends Command
     with EnsoExecutionSupport {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.modifyModuleSources(request.path, request.edits.asJava)
     withContext(executeAll())

@@ -10,6 +10,7 @@ class PushContextCmd(
 ) extends Command
     with EnsoExecutionSupport {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.get(request.contextId).isDefined) {
       val stack = ctx.contextManager.getStack(request.contextId)

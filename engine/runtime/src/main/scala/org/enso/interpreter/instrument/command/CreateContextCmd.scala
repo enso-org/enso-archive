@@ -9,6 +9,7 @@ class CreateContextCmd(
   request: Api.CreateContextRequest
 ) extends Command {
 
+  /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.create(request.contextId)
     ctx.endpoint.sendToClient(
