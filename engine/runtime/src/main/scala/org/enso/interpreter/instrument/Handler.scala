@@ -92,10 +92,11 @@ final class Handler {
       contextManager,
       endpoint,
       truffleContext,
-      cache
+      cache,
+      commandProcessor
     )
     val future = commandProcessor.invoke(cmd, ctx)
-    Await.result(future, 3.seconds)
+    Await.result(future, 1.minute)
   }
 
 }

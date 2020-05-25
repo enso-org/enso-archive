@@ -13,5 +13,6 @@ case class RuntimeContext(
   contextManager: ExecutionContextManager,
   endpoint: Endpoint,
   truffleContext: TruffleContext,
-  cache: Cache
+  cache: Cache,
+  commandProcessor: CommandProcessor
 )
