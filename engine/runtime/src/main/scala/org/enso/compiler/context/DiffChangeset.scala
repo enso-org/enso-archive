@@ -1,33 +1,52 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.syntax.text.Location
 import org.enso.text.editing.model.{Position, TextEdit}
 
 import scala.collection.mutable
 
-final class DiffChangeset {
+/**
+  * Compute invalidated expressions.
+  *
+  * @param source the text source.
+  * @param ir the IR node.
+  */
+final class DiffChangeset(source: CharSequence, ir: IR) {
+
+  /**
+    * Traverses the IR and returns a list of all IR nodes affected by the edit
+    * using the [[DataflowAnalysis]] information.
+    *
+    * @param edit the text edit.
+    * @return the list of all IR nodes affected by the edit.
+    */
+  def compute(edit: TextEdit): Seq[IR.ExternalId] = {
+    ir.getMetadata(DataflowAnalysis)
+      .toSeq
+      .flatMap { meta =>
+        invalidated(edit)
+          .map(toDataflowDependencyType)
+          .flatMap(meta.getExternal)
+          .flatten
+      }
+  }
 
   /**
     * Traverses the IR and returns a list of the most specific (the innermost)
-    * IR identifiers affected by the edit by comparing the source locations.
+    * IR nodes directly affected by the edit by comparing the source locations.
     *
     * @param edit the text edit.
-    * @param source the text source.
-    * @param ir the IR node.
-    * @return the list of IR identifiers affected by the edit.
+    * @return the list of IR nodes directly affected by the edit.
     */
-  def compute(
-    edit: TextEdit,
-    source: CharSequence,
-    ir: IR
-  ): Seq[IR.Identifier] = {
+  def invalidated(edit: TextEdit): Seq[DiffChangeset.Node] = {
     @scala.annotation.tailrec
     def go(
       edit: Location,
       queue: mutable.Queue[IR],
-      acc: mutable.Builder[IR.Identifier, Vector[IR.Identifier]]
-    ): Seq[IR.Identifier] =
+      acc: mutable.Builder[DiffChangeset.Node, Vector[DiffChangeset.Node]]
+    ): Seq[DiffChangeset.Node] =
       if (queue.isEmpty) {
         acc.result()
       } else {
@@ -35,7 +54,7 @@ final class DiffChangeset {
         val invalidatedChildren = ir.children.filter(intersect(edit, _))
         if (invalidatedChildren.isEmpty) {
           if (intersect(edit, ir)) {
-            go(edit, queue, acc += ir.getId)
+            go(edit, queue, acc += DiffChangeset.Node(ir))
           } else {
             go(edit, queue ++= ir.children, acc)
           }
@@ -47,7 +66,7 @@ final class DiffChangeset {
     go(
       toLocation(edit, source),
       mutable.Queue(ir),
-      Vector.newBuilder[IR.Identifier]
+      Vector.newBuilder[DiffChangeset.Node]
     )
   }
 
@@ -106,6 +125,35 @@ final class DiffChangeset {
   private def toIndex(pos: Position, source: CharSequence): Int = {
     val prefix = source.toString.linesIterator.take(pos.line)
     prefix.mkString(System.lineSeparator()).length + pos.character
+  }
+
+  /**
+    * Converts invalidated node to the dataflow dependency type.
+    *
+    * @param node the invalidated node.
+    * @return the dataflow dependency type.
+    */
+  private def toDataflowDependencyType(
+    node: DiffChangeset.Node
+  ): DataflowAnalysis.DependencyInfo.Type.Static =
+    DataflowAnalysis.DependencyInfo.Type
+      .Static(node.internalId, node.externalId)
+}
+
+object DiffChangeset {
+
+  /**
+    * An invalidated IR node.
+    *
+    * @param internalId internal IR id.
+    * @param externalId external IR id.
+    */
+  case class Node(internalId: IR.Identifier, externalId: Option[IR.ExternalId])
+
+  object Node {
+
+    def apply(ir: IR): Node =
+      new Node(ir.getId, ir.getExternalId)
   }
 
 }

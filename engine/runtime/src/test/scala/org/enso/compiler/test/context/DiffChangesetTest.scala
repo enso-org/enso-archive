@@ -7,8 +7,6 @@ import org.enso.text.editing.model.{Position, Range, TextEdit}
 
 class DiffChangesetTest extends CompilerTest {
 
-  val dc = new DiffChangeset
-
   "DiffChangeset" should {
 
     "single literal whole" in {
@@ -19,7 +17,7 @@ class DiffChangesetTest extends CompilerTest {
       val rhs = ir.expression.asInstanceOf[IR.Application.Operator.Binary]
       val two = rhs.right.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         two.getId
       )
     }
@@ -32,7 +30,7 @@ class DiffChangesetTest extends CompilerTest {
       val rhs = ir.expression.asInstanceOf[IR.Application.Operator.Binary]
       val two = rhs.right.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         two.getId
       )
     }
@@ -45,7 +43,7 @@ class DiffChangesetTest extends CompilerTest {
       val rhs = ir.expression.asInstanceOf[IR.Application.Operator.Binary]
       val two = rhs.right.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         two.getId
       )
     }
@@ -59,7 +57,7 @@ class DiffChangesetTest extends CompilerTest {
       val plus = rhs.operator
       val two  = rhs.right.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         plus.getId,
         two.getId
       )
@@ -74,7 +72,7 @@ class DiffChangesetTest extends CompilerTest {
       val x   = ir.name
       val one = rhs.left.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         x.getId,
         one.getId
       )
@@ -89,7 +87,7 @@ class DiffChangesetTest extends CompilerTest {
       val one =
         ir.expression.asInstanceOf[IR.Application.Operator.Binary].left.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         x.getId,
         one.getId
       )
@@ -102,7 +100,7 @@ class DiffChangesetTest extends CompilerTest {
       val ir = code.toIrExpression.get.asInstanceOf[IR.Expression.Binding]
       val x  = ir.name
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         x.getId
       )
     }
@@ -121,7 +119,7 @@ class DiffChangesetTest extends CompilerTest {
       val plus = secondLine.operator
       val x    = secondLine.right.value
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         y.getId,
         plus.getId,
         x.getId
@@ -143,11 +141,14 @@ class DiffChangesetTest extends CompilerTest {
       val y    = secondLine.left.value
       val plus = secondLine.operator
 
-      dc.compute(edit, code, ir) should contain theSameElementsAs Seq(
+      invalidated(edit, code, ir) should contain theSameElementsAs Seq(
         five.getId,
         y.getId,
         plus.getId
       )
     }
   }
+
+  def invalidated(edit: TextEdit, code: String, ir: IR): Seq[IR.Identifier] =
+    new DiffChangeset(code, ir).invalidated(edit).map(_.internalId)
 }

@@ -160,7 +160,7 @@ public class Module implements TruffleObject {
    * Create scope if not exists.
    *
    * @param context the language context.
-   * @return false if new scope was created and true if scope existed.
+   * @return false if the new scope was created and true otherwise.
    */
   private boolean ensureScopeExists(Context context) {
     boolean scopeExists = scope != null;
@@ -190,6 +190,11 @@ public class Module implements TruffleObject {
   /** @return cached ir of this module. */
   public IR getIr() {
     return ir;
+  }
+
+  /** Checks if the module is parsed. */
+  public boolean isParsed() {
+    return scope != null;
   }
 
   /**

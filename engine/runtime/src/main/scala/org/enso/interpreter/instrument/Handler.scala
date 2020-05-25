@@ -30,13 +30,12 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import scala.jdk.CollectionConverters._
-import scala.jdk.javaapi.OptionConverters
+import scala.jdk.OptionConverters._
 import scala.util.control.NonFatal
 
 /**
   * A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
-  * @param handler
   */
 class Endpoint(handler: Handler) extends MessageEndpoint {
   var client: MessageEndpoint = _
@@ -127,7 +126,7 @@ final class Handler {
           Vector(
             Api.ExpressionValueUpdate(
               value.getExpressionId,
-              OptionConverters.toScala(value.getType),
+              value.getType.toScala,
               Some(value.getValue.toString),
               toMethodPointer(value)
             )
@@ -205,10 +204,9 @@ final class Handler {
       moduleName   <- qualifiedName.getParent
       functionName <- QualifiedName.fromString(call.getFunction.getName)
       typeName     <- functionName.getParent
-      module <- OptionConverters.toScala(
-        executionService.getContext.getCompiler.topScope
-          .getModule(moduleName.toString)
-      )
+      module <- executionService.getContext.getCompiler.topScope
+        .getModule(moduleName.toString)
+        .toScala
       modulePath <- Option(module.getPath)
     } yield Api.MethodPointer(
       new File(modulePath),
@@ -309,11 +307,13 @@ final class Handler {
   ): Either[String, Unit] =
     execute(contextId, stack, new ExecutionMode.Default())
 
-  private def executeAll(): Unit =
+  private def executeAll(mode: ExecutionMode): Unit =
     contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .foreach(Function.tupled(execute))
+      .foreach {
+        case (contextId, stack) => execute(contextId, stack, mode)
+      }
 
   private def toExecutionItem(
     call: Api.StackItem.ExplicitCall
@@ -347,7 +347,7 @@ final class Handler {
           Api.Response(requestId, Api.CreateContextResponse(contextId))
         )
 
-      case Api.PushContextRequest(contextId, item) => {
+      case Api.PushContextRequest(contextId, item) =>
         if (contextManager.get(contextId).isDefined) {
           val stack = contextManager.getStack(contextId)
           val payload = item match {
@@ -372,7 +372,6 @@ final class Handler {
             Api.Response(requestId, Api.ContextNotExistError(contextId))
           )
         }
-      }
 
       case Api.PopContextRequest(contextId) =>
         if (contextManager.get(contextId).isDefined) {
@@ -440,8 +439,15 @@ final class Handler {
         executionService.resetModuleSources(path)
 
       case Api.EditFileNotification(path, edits) =>
-        executionService.modifyModuleSources(path, edits.asJava)
-        withContext(executeAll())
+        val mode =
+          executionService
+            .modifyModuleSources(path, edits.asJava)
+            .toScala
+            .map(dc => edits.flatMap(dc.compute))
+            .fold[ExecutionMode](new ExecutionMode.Default()) { ids =>
+              new ExecutionMode.InvalidateExpressions(ids.asJava)
+            }
+        withContext(executeAll(mode))
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {
