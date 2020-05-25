@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.command
 
 import cats.implicits._
-import org.enso.interpreter.instrument.Handler.{
+import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{
   EvalFailure,
   EvaluationFailed,
   ModuleNotFound
@@ -84,5 +84,26 @@ abstract class BaseVisualisationCmd extends Command with EnsoExecutionSupport {
     }
 
   }
+
+}
+
+object BaseVisualisationCmd {
+
+  /**
+    * Base trait for evaluation failures.
+    */
+  sealed trait EvalFailure
+
+  /**
+    * Signals that a module cannto be found.
+    */
+  case object ModuleNotFound extends EvalFailure
+
+  /**
+    * Signals that an evaluation of an expression failed.
+    *
+    * @param msg the textual reason of a failure
+    */
+  case class EvaluationFailed(msg: String) extends EvalFailure
 
 }
