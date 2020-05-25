@@ -220,9 +220,6 @@ public class ExecutionService {
     if (module.getLiteralSource() == null) {
       return Optional.empty();
     }
-    if (!module.isParsed()) {
-      module.parseScope(context);
-    }
     DiffChangeset dc = new DiffChangeset(module.getLiteralSource().toString(), module.getIr());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);

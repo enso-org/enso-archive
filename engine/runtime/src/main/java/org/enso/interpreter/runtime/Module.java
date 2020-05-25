@@ -35,6 +35,7 @@ public class Module implements TruffleObject {
   private ModuleScope scope;
   private TruffleFile sourceFile;
   private Rope literalSource;
+  private boolean isParsed = false;
   private IR ir;
   private final QualifiedName name;
 
@@ -79,6 +80,7 @@ public class Module implements TruffleObject {
   private Module(QualifiedName name) {
     this.name = name;
     this.scope = new ModuleScope(this);
+    this.isParsed = true;
   }
 
   /**
@@ -94,8 +96,7 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.literalSource = null;
-    this.ir = null;
-    this.scope = null;
+    this.isParsed = false;
   }
 
   /** @return the literal source of this module. */
@@ -119,8 +120,7 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(Rope source) {
     this.literalSource = source;
-    this.ir = null;
-    this.scope = null;
+    this.isParsed = false;
   }
 
   /**
@@ -131,8 +131,7 @@ public class Module implements TruffleObject {
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
-    this.ir = null;
-    this.scope = null;
+    this.isParsed = false;
   }
 
   /** @return the location of this module. */
@@ -150,7 +149,8 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope parseScope(Context context) {
-    if (!ensureScopeExists(context)) {
+    ensureScopeExists(context);
+    if (!isParsed) {
       parse(context);
     }
     return scope;
@@ -160,19 +160,17 @@ public class Module implements TruffleObject {
    * Create scope if not exists.
    *
    * @param context the language context.
-   * @return false if the new scope was created and true otherwise.
    */
-  private boolean ensureScopeExists(Context context) {
-    boolean scopeExists = scope != null;
+  private void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
     }
-    return scopeExists;
   }
 
   private void parse(Context context) {
     ensureScopeExists(context);
     context.resetScope(scope);
+    isParsed = true;
     if (literalSource != null) {
       Source source =
           Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
@@ -190,11 +188,6 @@ public class Module implements TruffleObject {
   /** @return cached ir of this module. */
   public IR getIr() {
     return ir;
-  }
-
-  /** Checks if the module is parsed. */
-  public boolean isParsed() {
-    return scope != null;
   }
 
   /**
