@@ -12,7 +12,7 @@ import scala.concurrent.{Future, Promise}
 
 class CommandProcessor(parallelism: Int, context: Context) {
 
-  private val executor = Executors.newScheduledThreadPool(
+  private val executor = Executors.newFixedThreadPool(
     parallelism,
     new TruffleThreadFactory(context, "truffle-execution-engine")
   )
