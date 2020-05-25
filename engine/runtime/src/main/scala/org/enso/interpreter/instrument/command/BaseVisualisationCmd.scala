@@ -6,7 +6,8 @@ import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{
   EvaluationFailed,
   ModuleNotFound
 }
-import org.enso.interpreter.instrument.{RuntimeContext, Visualisation}
+import org.enso.interpreter.instrument.Visualisation
+import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   RequestId,

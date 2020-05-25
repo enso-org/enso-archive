@@ -11,7 +11,8 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionValue
 }
 import org.enso.interpreter.instrument.command.EnsoExecutionSupport.ExecutionItem
-import org.enso.interpreter.instrument.{RuntimeContext, Visualisation}
+import org.enso.interpreter.instrument.Visualisation
+import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api

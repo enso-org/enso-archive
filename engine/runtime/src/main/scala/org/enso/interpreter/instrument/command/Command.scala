@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.RuntimeContext
+import org.enso.interpreter.instrument.execution.RuntimeContext
 
 trait Command {
 
