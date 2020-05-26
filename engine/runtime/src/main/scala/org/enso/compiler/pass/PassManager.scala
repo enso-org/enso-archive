@@ -14,10 +14,6 @@ import scala.collection.mutable
 
 /** The pass manager is responsible for executing the provided passes in order.
   *
-  * Please note that the computation of the optimal set of passes is _not_
-  * guaranteed to work on edge-case inputs (e.g. a pass `n` invalidates all of
-  * the passes that go before it).
-  *
   * @param passes the specification of the ordering for the passes
   * @param passConfiguration the configuration for the passes
   */
