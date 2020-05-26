@@ -53,7 +53,7 @@ object CacheInvalidation {
     * @param rules the list of invalidation instruction.
     */
   def run(
-    stack: Iterable[StackFrame],
+    stack: Iterable[Frame],
     rules: Iterable[CacheInvalidation]
   ): Unit = {
     stack.headOption.map(_.cache).foreach { cache =>
