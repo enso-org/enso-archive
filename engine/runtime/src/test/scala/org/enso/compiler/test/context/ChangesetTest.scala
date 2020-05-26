@@ -144,7 +144,7 @@ class ChangesetTest extends CompilerTest {
           |    z = 1
           |    y = z
           |    y + x""".stripMargin.linesIterator.mkString(System.lineSeparator())
-      val edit = TextEdit(Range(Position(2, 8), Position(3, 7)), "42\n    y -")
+      val edit = TextEdit(Range(Position(2, 8), Position(3, 7)), s"42${System.lineSeparator()}    y -")
 
       val ir         = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
       val secondLine = ir.body.children(1).asInstanceOf[IR.Expression.Binding]

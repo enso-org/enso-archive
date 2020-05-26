@@ -82,12 +82,12 @@ jobs:
           restore-keys: ${{ runner.os }}-coursier-
 
       # Build
-      - name: Build Enso
-        run: sbt --no-colors compile
+      #- name: Build Enso
+        #run: sbt --no-colors compile
 
       # Tests
       - name: Test Enso
-        run: sbt --no-colors test
+        run: sbt --no-colors 'runtime/testOnly org.enso.compiler.test.context.ChangesetTest'
       - name: Benchmark the Parser
         run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
