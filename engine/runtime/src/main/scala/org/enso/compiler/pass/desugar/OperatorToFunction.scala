@@ -16,11 +16,11 @@ case object OperatorToFunction extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies,
     SectionsToBinOp
   )
-  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the conversion pass.
     *

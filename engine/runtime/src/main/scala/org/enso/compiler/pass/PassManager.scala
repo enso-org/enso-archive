@@ -6,14 +6,17 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 
+import scala.annotation.unused
 import scala.collection.mutable
 
-// TODO [AA] Account for cycles and throw an error "Dependency cycle found in
-//  pass ordering"
-// TODO [AA] Fixed position precursors duplicate passes where necessary.
-// TODO [AA] Invalidated passes need to be accounted for.
+// TODO [AA] In the future, the pass ordering should be _computed_ from the list
+//  of available passes, rather than just verified.
 
 /** The pass manager is responsible for executing the provided passes in order.
+  *
+  * Please note that the computation of the optimal set of passes is _not_
+  * guaranteed to work on edge-case inputs (e.g. a pass `n` invalidates all of
+  * the passes that go before it).
   *
   * @param passes the specification of the ordering for the passes
   * @param passConfiguration the configuration for the passes
@@ -23,16 +26,16 @@ class PassManager(
   passes: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
-  val passOrdering: List[IRPass] = computePassOrdering(passes)
+  val passOrdering: List[IRPass] = verifyPassOrdering(passes)
 
   /** Computes a valid pass ordering for the compiler.
-   *
-   * @param passes the input list of passes
-   * @throws CompilerError if a valid pass ordering cannot be computed
-   * @return a valid pass ordering for the compiler, based on `passes`
-   */
+    *
+    * @param passes the input list of passes
+    * @throws CompilerError if a valid pass ordering cannot be computed
+    * @return a valid pass ordering for the compiler, based on `passes`
+    */
   @throws[CompilerError]
-  def computePassOrdering(passes: List[IRPass]): List[IRPass] = {
+  def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
     passes
   }
 
@@ -40,7 +43,7 @@ class PassManager(
     *
     * @return the a mapping from the pass identifier to the number of times the
     *         pass occurs */
-  def calculatePassCounts: mutable.Map[UUID, PassCount] = {
+  private def calculatePassCounts: mutable.Map[UUID, PassCount] = {
     val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
 
     for (pass <- passOrdering) {
@@ -126,5 +129,5 @@ class PassManager(
     * @param available how many runs should occur
     * @param completed how many runs have been completed
     */
-  sealed case class PassCount(available: Int = 1, completed: Int = 0)
+  sealed private case class PassCount(available: Int = 1, completed: Int = 0)
 }

@@ -23,13 +23,13 @@ case object DemandAnalysis extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     AliasAnalysis,
     LambdaConsolidate,
     OverloadsResolution
   )
 
-  override val invalidatedPasses: Seq[IRPass.Successor] = List(AliasAnalysis)
+  override val invalidatedPasses: Seq[IRPass] = List(AliasAnalysis)
 
   /** Executes the demand analysis process on an Enso module.
     *

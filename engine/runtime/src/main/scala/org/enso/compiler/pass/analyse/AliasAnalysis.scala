@@ -51,7 +51,7 @@ case object AliasAnalysis extends IRPass {
   override type Metadata = Info
   override type Config = Configuration
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp,
@@ -59,7 +59,7 @@ case object AliasAnalysis extends IRPass {
     LambdaShorthandToLambda,
   )
 
-  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Performs alias analysis on a module.
     *

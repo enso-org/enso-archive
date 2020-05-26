@@ -6,7 +6,6 @@ import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.IRPass.Precursor
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
@@ -49,15 +48,15 @@ case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
     LambdaShorthandToLambda,
     IgnoredBindings,
-    Precursor(AliasAnalysis, fixedPosition = true)
+    AliasAnalysis
   )
-  override val invalidatedPasses: Seq[IRPass.Successor] = List(
+  override val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis
   )
 

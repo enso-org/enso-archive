@@ -203,30 +203,4 @@ trait CompilerRunner {
       IR.Module(List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
   }
-
-  // === Pass Testing Utils ===================================================
-
-  /** Adds extension methods for getting a pass' precursors and successors as
-    * passes.
-    *
-    * @param pass the pass to add the extension methods to
-    */
-  implicit class AsPasses(pass: IRPass) {
-
-    /** Gets the precursors for a given pass as a list of passes.
-      *
-      * @return the precursors for a given pass
-      */
-    def precursorsAsPasses: List[IRPass] = {
-      pass.precursorPasses.map(_.pass).toList
-    }
-
-    /** Gets the successors for a given pass as a list of passes.
-      *
-      * @return the successors for a given pass
-      */
-    def invalidatedAsPasses: List[IRPass] = {
-      pass.invalidatedPasses.map(_.pass).toList
-    }
-  }
 }

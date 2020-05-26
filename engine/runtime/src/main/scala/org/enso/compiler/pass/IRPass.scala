@@ -31,10 +31,10 @@ trait IRPass {
   type Config <: IRPass.Configuration
 
   /** The passes that this pass depends _directly_ on to run. */
-  val precursorPasses: Seq[IRPass.Precursor]
+  val precursorPasses: Seq[IRPass]
 
   /** The passes that are invalidated by running this pass. */
-  val invalidatedPasses: Seq[IRPass.Successor]
+  val invalidatedPasses: Seq[IRPass]
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -134,48 +134,6 @@ object IRPass {
     /** An empty metadata type for passes that do not create any metadata. */
     sealed case class Empty() extends Metadata {
       override val metadataName: String = "Empty"
-    }
-  }
-
-  /** A representation of a precursor for a given pass.
-    *
-    * @param pass the pass that is a precursor
-    * @param fixedPosition whether `pass` must be computed exactly at the
-    *                      position it occurs in the list of precursors
-    */
-  sealed case class Precursor(pass: IRPass, fixedPosition: Boolean = false)
-  object Precursor {
-
-    /** Implicitly creates a precursor from a pass without a fixed position.
-     *
-     * @param pass the pass to convert
-     * @return a precursor representing `pass`
-     */
-    implicit def toPrecursor(pass: IRPass): Precursor = {
-      Precursor(pass)
-    }
-  }
-
-  /** A representation of a successor for a given pass.
-   *
-   * Successors to a pass are passes that need to be run after it as long as a
-   * pass later in the chain demands that pass. They are _only_ guaranteed to
-   * run if they are needed by a later pass.
-   *
-   * @param pass the pass that is a successor
-   * @param fixedPosition whether `pass` must be computed exactly at the
-   *                      position it occurs in the list of precursors
-   */
-  sealed case class Successor(pass: IRPass, fixedPosition: Boolean = false)
-  object Successor {
-
-    /** Implicitly creates a successor from a pass without a fixed position.
-     *
-     * @param pass the pass to convert
-     * @return a successor representing `pass`
-     */
-    implicit def toSuccessor(pass: IRPass): Successor = {
-      Successor(pass)
     }
   }
 }

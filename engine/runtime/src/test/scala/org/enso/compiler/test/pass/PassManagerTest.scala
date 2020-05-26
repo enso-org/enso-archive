@@ -20,19 +20,11 @@ class PassManagerTest extends CompilerTest {
   // === The Tests ============================================================
 
   "The pass manager" should {
-    "compute a valid pass ordering based on the pass precursors" in {
+    "raise an error due to invalidations" in {
       pending
     }
 
-    "respect fixed ordering" in {
-      pending
-    }
-
-    "respect invalidation of results" in {
-      pending
-    }
-
-    "raise an error if a cycle is detected" in {
+    "allow a valid pass ordering" in {
       pending
     }
   }

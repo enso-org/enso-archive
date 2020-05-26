@@ -24,7 +24,7 @@ case object TailCall extends IRPass {
 
   override type Config = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp,
@@ -32,7 +32,7 @@ case object TailCall extends IRPass {
     LambdaShorthandToLambda
   )
 
-  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Analyses tail call state for expressions in a module.
     *

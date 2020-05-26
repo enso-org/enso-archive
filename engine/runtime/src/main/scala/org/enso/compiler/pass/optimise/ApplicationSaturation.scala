@@ -25,7 +25,7 @@ case object ApplicationSaturation extends IRPass {
   override type Metadata = CallSaturation
   override type Config = Configuration
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(
+  override val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     GenerateMethodBodies,
     SectionsToBinOp,
@@ -33,8 +33,7 @@ case object ApplicationSaturation extends IRPass {
     LambdaShorthandToLambda,
     LambdaConsolidate
   )
-
-  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.
