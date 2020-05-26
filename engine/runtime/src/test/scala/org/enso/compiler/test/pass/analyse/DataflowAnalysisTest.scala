@@ -775,19 +775,16 @@ class DataflowAnalysisTest extends CompilerTest {
       val lam = ir.asInstanceOf[IR.Function.Lambda]
       val argX =
         lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-      val body = lam.body.asInstanceOf[IR.Application.Force]
-      val xUse = body.target.asInstanceOf[IR.Name.Literal]
+      val xUse = lam.body.asInstanceOf[IR.Name.Literal]
 
       // The IDs
       val lamId  = mkStaticDep(lam.getId)
       val argXId = mkStaticDep(argX.getId)
-      val bodyId = mkStaticDep(body.getId)
       val xUseId = mkStaticDep(xUse.getId)
 
       // The Test
       depInfo.getDirect(argXId) shouldEqual Some(Set(xUseId))
-      depInfo.getDirect(xUseId) shouldEqual Some(Set(bodyId))
-      depInfo.getDirect(bodyId) shouldEqual Some(Set(lamId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(lamId))
     }
 
     "work properly for blocks" in {

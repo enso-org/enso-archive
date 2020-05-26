@@ -36,6 +36,26 @@ class PassManager(
     */
   @throws[CompilerError]
   def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
+    var validPasses: Set[IRPass] = Set()
+
+    passes.foreach(pass => {
+      val prereqsSatisfied =
+        pass.precursorPasses.forall(validPasses.contains(_))
+
+      if (prereqsSatisfied) {
+        validPasses += pass
+      } else {
+        val missingPrereqsStr =
+          pass.precursorPasses.filterNot(validPasses.contains(_)).mkString(", ")
+
+        throw new CompilerError(
+          s"The pass ordering is invalid. $pass is missing: $missingPrereqsStr"
+        )
+      }
+
+      pass.invalidatedPasses.foreach(p => validPasses -= p)
+    })
+
     passes
   }
 

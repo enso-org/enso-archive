@@ -1,31 +1,80 @@
 package org.enso.compiler.test.pass
 
-import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{DataflowAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{IgnoredBindings, OverloadsResolution}
 import org.enso.compiler.test.CompilerTest
 
 class PassManagerTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val inputPassOrdering: List[IRPass] = List(
+  val invalidOrdering: List[IRPass] = List(
+    ComplexType,
+    FunctionBinding,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+    IgnoredBindings,
+    AliasAnalysis,
     LambdaConsolidate,
+    OverloadsResolution,
     DemandAnalysis,
-    DataflowAnalysis
+    ApplicationSaturation,
+    TailCall,
+    AliasAnalysis,
+    DataflowAnalysis,
+    UnusedBindings
   )
 
-  val passConfiguration: List[IRPass.Configuration] = List()
+  val validOrdering: List[IRPass] = List(
+    ComplexType,
+    FunctionBinding,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+    IgnoredBindings,
+    AliasAnalysis,
+    LambdaConsolidate,
+    OverloadsResolution,
+    AliasAnalysis,
+    DemandAnalysis,
+    ApplicationSaturation,
+    TailCall,
+    AliasAnalysis,
+    DataflowAnalysis,
+    UnusedBindings
+  )
+
+  val passConfiguration: PassConfiguration = new PassConfiguration()
 
   // === The Tests ============================================================
 
   "The pass manager" should {
     "raise an error due to invalidations" in {
-      pending
+      a[CompilerError] shouldBe thrownBy(
+        new PassManager(invalidOrdering, passConfiguration)
+      )
     }
 
     "allow a valid pass ordering" in {
-      pending
+      noException shouldBe thrownBy(
+        new PassManager(validOrdering, passConfiguration)
+      )
     }
   }
 }

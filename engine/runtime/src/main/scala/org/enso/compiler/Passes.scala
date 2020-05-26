@@ -40,6 +40,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       DemandAnalysis,
       ApplicationSaturation,
       TailCall,
+      AliasAnalysis,
       DataflowAnalysis,
       UnusedBindings
     )
