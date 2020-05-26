@@ -5,20 +5,12 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{
-  IdExecutionInstrument,
-  RuntimeServerInstrument
-}
+import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, StackFrame}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{
-  LanguageInfo,
-  PolyglotContext,
-  RuntimeOptions,
-  RuntimeServerInfo
-}
+import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -492,9 +484,9 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
-    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
-    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
 
     // recompute
     context.send(
@@ -535,9 +527,9 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
-    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
-    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
 
     // recompute
     context.send(
@@ -587,9 +579,9 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.getHandler.cache.put(context.Main.idMainX, 6L)
-    context.instrument.getHandler.cache.put(context.Main.idMainY, 45L)
-    context.instrument.getHandler.cache.put(context.Main.idMainZ, 50L)
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
 
     // recompute
     context.send(
@@ -684,8 +676,7 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.getHandler.cache
-      .put(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main.idMainX, 1L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -730,10 +721,8 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
     // override
-    context.instrument.getHandler.cache
-      .put(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
-    context.instrument.getHandler.cache
-      .put(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -1017,4 +1006,8 @@ class RuntimeServerTest
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
 
+  private def overrideCache(contextId: UUID, key: UUID, value: Any): Unit = {
+    val stack = context.instrument.getHandler.contextManager.getStack(contextId)
+    stack.headOption.foreach(_.cache.put(key, value))
+  }
 }

@@ -74,7 +74,6 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
-  val cache          = new RuntimeCache
 
   var executionService: ExecutionService = _
   var truffleContext: TruffleContext     = _
@@ -301,13 +300,16 @@ final class Handler {
     } yield ()
   }
 
-  private def executeAll(): Unit =
+  private def executeAll(invalidatedExpressions: Option[Api.InvalidatedExpressions]): Unit = {
     contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .foreach {
-        case (contextId, stack) => execute(contextId, stack)
+        case (contextId, stack) =>
+          invalidatedExpressions.foreach(invalidateCache(stack, _))
+          execute(contextId, stack)
       }
+  }
 
   private def toExecutionItem(
     call: Api.StackItem.ExplicitCall
@@ -406,12 +408,7 @@ final class Handler {
           val payload = if (stack.isEmpty) {
             Api.EmptyStackError(contextId)
           } else {
-            invalidatedExpressions foreach {
-              case Api.InvalidatedExpressions.All() =>
-                stack.headOption.foreach(_.cache.clear())
-              case Api.InvalidatedExpressions.Expressions(ids) =>
-                stack.headOption.foreach(top => ids.foreach(top.cache.remove))
-            }
+            invalidatedExpressions.foreach(invalidateCache(stack, _))
             withContext(execute(contextId, stack.toList)) match {
               case Right(()) => Api.RecomputeContextResponse(contextId)
               case Left(e)   => Api.ExecutionFailed(contextId, e)
@@ -431,12 +428,12 @@ final class Handler {
         executionService.resetModuleSources(path)
 
       case Api.EditFileNotification(path, edits) =>
-        val _ =
+        val invalidatedExpressions =
           executionService
             .modifyModuleSources(path, edits.asJava)
             .toScala
-            .map(dc => edits.flatMap(dc.compute))
-         withContext(executeAll())
+            .map(dc => Api.InvalidatedExpressions.Expressions(edits.flatMap(dc.compute).toVector))
+         withContext(executeAll(invalidatedExpressions))
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {
@@ -571,9 +568,16 @@ final class Handler {
         case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft
       }
     }
-
   }
 
+  private def invalidateCache(stack: Iterable[StackFrame], invalidatedExpressions: Api.InvalidatedExpressions): Unit = {
+    invalidatedExpressions match {
+      case Api.InvalidatedExpressions.All() =>
+        stack.headOption.foreach(_.cache.clear())
+      case Api.InvalidatedExpressions.Expressions(ids) =>
+        stack.headOption.foreach(top => ids.foreach(top.cache.remove))
+    }
+  }
 }
 
 object Handler {
