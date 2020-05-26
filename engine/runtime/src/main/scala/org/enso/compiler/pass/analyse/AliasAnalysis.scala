@@ -52,7 +52,7 @@ case object AliasAnalysis extends IRPass {
 
   override type Config = Configuration
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp,

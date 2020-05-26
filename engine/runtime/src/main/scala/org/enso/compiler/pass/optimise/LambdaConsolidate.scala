@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRPass.Precursor
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
@@ -43,21 +44,18 @@ import org.enso.syntax.text.Location
   * This pass requires the context to provide:
   *
   * - A [[FreshNameSupply]].
-  *
-  * Please note that [[AliasAnalysis]] must be run _directly_ before this pass
-  * so that its results are as up to date as possible.
   */
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
     LambdaShorthandToLambda,
     IgnoredBindings,
-    AliasAnalysis
+    Precursor(AliasAnalysis, fixedPosition = true)
   )
 
   /** Performs lambda consolidation on a module.

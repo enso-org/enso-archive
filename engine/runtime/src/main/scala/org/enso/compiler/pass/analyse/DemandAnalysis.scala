@@ -29,7 +29,7 @@ case object DemandAnalysis extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
     AliasAnalysis,
     LambdaConsolidate,
     OverloadsResolution

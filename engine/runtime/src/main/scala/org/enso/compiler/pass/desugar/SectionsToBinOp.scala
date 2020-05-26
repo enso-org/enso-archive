@@ -18,7 +18,9 @@ case object SectionsToBinOp extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(GenerateMethodBodies)
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
+    GenerateMethodBodies
+  )
 
   /** Performs section to binary operator conversion on an IR module.
     *

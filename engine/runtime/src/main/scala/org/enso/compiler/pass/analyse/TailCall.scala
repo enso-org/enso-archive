@@ -5,7 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar._
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -24,7 +24,7 @@ case object TailCall extends IRPass {
 
   override type Config = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp,

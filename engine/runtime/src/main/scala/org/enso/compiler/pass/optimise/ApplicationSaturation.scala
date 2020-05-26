@@ -25,7 +25,7 @@ case object ApplicationSaturation extends IRPass {
   override type Metadata = CallSaturation
   override type Config = Configuration
 
-  override val precursorPasses: Seq[IRPass] = List(
+  override val precursorPasses: Seq[IRPass.Precursor] = List(
     ComplexType,
     GenerateMethodBodies,
     SectionsToBinOp,

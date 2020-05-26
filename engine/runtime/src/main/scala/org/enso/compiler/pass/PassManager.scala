@@ -7,25 +7,26 @@ import org.enso.compiler.core.IR
 
 import scala.collection.mutable
 
-// TODO [AA] Account for cycles and throw an error "Dependency cycle found in pass ordering"
+// TODO [AA] Account for cycles and throw an error "Dependency cycle found in
+//  pass ordering"
+// TODO [AA] Fixed position precursors duplicate passes where necessary.
 
 /** The pass manager is responsible for executing the provided passes in order.
   *
-  * @param passOrdering the specification of the ordering for the passes
+  * @param passes the specification of the ordering for the passes
   * @param passConfiguration the configuration for the passes
   */
 //noinspection DuplicatedCode
 class PassManager(
-  passOrdering: List[IRPass],
+  passes: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
-  sealed case class PassCount(available: Int = 1, completed: Int = 0)
+  val passOrdering: List[IRPass] = passes
 
   /** Calculates the number of times each pass occurs in the pass ordering.
     *
     * @return the a mapping from the pass identifier to the number of times the
-    *         pass occurs
-    */
+    *         pass occurs */
   def calculatePassCounts: mutable.Map[UUID, PassCount] = {
     val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
 
@@ -106,4 +107,11 @@ class PassManager(
       result
     })
   }
+
+  /** The counts of passes running.
+    *
+    * @param available how many runs should occur
+    * @param completed how many runs have been completed
+    */
+  sealed case class PassCount(available: Int = 1, completed: Int = 0)
 }

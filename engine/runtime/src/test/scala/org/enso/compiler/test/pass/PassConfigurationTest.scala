@@ -15,7 +15,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration1
 
-    override val precursorPasses: Seq[IRPass] = List()
+    override val precursorPasses: Seq[IRPass.Precursor] = List()
 
     override def runModule(
       ir: IR.Module,
@@ -36,7 +36,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration2
 
-    override val precursorPasses: Seq[IRPass] = List()
+    override val precursorPasses: Seq[IRPass.Precursor] = List()
 
     override def runModule(
       ir: IR.Module,
