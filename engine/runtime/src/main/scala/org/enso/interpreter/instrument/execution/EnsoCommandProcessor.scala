@@ -31,7 +31,7 @@ class EnsoCommandProcessor(parallelism: Int, context: Context)
     executor.submit[Unit](new Callable[Unit] {
       override def call(): Unit = {
         val logger = ctx.executionService.getLogger
-        logger.log(Level.FINE, s"Starting $cmd...")
+        logger.log(Level.FINE, s"Executing command: $cmd...")
         try {
           cmd.execute(ctx)
           logger.log(Level.FINE, s"Command $cmd finished.")
