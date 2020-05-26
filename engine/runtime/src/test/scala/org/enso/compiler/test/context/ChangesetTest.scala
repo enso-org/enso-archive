@@ -1,11 +1,11 @@
 package org.enso.compiler.test.context
 
-import org.enso.compiler.context.DiffChangeset
+import org.enso.compiler.context.Changeset
 import org.enso.compiler.core.IR
 import org.enso.compiler.test.CompilerTest
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
-class DiffChangesetTest extends CompilerTest {
+class ChangesetTest extends CompilerTest {
 
   "DiffChangeset" should {
 
@@ -163,5 +163,5 @@ class DiffChangesetTest extends CompilerTest {
   }
 
   def invalidated(edit: TextEdit, code: String, ir: IR): Seq[IR.Identifier] =
-    new DiffChangeset(code, ir).invalidated(edit).map(_.internalId)
+    new Changeset(code, ir).invalidated(edit).map(_.internalId)
 }

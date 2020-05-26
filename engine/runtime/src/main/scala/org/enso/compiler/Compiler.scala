@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.scope.{
   TopLevelScope
 }
 import org.enso.polyglot.LanguageInfo
+import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 /**
@@ -164,6 +165,15 @@ class Compiler(
     */
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
+
+  /**
+    * Parses the metadata of the provided language sources.
+    *
+    * @param source the code to parse
+    * @return the source metadata
+    */
+  def parseMeta(source: CharSequence): IDMap =
+    Parser().splitMeta(source.toString)._2
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate

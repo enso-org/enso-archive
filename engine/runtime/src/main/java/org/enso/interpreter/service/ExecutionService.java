@@ -9,7 +9,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import org.enso.compiler.context.DiffChangeset;
+import org.enso.compiler.context.Changeset;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -207,7 +207,7 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public Optional<DiffChangeset> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Optional<Changeset> modifyModuleSources(File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (!moduleMay.isPresent()) {
       return Optional.empty();
@@ -216,7 +216,7 @@ public class ExecutionService {
     if (module.getLiteralSource() == null) {
       return Optional.empty();
     }
-    DiffChangeset dc = new DiffChangeset(module.getLiteralSource().toString(), module.getIr());
+    Changeset dc = new Changeset(module.getLiteralSource().toString(), module.getIr());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);
     return Optional.of(dc);
