@@ -156,7 +156,7 @@ public class Module implements TruffleObject {
   }
 
   /**
-   * Create scope if not exists.
+   * Create scope if it does not exist.
    *
    * @param context the language context.
    */
