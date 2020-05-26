@@ -82,8 +82,8 @@ jobs:
           restore-keys: ${{ runner.os }}-coursier-
 
       # Build
-      #- name: Build Enso
-        #run: sbt --no-colors compile
+      - name: Build Enso
+        run: sbt --no-colors runtime/compile
 
       # Tests
       - name: Test Enso

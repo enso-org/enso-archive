@@ -130,7 +130,7 @@ final class Changeset(val source: CharSequence, ir: IR) {
     */
   private def toIndex(pos: Position, source: CharSequence): Int = {
     val prefix = source.toString.linesIterator.take(pos.line)
-    prefix.mkString(System.lineSeparator()).length + pos.character
+    prefix.mkString("\n").length + pos.character
   }
 
   /**

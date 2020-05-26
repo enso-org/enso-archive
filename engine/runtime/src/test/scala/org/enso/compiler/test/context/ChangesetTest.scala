@@ -121,7 +121,7 @@ class ChangesetTest extends CompilerTest {
       val code =
         """x ->
           |    y = 5
-          |    y + x""".stripMargin.linesIterator.mkString(System.lineSeparator())
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
       val edit = TextEdit(Range(Position(2, 4), Position(2, 9)), "x")
 
       val ir = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
@@ -143,8 +143,8 @@ class ChangesetTest extends CompilerTest {
         """x ->
           |    z = 1
           |    y = z
-          |    y + x""".stripMargin.linesIterator.mkString(System.lineSeparator())
-      val edit = TextEdit(Range(Position(2, 8), Position(3, 7)), s"42${System.lineSeparator()}    y -")
+          |    y + x""".stripMargin.linesIterator.mkString("\n")
+      val edit = TextEdit(Range(Position(2, 8), Position(3, 7)), s"42\n    y -")
 
       val ir         = code.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
       val secondLine = ir.body.children(1).asInstanceOf[IR.Expression.Binding]
