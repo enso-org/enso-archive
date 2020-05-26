@@ -1,6 +1,17 @@
 # Execution Server Flow
 This document describes the API and workflow of the internal execution server.
 
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Creating a connection](#creating-a-connection)
+- [API](#api)
+- [Internal architecture](#internal-architecture)
+   - [Job Queue](#job-queue)
+   - [Job types](#job-types)
+   - [API Methods to Jobs Translation](#api-methods-to-jobs-translation)
+
+<!-- /MarkdownTOC -->
+
 ## Creating a connection
 > The actionables for this section are:
 > describe the `org.graalvm.polyglot.Context.Builder.serverTransport` workflow
