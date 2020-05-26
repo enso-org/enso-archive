@@ -20,6 +20,7 @@ case object OperatorToFunction extends IRPass {
     GenerateMethodBodies,
     SectionsToBinOp
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Executes the conversion pass.
     *

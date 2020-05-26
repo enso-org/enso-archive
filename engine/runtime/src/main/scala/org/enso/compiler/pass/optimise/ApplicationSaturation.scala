@@ -34,6 +34,8 @@ case object ApplicationSaturation extends IRPass {
     LambdaConsolidate
   )
 
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.
     *

@@ -22,6 +22,7 @@ case object LambdaShorthandToLambda extends IRPass {
     SectionsToBinOp,
     OperatorToFunction
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Desugars underscore arguments to lambdas for a module.
     *

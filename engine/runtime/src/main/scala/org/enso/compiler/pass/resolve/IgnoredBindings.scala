@@ -26,6 +26,7 @@ case object IgnoredBindings extends IRPass {
     GenerateMethodBodies,
     LambdaShorthandToLambda
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Desugars ignored bindings for a module.
     *

@@ -32,6 +32,7 @@ case object OverloadsResolution extends IRPass {
     ComplexType,
     GenerateMethodBodies
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Performs static detection of method overloads within a given module.
     *

@@ -18,6 +18,7 @@ class MetadataStorageTest extends CompilerTest {
     override type Config   = IRPass.Configuration.Default
 
     override val precursorPasses: Seq[IRPass.Precursor] = List()
+    override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
     override def runModule(
       ir: IR.Module,
@@ -39,6 +40,7 @@ class MetadataStorageTest extends CompilerTest {
     override type Config   = IRPass.Configuration.Default
 
     override val precursorPasses: Seq[IRPass.Precursor] = List()
+    override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
     override def runModule(
       ir: IR.Module,

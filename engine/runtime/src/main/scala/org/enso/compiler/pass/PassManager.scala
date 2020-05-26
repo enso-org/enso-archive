@@ -4,12 +4,14 @@ import java.util.UUID
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 
 import scala.collection.mutable
 
 // TODO [AA] Account for cycles and throw an error "Dependency cycle found in
 //  pass ordering"
 // TODO [AA] Fixed position precursors duplicate passes where necessary.
+// TODO [AA] Invalidated passes need to be accounted for.
 
 /** The pass manager is responsible for executing the provided passes in order.
   *
@@ -21,7 +23,18 @@ class PassManager(
   passes: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
-  val passOrdering: List[IRPass] = passes
+  val passOrdering: List[IRPass] = computePassOrdering(passes)
+
+  /** Computes a valid pass ordering for the compiler.
+   *
+   * @param passes the input list of passes
+   * @throws CompilerError if a valid pass ordering cannot be computed
+   * @return a valid pass ordering for the compiler, based on `passes`
+   */
+  @throws[CompilerError]
+  def computePassOrdering(passes: List[IRPass]): List[IRPass] = {
+    passes
+  }
 
   /** Calculates the number of times each pass occurs in the pass ordering.
     *

@@ -1,11 +1,19 @@
 package org.enso.compiler.test.pass
 
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{DataflowAnalysis, DemandAnalysis}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.test.CompilerTest
 
 class PassManagerTest extends CompilerTest {
 
   // === Test Setup ===========================================================
+
+  val inputPassOrdering: List[IRPass] = List(
+    LambdaConsolidate,
+    DemandAnalysis,
+    DataflowAnalysis
+  )
 
   val passConfiguration: List[IRPass.Configuration] = List()
 
@@ -17,6 +25,10 @@ class PassManagerTest extends CompilerTest {
     }
 
     "respect fixed ordering" in {
+      pending
+    }
+
+    "respect invalidation of results" in {
       pending
     }
 

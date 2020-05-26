@@ -4,14 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
-}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.resolve.{IgnoredBindings, OverloadsResolution}
+import org.enso.compiler.pass.resolve.OverloadsResolution
 
 /** This pass implements demand analysis for Enso.
   *
@@ -34,6 +28,8 @@ case object DemandAnalysis extends IRPass {
     LambdaConsolidate,
     OverloadsResolution
   )
+
+  override val invalidatedPasses: Seq[IRPass.Successor] = List(AliasAnalysis)
 
   /** Executes the demand analysis process on an Enso module.
     *

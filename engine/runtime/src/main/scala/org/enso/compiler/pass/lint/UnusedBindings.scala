@@ -31,6 +31,7 @@ case object UnusedBindings extends IRPass {
     IgnoredBindings,
     LambdaConsolidate
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Lints a module.
     *

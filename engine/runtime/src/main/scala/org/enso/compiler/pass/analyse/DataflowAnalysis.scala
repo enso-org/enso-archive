@@ -34,6 +34,8 @@ case object DataflowAnalysis extends IRPass {
     TailCall
   )
 
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+
   /** Executes the dataflow analysis process on an Enso module.
     *
     * @param ir the Enso IR to process

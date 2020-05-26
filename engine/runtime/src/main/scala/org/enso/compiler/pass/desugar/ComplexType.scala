@@ -26,7 +26,8 @@ case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List()
+  override val precursorPasses: Seq[IRPass.Precursor]   = List()
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Performs desugaring of complex type definitions for a module.
     *

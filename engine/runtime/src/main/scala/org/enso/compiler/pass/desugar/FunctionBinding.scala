@@ -25,7 +25,8 @@ case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass.Precursor] = List(ComplexType)
+  override val precursorPasses: Seq[IRPass.Precursor]   = List(ComplexType)
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Rusn desugaring of sugared method and function bindings on a module.
     *

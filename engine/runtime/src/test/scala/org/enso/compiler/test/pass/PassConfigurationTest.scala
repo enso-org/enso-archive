@@ -16,6 +16,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Config   = Configuration1
 
     override val precursorPasses: Seq[IRPass.Precursor] = List()
+    override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
     override def runModule(
       ir: IR.Module,
@@ -37,6 +38,7 @@ class PassConfigurationTest extends CompilerTest {
     override type Config   = Configuration2
 
     override val precursorPasses: Seq[IRPass.Precursor] = List()
+    override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
     override def runModule(
       ir: IR.Module,

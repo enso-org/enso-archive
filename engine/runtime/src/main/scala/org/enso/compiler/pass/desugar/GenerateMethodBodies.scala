@@ -32,6 +32,7 @@ case object GenerateMethodBodies extends IRPass {
   override val precursorPasses: Seq[IRPass.Precursor] = List(
     GenerateMethodBodies
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Generates and consolidates method bodies.
     *

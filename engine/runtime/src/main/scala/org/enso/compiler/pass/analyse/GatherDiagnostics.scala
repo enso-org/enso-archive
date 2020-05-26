@@ -21,6 +21,7 @@ case object GatherDiagnostics extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass.Precursor] = List()
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.

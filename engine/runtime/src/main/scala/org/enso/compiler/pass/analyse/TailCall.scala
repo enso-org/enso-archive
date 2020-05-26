@@ -32,6 +32,8 @@ case object TailCall extends IRPass {
     LambdaShorthandToLambda
   )
 
+  override val invalidatedPasses: Seq[IRPass.Successor] = List()
+
   /** Analyses tail call state for expressions in a module.
     *
     * @param ir the Enso IR to process

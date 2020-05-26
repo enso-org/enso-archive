@@ -57,6 +57,9 @@ case object LambdaConsolidate extends IRPass {
     IgnoredBindings,
     Precursor(AliasAnalysis, fixedPosition = true)
   )
+  override val invalidatedPasses: Seq[IRPass.Successor] = List(
+    AliasAnalysis
+  )
 
   /** Performs lambda consolidation on a module.
     *
