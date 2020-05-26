@@ -218,7 +218,7 @@ final class Handler {
   private def execute(
     executionItem: ExecutionItem,
     callStack: List[UUID],
-    mode: ExecutionMode,
+    cache: RuntimeCache,
     valueCallback: Consumer[ExpressionValue]
   ): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
@@ -233,7 +233,6 @@ final class Handler {
           cons,
           function,
           cache,
-          mode,
           valsCallback,
           callablesCallback
         )
@@ -241,7 +240,6 @@ final class Handler {
         executionService.execute(
           callData,
           cache,
-          mode,
           valsCallback,
           callablesCallback
         )
@@ -252,7 +250,7 @@ final class Handler {
       case item :: tail =>
         enterables.get(item) match {
           case Some(call) =>
-            execute(ExecutionItem.CallData(call), tail, mode, valueCallback)
+            execute(ExecutionItem.CallData(call), tail, cache, valueCallback)
           case None =>
             ()
         }
@@ -261,32 +259,34 @@ final class Handler {
 
   private def execute(
     contextId: Api.ContextId,
-    stack: List[Api.StackItem],
-    mode: ExecutionMode
+    stack: List[StackFrame],
   ): Either[String, Unit] = {
+    @scala.annotation.tailrec
     def unwind(
-      stack: List[Api.StackItem],
+      stack: List[StackFrame],
       explicitCalls: List[Api.StackItem.ExplicitCall],
-      localCalls: List[UUID]
-    ): (List[Api.StackItem.ExplicitCall], List[UUID]) =
+      localCalls: List[UUID],
+      caches: List[RuntimeCache]
+    ): (Option[Api.StackItem.ExplicitCall], List[UUID], Option[RuntimeCache]) =
       stack match {
         case Nil =>
-          (explicitCalls, localCalls)
-        case List(call: Api.StackItem.ExplicitCall) =>
-          (List(call), localCalls)
-        case Api.StackItem.LocalCall(id) :: xs =>
-          unwind(xs, explicitCalls, id :: localCalls)
+          (explicitCalls.lastOption, localCalls, caches.lastOption)
+        case List(StackFrame(call: Api.StackItem.ExplicitCall, cache)) =>
+          (Some(call), localCalls, Some(cache))
+        case StackFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
+          unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
       }
-    val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
+    val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
     for {
-      stackItem <- Either.fromOption(explicitCalls.headOption, "stack is empty")
+      stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
+      cache <- Either.fromOption(cacheOpt, "cache not exist")
       item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
           execute(
             item,
             localCalls,
-            mode,
+            cache,
             onExpressionValueComputed(contextId, _)
           )
         )
@@ -301,18 +301,12 @@ final class Handler {
     } yield ()
   }
 
-  private def execute(
-    contextId: Api.ContextId,
-    stack: List[Api.StackItem]
-  ): Either[String, Unit] =
-    execute(contextId, stack, new ExecutionMode.Default())
-
-  private def executeAll(mode: ExecutionMode): Unit =
+  private def executeAll(): Unit =
     contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .foreach {
-        case (contextId, stack) => execute(contextId, stack, mode)
+        case (contextId, stack) => execute(contextId, stack)
       }
 
   private def toExecutionItem(
@@ -353,7 +347,7 @@ final class Handler {
           val payload = item match {
             case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
               contextManager.push(contextId, item)
-              withContext(execute(contextId, List(call))) match {
+              withContext(execute(contextId, List(StackFrame(call)))) match {
                 case Right(()) => Api.PushContextResponse(contextId)
                 case Left(e)   => Api.ExecutionFailed(contextId, e)
               }
@@ -376,9 +370,9 @@ final class Handler {
       case Api.PopContextRequest(contextId) =>
         if (contextManager.get(contextId).isDefined) {
           val payload = contextManager.pop(contextId) match {
-            case Some(_: Api.StackItem.ExplicitCall) =>
+            case Some(StackFrame(_: Api.StackItem.ExplicitCall, _)) =>
               Api.PopContextResponse(contextId)
-            case Some(_: Api.StackItem.LocalCall) =>
+            case Some(StackFrame(_: Api.StackItem.LocalCall, _)) =>
               val stack = contextManager.getStack(contextId)
               withContext(execute(contextId, stack.toList)) match {
                 case Right(()) => Api.PopContextResponse(contextId)
@@ -412,15 +406,13 @@ final class Handler {
           val payload = if (stack.isEmpty) {
             Api.EmptyStackError(contextId)
           } else {
-            val mode = invalidatedExpressions match {
-              case Some(Api.InvalidatedExpressions.All()) =>
-                new ExecutionMode.InvalidateAll()
-              case Some(Api.InvalidatedExpressions.Expressions(list)) =>
-                new ExecutionMode.InvalidateExpressions(list.asJava)
-              case None =>
-                new ExecutionMode.Default()
+            invalidatedExpressions foreach {
+              case Api.InvalidatedExpressions.All() =>
+                stack.headOption.foreach(_.cache.clear())
+              case Api.InvalidatedExpressions.Expressions(ids) =>
+                stack.headOption.foreach(top => ids.foreach(top.cache.remove))
             }
-            withContext(execute(contextId, stack.toList, mode)) match {
+            withContext(execute(contextId, stack.toList)) match {
               case Right(()) => Api.RecomputeContextResponse(contextId)
               case Left(e)   => Api.ExecutionFailed(contextId, e)
             }
@@ -439,15 +431,12 @@ final class Handler {
         executionService.resetModuleSources(path)
 
       case Api.EditFileNotification(path, edits) =>
-        val mode =
+        val _ =
           executionService
             .modifyModuleSources(path, edits.asJava)
             .toScala
             .map(dc => edits.flatMap(dc.compute))
-            .fold[ExecutionMode](new ExecutionMode.Default()) { ids =>
-              new ExecutionMode.InvalidateExpressions(ids.asJava)
-            }
-        withContext(executeAll(mode))
+         withContext(executeAll())
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {

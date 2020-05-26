@@ -26,4 +26,9 @@ public class RuntimeCache {
     SoftReference<Object> ref = cache.remove(key);
     return ref == null ? null : ref.get();
   }
+
+  /** Clear the cache. */
+  public void clear() {
+    cache.clear();
+  }
 }
