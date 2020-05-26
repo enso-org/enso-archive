@@ -83,11 +83,11 @@ jobs:
 
       # Build
       - name: Build Enso
-        run: sbt --no-colors runtime/compile
+        run: sbt --no-colors compile
 
       # Tests
       - name: Test Enso
-        run: sbt --no-colors 'runtime/testOnly org.enso.compiler.test.context.ChangesetTest'
+        run: sbt --no-colors test
       - name: Benchmark the Parser
         run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
