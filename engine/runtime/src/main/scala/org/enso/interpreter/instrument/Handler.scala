@@ -258,7 +258,7 @@ final class Handler {
 
   private def execute(
     contextId: Api.ContextId,
-    stack: List[StackFrame],
+    stack: List[StackFrame]
   ): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
@@ -278,7 +278,7 @@ final class Handler {
     val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
-      cache <- Either.fromOption(cacheOpt, "cache not exist")
+      cache     <- Either.fromOption(cacheOpt, "cache not exist")
       item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
@@ -300,7 +300,9 @@ final class Handler {
     } yield ()
   }
 
-  private def executeAll(invalidatedExpressions: Option[Api.InvalidatedExpressions]): Unit = {
+  private def executeAll(
+    invalidatedExpressions: Option[Api.InvalidatedExpressions]
+  ): Unit = {
     contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
@@ -432,8 +434,11 @@ final class Handler {
           executionService
             .modifyModuleSources(path, edits.asJava)
             .toScala
-            .map(dc => Api.InvalidatedExpressions.Expressions(edits.flatMap(dc.compute).toVector))
-         withContext(executeAll(invalidatedExpressions))
+            .map(dc =>
+              Api.InvalidatedExpressions
+                .Expressions(edits.flatMap(dc.compute).toVector)
+            )
+        withContext(executeAll(invalidatedExpressions))
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {
@@ -570,7 +575,10 @@ final class Handler {
     }
   }
 
-  private def invalidateCache(stack: Iterable[StackFrame], invalidatedExpressions: Api.InvalidatedExpressions): Unit = {
+  private def invalidateCache(
+    stack: Iterable[StackFrame],
+    invalidatedExpressions: Api.InvalidatedExpressions
+  ): Unit = {
     invalidatedExpressions match {
       case Api.InvalidatedExpressions.All() =>
         stack.headOption.foreach(_.cache.clear())

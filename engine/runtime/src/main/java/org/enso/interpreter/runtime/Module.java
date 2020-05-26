@@ -1,7 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import java.io.File;
-
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -14,6 +12,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -164,6 +163,7 @@ public class Module implements TruffleObject {
   private void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
+      isParsed = false;
     }
   }
 
