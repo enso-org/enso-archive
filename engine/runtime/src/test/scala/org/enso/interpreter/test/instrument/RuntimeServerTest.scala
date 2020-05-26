@@ -5,7 +5,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, Frame}
+import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, InstrumentFrame}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate

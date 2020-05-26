@@ -258,11 +258,11 @@ final class Handler {
 
   private def execute(
     contextId: Api.ContextId,
-    stack: List[Frame]
+    stack: List[InstrumentFrame]
   ): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
-      stack: List[Frame],
+      stack: List[InstrumentFrame],
       explicitCalls: List[Api.StackItem.ExplicitCall],
       localCalls: List[UUID],
       caches: List[RuntimeCache]
@@ -270,9 +270,9 @@ final class Handler {
       stack match {
         case Nil =>
           (explicitCalls.lastOption, localCalls, caches.lastOption)
-        case List(Frame(call: Api.StackItem.ExplicitCall, cache)) =>
+        case List(InstrumentFrame(call: Api.StackItem.ExplicitCall, cache)) =>
           (Some(call), localCalls, Some(cache))
-        case Frame(Api.StackItem.LocalCall(id), cache) :: xs =>
+        case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
       }
     val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
@@ -351,7 +351,7 @@ final class Handler {
           val payload = item match {
             case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
               contextManager.push(contextId, item)
-              withContext(execute(contextId, List(Frame(call)))) match {
+              withContext(execute(contextId, List(InstrumentFrame(call)))) match {
                 case Right(()) => Api.PushContextResponse(contextId)
                 case Left(e)   => Api.ExecutionFailed(contextId, e)
               }
@@ -374,9 +374,9 @@ final class Handler {
       case Api.PopContextRequest(contextId) =>
         if (contextManager.get(contextId).isDefined) {
           val payload = contextManager.pop(contextId) match {
-            case Some(Frame(_: Api.StackItem.ExplicitCall, _)) =>
+            case Some(InstrumentFrame(_: Api.StackItem.ExplicitCall, _)) =>
               Api.PopContextResponse(contextId)
-            case Some(Frame(_: Api.StackItem.LocalCall, _)) =>
+            case Some(InstrumentFrame(_: Api.StackItem.LocalCall, _)) =>
               val stack = contextManager.getStack(contextId)
               withContext(execute(contextId, stack.toList)) match {
                 case Right(()) => Api.PopContextResponse(contextId)

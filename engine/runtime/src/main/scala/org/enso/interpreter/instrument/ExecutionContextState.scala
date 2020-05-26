@@ -12,7 +12,7 @@ import scala.collection.mutable
   *                       execution context
   */
 case class ExecutionContextState(
-  stack: mutable.Stack[Frame],
+  stack: mutable.Stack[InstrumentFrame],
   visualisations: VisualisationHolder
 )
 
@@ -31,10 +31,10 @@ object ExecutionContextState {
   * @param item the stack item.
   * @param cache the cache of this stack frame.
   */
-case class Frame(item: StackItem, cache: RuntimeCache)
+case class InstrumentFrame(item: StackItem, cache: RuntimeCache)
 
-case object Frame {
+case object InstrumentFrame {
 
-  def apply(item: StackItem): Frame =
-    new Frame(item, new RuntimeCache)
+  def apply(item: StackItem): InstrumentFrame =
+    new InstrumentFrame(item, new RuntimeCache)
 }

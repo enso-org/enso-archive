@@ -49,7 +49,7 @@ class ExecutionContextManager {
     * @param id the context id.
     * @return the stack.
     */
-  def getStack(id: ContextId): Stack[Frame] =
+  def getStack(id: ContextId): Stack[InstrumentFrame] =
     contexts(id).stack
 
   /**
@@ -57,7 +57,7 @@ class ExecutionContextManager {
     *
     * @return all currently available execution contexsts.
     */
-  def getAll: collection.MapView[ContextId, Stack[Frame]] =
+  def getAll: collection.MapView[ContextId, Stack[InstrumentFrame]] =
     contexts.view.mapValues(_.stack)
 
   /**
@@ -70,7 +70,7 @@ class ExecutionContextManager {
   def push(id: ContextId, item: StackItem): Option[Unit] =
     for {
       state <- contexts.get(id)
-    } yield state.stack.push(Frame(item))
+    } yield state.stack.push(InstrumentFrame(item))
 
   /**
     * If the context exists and stack not empty, pop the item from the stack.
@@ -78,7 +78,7 @@ class ExecutionContextManager {
     * @param id the context id.
     * @return stack frame or None if the stack is empty or not exists.
     */
-  def pop(id: ContextId): Option[Frame] =
+  def pop(id: ContextId): Option[InstrumentFrame] =
     for {
       state <- contexts.get(id)
       if state.stack.nonEmpty
