@@ -28,7 +28,7 @@ final class Changeset(val source: CharSequence, ir: IR) {
   def compute(edit: TextEdit): Seq[IR.ExternalId] = {
     val metadata = ir
       .getMetadata(DataflowAnalysis)
-      .getOrElse(throw new CompilerError("Empty DataflowAnalysis metadata"))
+      .getOrElse(throw new CompilerError("Empty dataflow analysis metadata."))
     invalidated(edit)
       .map(toDataflowDependencyType)
       .flatMap(metadata.getExternal)
