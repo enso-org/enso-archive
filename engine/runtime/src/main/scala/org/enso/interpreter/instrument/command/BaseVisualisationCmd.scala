@@ -20,7 +20,9 @@ import scala.util.control.NonFatal
 /**
   * Base class for visualisation modification commands.
   */
-abstract class BaseVisualisationCmd extends Command with EnsoExecutionSupport {
+abstract class BaseVisualisationCmd
+    extends Command
+    with ProgramExecutionSupport {
 
   protected def upsertVisualisation(
     requestId: Option[RequestId],
@@ -63,7 +65,7 @@ abstract class BaseVisualisationCmd extends Command with EnsoExecutionSupport {
           Api.Response(requestId, replyWith)
         )
         val stack = ctx.contextManager.getStack(config.executionContextId)
-        withContext(runEnso(config.executionContextId, stack.toList))
+        withContext(runProgram(config.executionContextId, stack.toList))
     }
   }
 

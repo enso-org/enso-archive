@@ -14,7 +14,7 @@ class RecomputeContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.RecomputeContextRequest
 ) extends Command
-    with EnsoExecutionSupport {
+    with ProgramExecutionSupport {
 
   /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
@@ -23,7 +23,7 @@ class RecomputeContextCmd(
       val payload = if (stack.isEmpty) {
         Api.EmptyStackError(request.contextId)
       } else {
-        withContext(runEnso(request.contextId, stack.toList)) match {
+        withContext(runProgram(request.contextId, stack.toList)) match {
           case Right(()) => Api.RecomputeContextResponse(request.contextId)
           case Left(e)   => Api.ExecutionFailed(request.contextId, e)
         }

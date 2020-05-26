@@ -163,7 +163,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
-      JsonRpcServer.Config(10000, 10.seconds)
+      JsonRpcServer
+        .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds)
     )
 
   lazy val binaryServer =

@@ -14,7 +14,7 @@ class PopContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PopContextRequest
 ) extends Command
-    with EnsoExecutionSupport {
+    with ProgramExecutionSupport {
 
   /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
@@ -24,7 +24,7 @@ class PopContextCmd(
           Api.PopContextResponse(request.contextId)
         case Some(_: Api.StackItem.LocalCall) =>
           val stack = ctx.contextManager.getStack(request.contextId)
-          withContext(runEnso(request.contextId, stack.toList)) match {
+          withContext(runProgram(request.contextId, stack.toList)) match {
             case Right(()) => Api.PopContextResponse(request.contextId)
             case Left(e)   => Api.ExecutionFailed(request.contextId, e)
           }

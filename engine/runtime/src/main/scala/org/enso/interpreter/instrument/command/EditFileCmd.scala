@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters._
   */
 class EditFileCmd(request: Api.EditFileNotification)
     extends Command
-    with EnsoExecutionSupport {
+    with ProgramExecutionSupport {
 
   /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
@@ -24,6 +24,6 @@ class EditFileCmd(request: Api.EditFileNotification)
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .foreach(Function.tupled(runEnso))
+      .foreach(Function.tupled(runProgram))
 
 }

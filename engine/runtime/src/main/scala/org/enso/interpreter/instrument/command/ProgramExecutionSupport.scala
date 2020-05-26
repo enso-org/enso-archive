@@ -10,7 +10,7 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.command.EnsoExecutionSupport.ExecutionItem
+import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
 import org.enso.interpreter.instrument.Visualisation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
@@ -24,7 +24,7 @@ import scala.jdk.javaapi.OptionConverters
   * Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
   */
-trait EnsoExecutionSupport {
+trait ProgramExecutionSupport {
 
   /**
     * Executes action in a newly created Truffle context.
@@ -51,7 +51,7 @@ trait EnsoExecutionSupport {
     * @param ctx a runtime context
     */
   @scala.annotation.tailrec
-  final def runEnso(
+  final def runProgram(
     executionItem: ExecutionItem,
     callStack: List[UUID],
     valueCallback: Consumer[ExpressionValue]
@@ -85,7 +85,7 @@ trait EnsoExecutionSupport {
       case item :: tail =>
         enterables.get(item) match {
           case Some(call) =>
-            runEnso(ExecutionItem.CallData(call), tail, valueCallback)
+            runProgram(ExecutionItem.CallData(call), tail, valueCallback)
           case None =>
             ()
         }
@@ -100,7 +100,7 @@ trait EnsoExecutionSupport {
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program
     */
-  def runEnso(
+  def runProgram(
     contextId: Api.ContextId,
     stack: List[Api.StackItem]
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
@@ -123,7 +123,7 @@ trait EnsoExecutionSupport {
       item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
-          runEnso(item, localCalls, onExpressionValueComputed(contextId, _))
+          runProgram(item, localCalls, onExpressionValueComputed(contextId, _))
         )
         .leftMap { ex =>
           ctx.executionService.getLogger.log(
@@ -255,7 +255,7 @@ trait EnsoExecutionSupport {
 
 }
 
-object EnsoExecutionSupport {
+object ProgramExecutionSupport {
 
   sealed private trait ExecutionItem
 

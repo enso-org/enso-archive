@@ -6,7 +6,7 @@ import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.CommandFactory
 import org.enso.interpreter.instrument.execution.{
   CommandProcessor,
-  EnsoCommandProcessor,
+  PreemptiveCommandProcessor,
   RuntimeContext
 }
 import org.enso.interpreter.service.ExecutionService
@@ -78,7 +78,8 @@ final class Handler {
     executionService = service
     truffleContext   = context
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
-    commandProcessor = new EnsoCommandProcessor(1, executionService.getContext)
+    commandProcessor =
+      new PreemptiveCommandProcessor(1, executionService.getContext)
   }
 
   /**

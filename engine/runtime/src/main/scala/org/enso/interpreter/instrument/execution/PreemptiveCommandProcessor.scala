@@ -17,7 +17,7 @@ import scala.util.control.NonFatal
   * @param parallelism the size of the underlying compute thread pool
   * @param context the language context
   */
-class EnsoCommandProcessor(parallelism: Int, context: Context)
+class PreemptiveCommandProcessor(parallelism: Int, context: Context)
     extends CommandProcessor {
 
   private val executor = Executors.newFixedThreadPool(

@@ -14,7 +14,7 @@ class DestroyContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DestroyContextRequest
 ) extends Command
-    with EnsoExecutionSupport {
+    with ProgramExecutionSupport {
 
   /** @inheritdoc **/
   override def execute(implicit ctx: RuntimeContext): Unit = {
