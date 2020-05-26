@@ -8,6 +8,7 @@ import org.enso.interpreter.instrument.execution.CommandProcessor.Done
 import org.enso.interpreter.runtime.Context
 
 import scala.concurrent.{Future, Promise}
+import scala.util.control.NonFatal
 
 /**
   * This component schedules the execution of commands. It keep a queue of
@@ -31,9 +32,13 @@ class EnsoCommandProcessor(parallelism: Int, context: Context)
       override def call(): Unit = {
         val logger = ctx.executionService.getLogger
         logger.log(Level.FINE, s"Starting $cmd...")
-        cmd.execute(ctx)
-        logger.log(Level.FINE, s"Command $cmd finished.")
-        promise.success(Done)
+        try {
+          cmd.execute(ctx)
+          logger.log(Level.FINE, s"Command $cmd finished.")
+          promise.success(Done)
+        } catch {
+          case NonFatal(ex) => promise.failure(ex)
+        }
       }
     })
 
