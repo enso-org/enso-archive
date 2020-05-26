@@ -21,6 +21,7 @@ import scala.concurrent.duration._
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
   */
 class Endpoint(handler: Handler) extends MessageEndpoint {
+
   var client: MessageEndpoint = _
 
   /**
@@ -92,76 +93,10 @@ final class Handler {
       contextManager,
       endpoint,
       truffleContext,
-      cache,
       commandProcessor
     )
     val future = commandProcessor.invoke(cmd, ctx)
     Await.result(future, 1.minute)
   }
-
-  private def upsertVisualisation(
-    requestId: Option[RequestId],
-    visualisationId: VisualisationId,
-    expressionId: ExpressionId,
-    config: Api.VisualisationConfiguration,
-    replyWith: ApiResponse
-  ): Unit = {
-    val maybeCallable =
-      evaluateExpression(config.visualisationModule, config.expression)
-
-    maybeCallable match {
-      case Left(ModuleNotFound) =>
-        endpoint.sendToClient(
-          Api.Response(
-            requestId,
-            Api.ModuleNotFound(config.visualisationModule)
-          )
-        )
-
-      case Left(EvaluationFailed(msg)) =>
-        endpoint.sendToClient(
-          Api.Response(
-            requestId,
-            Api.VisualisationExpressionFailed(msg)
-          )
-        )
-
-      case Right(callable) =>
-        val visualisation = Visualisation(
-          visualisationId,
-          expressionId,
-          callable
-        )
-        contextManager.upsertVisualisation(
-          config.executionContextId,
-          visualisation
-        )
-        endpoint.sendToClient(
-          Api.Response(requestId, replyWith)
-        )
-        val stack = contextManager.getStack(config.executionContextId)
-        withContext(execute(config.executionContextId, stack.toList))
-    }
-  }
-
-  private def evaluateExpression(
-    moduleName: String,
-    expression: String
-  ): Either[EvalFailure, AnyRef] = {
-    val maybeModule = executionService.findModule(moduleName)
-
-    val notFoundOrModule =
-      if (maybeModule.isPresent) Right(maybeModule.get())
-      else Left(ModuleNotFound)
-
-    notFoundOrModule.flatMap { module =>
-      try {
-        withContext {
-          executionService.evaluateExpression(module, expression).asRight
-        }
-      } catch {
-        case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft
-      }
-    }
 
 }
