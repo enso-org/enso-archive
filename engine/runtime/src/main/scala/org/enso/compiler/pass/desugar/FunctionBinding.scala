@@ -19,15 +19,13 @@ import scala.annotation.unused
   * This pass requires the context to provide:
   *
   * - Nothing
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[ComplexType]]
   */
 //noinspection DuplicatedCode
 case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(ComplexType)
 
   /** Rusn desugaring of sugared method and function bindings on a module.
     *

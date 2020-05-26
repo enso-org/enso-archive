@@ -30,6 +30,8 @@ case object ComplexType extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
+  override val precursorPasses: Seq[IRPass] = List()
+
   /** Performs desugaring of complex type definitions for a module.
     *
     * @param ir the Enso IR to process

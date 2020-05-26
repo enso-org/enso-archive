@@ -9,17 +9,17 @@ import org.enso.compiler.pass.IRPass
  * This pass requires the context to provide:
  *
  * - Nothing
- *
- * It must have the following passes run before it:
- * - [[GenerateMethodBodies]]
- * - [[SectionsToBinOp]]
  */
 case object OperatorToFunction extends IRPass {
 
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IRPass.Metadata.Empty
-
   override type Config = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    GenerateMethodBodies,
+    SectionsToBinOp
+  )
 
   /** Executes the conversion pass.
     *

@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRPass.Identifier
 
 /** A pass that traverses the given root IR and accumulates all the encountered
   * diagnostic nodes in the root.
@@ -17,8 +18,10 @@ import org.enso.compiler.pass.IRPass
   * - None
   */
 case object GatherDiagnostics extends IRPass {
-
   override type Metadata = DiagnosticsMeta
+  override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.

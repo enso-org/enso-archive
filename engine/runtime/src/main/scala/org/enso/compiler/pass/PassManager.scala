@@ -7,6 +7,8 @@ import org.enso.compiler.core.IR
 
 import scala.collection.mutable
 
+// TODO [AA] Account for cycles and throw an error "Dependency cycle found in pass ordering"
+
 /** The pass manager is responsible for executing the provided passes in order.
   *
   * @param passOrdering the specification of the ordering for the passes
