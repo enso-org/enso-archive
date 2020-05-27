@@ -302,7 +302,7 @@ object AstToIr {
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
-        val allBranches = branches.map(translateCaseBranch)
+        val allBranches     = branches.map(translateCaseBranch)
 
         Case.Expr(
           actualScrutinee,
@@ -329,6 +329,8 @@ object AstToIr {
           inputAst,
           Error.Syntax.UnsupportedSyntax("foreign blocks")
         )
+      case AstView.Pattern(_) =>
+        Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
@@ -693,19 +695,38 @@ object AstToIr {
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
     branch match {
+      case AstView.CaseBranch(pattern, expression) =>
+        Case.Branch(
+          translatePattern(pattern),
+          translateExpression(expression),
+          getIdentifiedLocation(branch)
+        )
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
   }
 
   /** Translates a pattern in a case expression from its [[AST]] representation
-   * into [[IR]].
-   *
-   * @param pattern the case pattern to translate
-   * @return
-   */
-  // TODO [AA] Make this work properly rather than this temp hack
+    * into [[IR]].
+    *
+    * @param pattern the case pattern to translate
+    * @return
+    */
   def translatePattern(pattern: AST): Case.Pattern = {
-    ???
+    AstView.MaybeParensed.unapply(pattern).getOrElse(pattern) match {
+      case AstView.ConstructorPattern(cons, fields) =>
+        Case.Pattern.Constructor(
+          translateIdent(cons).asInstanceOf[IR.Name],
+          fields.map(translatePattern),
+          getIdentifiedLocation(pattern)
+        )
+      case AstView.CatchAllPattern(name) =>
+        Case.Pattern.Name(
+          translateIdent(name).asInstanceOf[IR.Name],
+          getIdentifiedLocation(pattern)
+        )
+      case _ =>
+        throw new UnhandledEntity(pattern, "translatePattern")
+    }
   }
 
   /** Translates an arbitrary grouped piece of syntax from its [[AST]]

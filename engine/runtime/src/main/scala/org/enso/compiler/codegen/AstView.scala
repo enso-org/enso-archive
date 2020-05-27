@@ -734,6 +734,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST.Ident, List[AST])] = {
       MaybeParensed.unapply(ast).getOrElse(ast) match {
+        case AST.Ident.Cons.any(cons) => Some((cons, List()))
         case SpacedList(elems) if elems.nonEmpty =>
           elems.head match {
             case AST.Ident.Cons.any(refName) =>

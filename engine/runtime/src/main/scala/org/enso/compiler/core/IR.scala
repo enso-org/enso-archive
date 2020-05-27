@@ -3460,6 +3460,11 @@ object IR {
           s"Syntax is not supported yet: $syntaxName."
       }
 
+      case object InvalidPattern extends Reason {
+        override def explanation: String =
+          s"Cannot define a pattern outside a pattern context."
+      }
+
       case class MethodDefinedInline(methodName: String) extends Reason {
         override def explanation: String =
           s"Cannot define $methodName, methods are not supported in the " +
