@@ -66,7 +66,7 @@ class PassManager(
     for (pass <- passOrdering) {
       passCounts.get(pass.key) match {
         case Some(counts) =>
-          passCounts(pass.key) = counts.copy(available = counts.available + 1)
+          passCounts(pass.key) = counts.copy(expected = counts.expected + 1)
         case None => passCounts(pass.key) = PassCount()
       }
     }
@@ -96,7 +96,7 @@ class PassManager(
         .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
-            passCount.available - passCount.completed == 1
+            passCount.expected - passCount.completed == 1
         )
 
       val result = pass.runModule(intermediateIR, newContext)
@@ -130,7 +130,7 @@ class PassManager(
         .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
-            passCount.available - passCount.completed == 1
+            passCount.expected - passCount.completed == 1
         )
 
       val result = pass.runExpression(intermediateIR, newContext)
@@ -143,8 +143,8 @@ class PassManager(
 
   /** The counts of passes running.
     *
-    * @param available how many runs should occur
+    * @param expected how many runs should occur
     * @param completed how many runs have been completed
     */
-  sealed private case class PassCount(available: Int = 1, completed: Int = 0)
+  sealed private case class PassCount(expected: Int = 1, completed: Int = 0)
 }
