@@ -1,11 +1,7 @@
 package org.enso.interpreter.instrument.execution
 
 import com.oracle.truffle.api.TruffleContext
-import org.enso.interpreter.instrument.{
-  Cache,
-  Endpoint,
-  ExecutionContextManager
-}
+import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
 import org.enso.interpreter.service.ExecutionService
 
 import scala.concurrent.ExecutionContext
@@ -19,7 +15,6 @@ import scala.concurrent.ExecutionContext
   * @param contextManager a storage for active execution contexts
   * @param endpoint a message endpoint
   * @param truffleContext a context of a set of Truffle languages
-  * @param cache a storage for computed values
   * @param commandProcessor a component responsible for executing commands
   */
 case class RuntimeContext(
@@ -27,7 +22,6 @@ case class RuntimeContext(
   contextManager: ExecutionContextManager,
   endpoint: Endpoint,
   truffleContext: TruffleContext,
-  cache: Cache,
   commandProcessor: CommandProcessor,
   commandExecutionContext: ExecutionContext,
   jobProcessor: JobProcessor
