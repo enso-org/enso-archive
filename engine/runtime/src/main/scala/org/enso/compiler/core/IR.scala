@@ -2983,141 +2983,143 @@ object IR {
       override def children: List[IR] = List(pattern, expression)
 
     }
+  }
 
-    /** The different types of patterns that can occur in a match. */
-    sealed trait Pattern extends IR {
-      override def mapExpressions(fn: Expression => Expression): Pattern
-    }
-    object Pattern {
+  // === Patterns =============================================================
 
-      /** A named pattern.
-        *
-        * Named patterns take the form of a single identifier (e.g. `a`
-        * or `_`). As a result they can be used to represent a catch all
-        * pattern (e.g. `_ -> ...` or `a -> ...`).
+  /** The different types of patterns that can occur in a match. */
+  sealed trait Pattern extends IR {
+    override def mapExpressions(fn: Expression => Expression): Pattern
+  }
+  object Pattern {
+
+    /** A named pattern.
+      *
+      * Named patterns take the form of a single identifier (e.g. `a` or `_`).
+      * As a result they can be used to represent a catch all pattern (e.g.
+      * `_ -> ...` or `a -> ...`).
+      *
+      * @param name the name that constitutes the pattern
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with the node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Name(
+      name: IR.Name,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
         *
         * @param name the name that constitutes the pattern
         * @param location the source location for this IR node
         * @param passData any pass metadata associated with the node
         * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the provided values
         */
-      sealed case class Name(
-        name: IR.Name,
-        override val location: Option[IdentifiedLocation],
-        override val passData: MetadataStorage      = MetadataStorage(),
-        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends Pattern {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param name the name that constitutes the pattern
-          * @param location the source location for this IR node
-          * @param passData any pass metadata associated with the node
-          * @param diagnostics compiler diagnostics for this node
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the provided values
-          */
-        def copy(
-          name: IR.Name                        = name,
-          location: Option[IdentifiedLocation] = location,
-          passData: MetadataStorage            = passData,
-          diagnostics: DiagnosticStorage       = diagnostics,
-          id: Identifier                       = id
-        ): Name = {
-          val res = Name(name, location, passData, diagnostics)
-          res.id = id
-          res
-        }
-
-        override def mapExpressions(fn: Expression => Expression): Pattern = {
-          copy(name = name.mapExpressions(fn))
-        }
-
-        override def toString: String =
-          s"""
-          |IR.Case.Pattern.Name(
-          |name = $name,
-          |location = $location,
-          |passData = $passData,
-          |diagnostics = $diagnostics,
-          |id = $id
-          |)
-          |""".toSingleLine
-
-        override def setLocation(location: Option[IdentifiedLocation]): IR =
-          copy(location = location)
-
-        override def children: List[IR] = List(name)
+      def copy(
+        name: IR.Name                        = name,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Name = {
+        val res = Name(name, location, passData, diagnostics)
+        res.id = id
+        res
       }
 
-      /** A pattern that destructures a constructor application.
-        *
-        * The first part of the pattern must be a refferent name. The fields of
-        * the constructor may be any available kind of pattern.
+      override def mapExpressions(fn: Expression => Expression): Pattern = {
+        copy(name = name.mapExpressions(fn))
+      }
+
+      override def toString: String =
+        s"""
+        |IR.Case.Pattern.Name(
+        |name = $name,
+        |location = $location,
+        |passData = $passData,
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def setLocation(location: Option[IdentifiedLocation]): IR =
+        copy(location = location)
+
+      override def children: List[IR] = List(name)
+    }
+
+    /** A pattern that destructures a constructor application.
+      *
+      * The first part of the pattern must be a refferent name. The fields of
+      * the constructor may be any available kind of pattern.
+      *
+      * @param constructor the constructor being matched on
+      * @param fields the asserted fields of the constructor
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Constructor(
+      constructor: IR.Name,
+      fields: List[IR.Pattern],
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
         *
         * @param constructor the constructor being matched on
         * @param fields the asserted fields of the constructor
         * @param location the source location for this IR node
         * @param passData any pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
+        * @param id the new identifier for this node
+        * @return a copy of `this`, updated with the provided values
         */
-      sealed case class Constructor(
-        constructor: IR.Name,
-        fields: List[IR.Case.Pattern],
-        override val location: Option[IdentifiedLocation],
-        override val passData: MetadataStorage      = MetadataStorage(),
-        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends Pattern {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param constructor the constructor being matched on
-          * @param fields the asserted fields of the constructor
-          * @param location the source location for this IR node
-          * @param passData any pass metadata associated with this node
-          * @param diagnostics compiler diagnostics for this node
-          * @param id the new identifier for this node
-          * @return a copy of `this`, updated with the provided values
-          */
-        def copy(
-          constructor: IR.Name                 = constructor,
-          fields: List[IR.Case.Pattern]        = fields,
-          location: Option[IdentifiedLocation] = location,
-          passData: MetadataStorage            = passData,
-          diagnostics: DiagnosticStorage       = diagnostics,
-          id: Identifier                       = id
-        ): Constructor = {
-          val res =
-            Constructor(constructor, fields, location, passData, diagnostics)
-          res.id = id
-          res
-        }
-
-        override def mapExpressions(fn: Expression => Expression): Pattern =
-          copy(
-            constructor = constructor.mapExpressions(fn),
-            fields      = fields.map(_.mapExpressions(fn))
-          )
-
-        override def toString: String =
-          s"""
-          |IR.Case.Pattern.Constructor(
-          |constructor = $constructor,
-          |fields = $fields,
-          |location = $location,
-          |passData = $passData,
-          |diagnostics = $diagnostics,
-          |id = $id
-          |)
-          |""".toSingleLine
-
-        override def setLocation(location: Option[IdentifiedLocation]): IR =
-          copy(location = location)
-
-        override def children: List[IR] = constructor :: fields
+      def copy(
+        constructor: IR.Name                 = constructor,
+        fields: List[IR.Pattern]             = fields,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Constructor = {
+        val res =
+          Constructor(constructor, fields, location, passData, diagnostics)
+        res.id = id
+        res
       }
+
+      override def mapExpressions(fn: Expression => Expression): Pattern =
+        copy(
+          constructor = constructor.mapExpressions(fn),
+          fields      = fields.map(_.mapExpressions(fn))
+        )
+
+      override def toString: String =
+        s"""
+        |IR.Case.Pattern.Constructor(
+        |constructor = $constructor,
+        |fields = $fields,
+        |location = $location,
+        |passData = $passData,
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def setLocation(location: Option[IdentifiedLocation]): IR =
+        copy(location = location)
+
+      override def children: List[IR] = constructor :: fields
     }
   }
 

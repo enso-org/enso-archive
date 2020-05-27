@@ -2,13 +2,11 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Case.Pattern
-import org.enso.compiler.core.IR.ExternalId
+import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
-import org.enso.compiler.pass.desugar.FunctionBinding
 
 import scala.collection.mutable
 
@@ -466,9 +464,9 @@ case object DataflowAnalysis extends IRPass {
     * @return `pattern`, with attached dependency information
     */
   def analysePattern(
-    pattern: IR.Case.Pattern,
+    pattern: IR.Pattern,
     info: DependencyInfo
-  ): IR.Case.Pattern = {
+  ): IR.Pattern = {
     pattern match {
       case named @ Pattern.Name(name, _, _, _) =>
         info.updateAt(asStatic(name), Set(asStatic(pattern)))

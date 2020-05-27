@@ -713,16 +713,16 @@ object AstToIr {
     * @param pattern the case pattern to translate
     * @return
     */
-  def translatePattern(pattern: AST): Case.Pattern = {
+  def translatePattern(pattern: AST): Pattern = {
     AstView.MaybeParensed.unapply(pattern).getOrElse(pattern) match {
       case AstView.ConstructorPattern(cons, fields) =>
-        Case.Pattern.Constructor(
+        Pattern.Constructor(
           translateIdent(cons).asInstanceOf[IR.Name],
           fields.map(translatePattern),
           getIdentifiedLocation(pattern)
         )
       case AstView.CatchAllPattern(name) =>
-        Case.Pattern.Name(
+        Pattern.Name(
           translateIdent(name).asInstanceOf[IR.Name],
           getIdentifiedLocation(pattern)
         )

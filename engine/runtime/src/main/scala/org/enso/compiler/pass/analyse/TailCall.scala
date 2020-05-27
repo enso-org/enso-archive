@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Case.Pattern
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -331,8 +331,8 @@ case object TailCall extends IRPass {
     * @return `pattern`, annotated with tail position metadata
     */
   def analysePattern(
-    pattern: IR.Case.Pattern
-  ): IR.Case.Pattern = {
+    pattern: IR.Pattern
+  ): IR.Pattern = {
     pattern match {
       case namePat @ Pattern.Name(name, _, _, _) =>
         namePat

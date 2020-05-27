@@ -100,6 +100,7 @@ case object DocumentationComments extends IRPass {
     case imp: IR.Module.Scope.Import    => imp
     case arg: IR.CallArgument           => arg
     case arg: IR.DefinitionArgument     => arg
+    case pat: IR.Pattern                => pat
   }
 
   // === Metadata =============================================================
