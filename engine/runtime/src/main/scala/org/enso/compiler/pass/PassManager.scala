@@ -45,7 +45,8 @@ class PassManager(
           pass.precursorPasses.filterNot(validPasses.contains(_)).mkString(", ")
 
         throw new CompilerError(
-          s"The pass ordering is invalid. $pass is missing: $missingPrereqsStr"
+          s"The pass ordering is invalid. $pass is missing valid results " +
+          s"for: $missingPrereqsStr"
         )
       }
 
