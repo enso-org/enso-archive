@@ -63,7 +63,8 @@ This operation is interruptible through `Thread.interrupt()`.
    modifications or executions are allowed during this job's run).
 2. `Execute` jobs may be run in parallel with each other (but not with
    `EnsureCompiled` jobs).
-3. `EnsureCompiled` jobs for the same context may be collapsed int one.
+3. `EnsureCompiled` jobs may be collapsed into one, by unifying their module
+   sets.
 4. `Execute` jobs with the same `contextId` may be collapsed into one, by
    merging their `expression IDs` sets.
 5. All enqueued `EnsureCompiled` jobs should run before any `Execute` jobs.
