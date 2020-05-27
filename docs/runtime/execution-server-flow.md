@@ -1,3 +1,11 @@
+---
+layout: developer-doc
+title: Execution Server Flow
+category: runtime
+tags: [runtime, execution, language-server]
+order: 6
+---
+
 # Execution Server Flow
 This document describes the API and workflow of the internal execution server.
 
@@ -30,18 +38,18 @@ allowing it to perform its operations safely and interactively.
 
 ### Job Queue
 The execution server uses a job queue containing requests to be performed.
-All jobs should be performed sequentially. An API method may queue multiple
-jobs.
+An API method may queue multiple jobs.
 
 ### Job Types
 There are a number of job types used internally for handling different
 scenarios:
 
 #### `EnsureCompiled`
-Takes a context ID and ensures that the corresponding modules are compiled in
-the newest version.
+Takes a set of module names that must be compiled and ensures that the
+corresponding modules are compiled in the newest version.
 It also performs cache invalidations on changes since the last batch.
-This operation is not currently interruptible, but may become in the future.
+Caches should be invalidated for all contexts affected by this recompilation.
+This operation is not currently interruptible, but may become so in the future.
 
 #### `Execute`
 Takes a context ID and an optional set of expression IDs that should be
@@ -51,7 +59,8 @@ This operation is interruptible through `Thread.interrupt()`.
 
 ### Scheduling Rules
 
-1. `EnsureCompiled` jobs must be run sequentially.
+1. `EnsureCompiled` jobs must be run sequentially (i.e. no other state
+   modifications or executions are allowed during this job's run).
 2. `Execute` jobs may be run in parallel with each other (but not with
    `EnsureCompiled` jobs).
 3. `EnsureCompiled` jobs for the same context may be collapsed int one.
@@ -67,14 +76,16 @@ modifications.
 1. EditFile:
    1. Abort and/or dequeue all pending and running messages (if possible).
    2. Synchronously perform all code updates.
-   3. Enqueue an `EnsureCompiled` for each active context.
-   4. Enqueue an `Execute` for each active context.
+   3. Enqueue an `EnsureCompiled` with all affected files.
+   4. Enqueue an `Execute` for each existing context.
 2. Stack Modifications and Recomputes:
    1. Abort and/or dequeue all pending and running requests relevant to the
       affected context.
    2. Synchronously perform all state updates.
    3. Respond to the user.
-   4. Enqueue EnsureCompiled and Execute for the affected context.
+   4. Enqueue EnsureCompiled for the file at the bottom of the affected
+      context's stack.
+   5. Enqueue Execute for the affected context.
 3. Visualization modifications:
    1. Synchronously perform all state updates.
    2. Respond to the user.
