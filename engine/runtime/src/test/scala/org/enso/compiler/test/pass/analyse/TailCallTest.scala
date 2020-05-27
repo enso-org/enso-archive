@@ -191,12 +191,9 @@ class TailCallTest extends CompilerTest {
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
-          branch.expression.asInstanceOf[IR.Function.Lambda]
+          branch.expression.asInstanceOf[IR.Application.Prefix]
 
         branchExpression.getMetadata(TailCall) shouldEqual Some(
-          TailPosition.NotTail
-        )
-        branchExpression.body.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
       })
@@ -224,12 +221,9 @@ class TailCallTest extends CompilerTest {
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
-          branch.expression.asInstanceOf[IR.Function.Lambda]
+          branch.expression.asInstanceOf[IR.Application.Prefix]
 
         branchExpression.getMetadata(TailCall) shouldEqual Some(
-          TailPosition.Tail
-        )
-        branchExpression.body.getMetadata(TailCall) shouldEqual Some(
           TailPosition.Tail
         )
       })
