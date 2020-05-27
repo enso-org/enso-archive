@@ -81,8 +81,7 @@ final class Handler {
         executionService,
         contextManager,
         endpoint,
-        truffleContext,
-        cache
+        truffleContext
       )
     commandProcessor = new PreemptiveCommandProcessor(1, interpreterCtx)
   }

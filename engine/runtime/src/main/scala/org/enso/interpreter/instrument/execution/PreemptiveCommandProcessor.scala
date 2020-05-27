@@ -41,7 +41,6 @@ class PreemptiveCommandProcessor(
       contextManager          = interpreterContext.contextManager,
       endpoint                = interpreterContext.endpoint,
       truffleContext          = interpreterContext.truffleContext,
-      cache                   = interpreterContext.cache,
       commandProcessor        = this,
       commandExecutionContext = ExecutionContext.fromExecutor(commandExecutor),
       jobProcessor            = this

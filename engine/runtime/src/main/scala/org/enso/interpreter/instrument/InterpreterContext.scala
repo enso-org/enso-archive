@@ -7,6 +7,5 @@ case class InterpreterContext(
   executionService: ExecutionService,
   contextManager: ExecutionContextManager,
   endpoint: Endpoint,
-  truffleContext: TruffleContext,
-  cache: Cache
+  truffleContext: TruffleContext
 )
