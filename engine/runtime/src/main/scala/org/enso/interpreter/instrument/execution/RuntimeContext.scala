@@ -8,6 +8,8 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.service.ExecutionService
 
+import scala.concurrent.ExecutionContext
+
 /**
   * Contains suppliers of services that provide application specific
   * functionality.
@@ -26,5 +28,7 @@ case class RuntimeContext(
   endpoint: Endpoint,
   truffleContext: TruffleContext,
   cache: Cache,
-  commandProcessor: CommandProcessor
+  commandProcessor: CommandProcessor,
+  commandExecutionContext: ExecutionContext,
+  jobProcessor: JobProcessor
 )

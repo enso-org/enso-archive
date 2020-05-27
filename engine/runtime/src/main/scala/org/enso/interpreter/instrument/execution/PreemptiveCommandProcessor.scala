@@ -5,9 +5,10 @@ import java.util.logging.Level
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
+import org.enso.interpreter.instrument.job.Job
 
 import scala.annotation.unused
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
 
 /**
@@ -19,34 +20,37 @@ import scala.util.control.NonFatal
 class PreemptiveCommandProcessor(
   parallelism: Int,
   interpreterContext: InterpreterContext
-) extends CommandProcessor {
+) extends CommandProcessor
+    with JobProcessor {
 
   private val context = interpreterContext.executionService.getContext
 
-  private val orchestratorExecutor = Executors.newSingleThreadExecutor(
+  private val commandExecutor = Executors.newSingleThreadExecutor(
     new TruffleThreadFactory(context, "enso-orchestrator-pool")
   )
 
   @unused
-  private val computeExecutor = Executors.newFixedThreadPool(
+  private val jobExecutor = Executors.newFixedThreadPool(
     parallelism,
     new TruffleThreadFactory(context, "enso-compute-pool")
   )
 
   private val runtimeContext =
     RuntimeContext(
-      executionService = interpreterContext.executionService,
-      contextManager   = interpreterContext.contextManager,
-      endpoint         = interpreterContext.endpoint,
-      truffleContext   = interpreterContext.truffleContext,
-      cache            = interpreterContext.cache,
-      commandProcessor = this
+      executionService        = interpreterContext.executionService,
+      contextManager          = interpreterContext.contextManager,
+      endpoint                = interpreterContext.endpoint,
+      truffleContext          = interpreterContext.truffleContext,
+      cache                   = interpreterContext.cache,
+      commandProcessor        = this,
+      commandExecutionContext = ExecutionContext.fromExecutor(commandExecutor),
+      jobProcessor            = this
     )
 
   /** @inheritdoc **/
   def invoke(cmd: Command): Future[Done.type] = {
     val promise = Promise[Done.type]()
-    orchestratorExecutor.submit[Unit](new Callable[Unit] {
+    commandExecutor.submit[Unit](new Callable[Unit] {
       override def call(): Unit = {
         val logger = runtimeContext.executionService.getLogger
         logger.log(Level.FINE, s"Executing command: $cmd...")
@@ -63,4 +67,5 @@ class PreemptiveCommandProcessor(
     promise.future
   }
 
+  override def run(job: Job): Future[Done.type] = ???
 }
