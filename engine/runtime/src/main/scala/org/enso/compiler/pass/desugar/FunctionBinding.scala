@@ -19,15 +19,14 @@ import scala.annotation.unused
   * This pass requires the context to provide:
   *
   * - Nothing
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[ComplexType]]
   */
 //noinspection DuplicatedCode
 case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass]   = List(ComplexType)
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Rusn desugaring of sugared method and function bindings on a module.
     *
@@ -108,7 +107,12 @@ case object FunctionBinding extends IRPass {
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
-          "alias analysis."
+          "function binding desugaring."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not be present during function binding" +
+          "desugaring."
         )
       case e: IR.Error => e
     }

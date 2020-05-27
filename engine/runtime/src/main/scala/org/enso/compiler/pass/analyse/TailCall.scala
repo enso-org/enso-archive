@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar._
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -15,14 +16,6 @@ import org.enso.compiler.pass.IRPass
   * This pass requires the context to provide:
   *
   * - The tail position of its expression, where relevant.
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
   */
 case object TailCall extends IRPass {
 
@@ -30,6 +23,16 @@ case object TailCall extends IRPass {
   override type Metadata = TailPosition
 
   override type Config = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    FunctionBinding,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda
+  )
+
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Analyses tail call state for expressions in a module.
     *
@@ -98,7 +101,11 @@ case object TailCall extends IRPass {
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
-          "alias analysis."
+          "tail call analysis."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not exist as an entity during tail call analysis."
         )
       case err: IR.Error => err
     }
@@ -126,7 +133,10 @@ case object TailCall extends IRPass {
       case foreign: IR.Foreign =>
         foreign.updateMetadata(this -->> TailPosition.NotTail)
       case literal: IR.Literal => analyseLiteral(literal, isInTailPosition)
-      case comment: IR.Comment => analyseComment(comment, isInTailPosition)
+      case _: IR.Comment =>
+        throw new CompilerError(
+          "Comments should not be present during tail call analysis."
+        )
       case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
         block
           .copy(
@@ -154,24 +164,6 @@ case object TailCall extends IRPass {
     */
   def analyseName(name: IR.Name, isInTailPosition: Boolean): IR.Name = {
     name.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-  }
-
-  /** Performs tail call analysis on a comment occurrence.
-    *
-    * @param comment the comment to analyse
-    * @param isInTailPosition whether the comment occurs in tail position or not
-    * @return `comment`, annotated with tail position metadata
-    */
-  def analyseComment(
-    comment: IR.Comment,
-    isInTailPosition: Boolean
-  ): IR.Comment = {
-    comment match {
-      case doc @ IR.Comment.Documentation(expr, _, _, _, _) =>
-        doc
-          .copy(commented = analyseExpression(expr, isInTailPosition))
-          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-    }
   }
 
   /** Performs tail call analysis on a literal.

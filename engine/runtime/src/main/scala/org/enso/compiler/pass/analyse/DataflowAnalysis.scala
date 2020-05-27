@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.desugar.FunctionBinding
 
 import scala.collection.mutable
 
@@ -19,20 +20,21 @@ import scala.collection.mutable
   *
   * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
   *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
-  * - [[AliasAnalysis]]
-  * - [[DemandAnalysis]]
-  * - [[TailCall]]
-  *
-  * It also requires that all members of [[IR.IRKind.Primitive]] have been
-  * removed from the IR by the time it runs.
+  * It requires that all members of [[IR.IRKind.Primitive]] have been removed
+  * from the IR by the time it runs.
   */
 //noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DemandAnalysis,
+    TailCall
+  )
+
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the dataflow analysis process on an Enso module.
     *
@@ -115,7 +117,11 @@ case object DataflowAnalysis extends IRPass {
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
-          "alias analysis."
+          "dataflow analysis."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not exist as an entity during dataflow analysis."
         )
       case err: IR.Error => err
     }
@@ -141,7 +147,10 @@ case object DataflowAnalysis extends IRPass {
       case typ: IR.Type          => analyseType(typ, info)
       case name: IR.Name         => analyseName(name, info)
       case cse: IR.Case          => analyseCase(cse, info)
-      case comment: IR.Comment   => analyseComment(comment, info)
+      case _: IR.Comment =>
+        throw new CompilerError(
+          "Comments should not be present during dataflow analysis."
+        )
       case literal: IR.Literal =>
         literal.updateMetadata(this -->> info)
       case foreign: IR.Foreign =>
@@ -449,28 +458,6 @@ case object DataflowAnalysis extends IRPass {
         expression = analyseExpression(expression, info)
       )
       .updateMetadata(this -->> info)
-  }
-
-  /** Performs dataflow analysis on a comment entity.
-    *
-    * A comment expression is simply dependent on the result of the commented
-    * value.
-    *
-    * @param comment the comment to perform dataflow analysis on
-    * @param info the dependency information for the module
-    * @return `comment`, with attached dependency information
-    */
-  def analyseComment(comment: IR.Comment, info: DependencyInfo): IR.Comment = {
-    comment match {
-      case doc @ IR.Comment.Documentation(commented, _, _, _, _) =>
-        info.updateAt(asStatic(commented), Set(asStatic(comment)))
-
-        doc
-          .copy(
-            commented = analyseExpression(commented, info)
-          )
-          .updateMetadata(this -->> info)
-    }
   }
 
   /** Performs dataflow analysis on a function definition argument.

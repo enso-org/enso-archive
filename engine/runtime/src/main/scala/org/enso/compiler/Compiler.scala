@@ -9,13 +9,8 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
-import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise._
-import org.enso.compiler.pass.resolve._
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
@@ -26,6 +21,7 @@ import org.enso.interpreter.runtime.scope.{
   TopLevelScope
 }
 import org.enso.polyglot.LanguageInfo
+import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 /**
@@ -39,42 +35,9 @@ class Compiler(
   val context: Context
 ) {
 
-  val freshNameSupply = new FreshNameSupply
-
-  /** A list of the compiler phases, in the order they should be run.
-    *
-    * Please note that these passes _must_ be run in this order. While we
-    * currently can't account for the dependencies between passes in the types,
-    * they nevertheless exist.
-    */
-  val compilerPhaseOrdering: List[IRPass] = List(
-    ComplexType,
-    FunctionBinding,
-    GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction,
-    LambdaShorthandToLambda,
-    IgnoredBindings,
-    AliasAnalysis,
-    LambdaConsolidate,
-    OverloadsResolution,
-    AliasAnalysis,
-    DemandAnalysis,
-    ApplicationSaturation,
-    TailCall,
-    DataflowAnalysis,
-    UnusedBindings
-  )
-
-  /** Configuration for the passes. */
-  val passConfig: PassConfiguration = PassConfiguration(
-    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
-  )
-
-  /** The pass manager for running compiler passes. */
-  val passManager: PassManager =
-    new PassManager(compilerPhaseOrdering, passConfig)
+  val freshNameSupply: FreshNameSupply = new FreshNameSupply
+  val passes: Passes                   = new Passes
+  val passManager: PassManager         = passes.passManager
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -85,13 +48,14 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Unit = {
+  def run(source: Source, scope: ModuleScope): IR = {
     val moduleContext  = ModuleContext(Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
     runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
+    expr
   }
 
   /**
@@ -103,7 +67,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Unit = {
+  def run(file: TruffleFile, scope: ModuleScope): IR = {
     run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
   }
 
@@ -149,7 +113,7 @@ class Compiler(
   def processImport(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
-      module.get().getScope(context)
+      module.get().parseScope(context)
     } else {
       throw new ModuleDoesNotExistException(qualifiedName)
     }
@@ -163,6 +127,15 @@ class Compiler(
     */
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
+
+  /**
+    * Parses the metadata of the provided language sources.
+    *
+    * @param source the code to parse
+    * @return the source metadata
+    */
+  def parseMeta(source: CharSequence): IDMap =
+    Parser().splitMeta(source.toString)._2
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
