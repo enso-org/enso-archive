@@ -325,9 +325,8 @@ case object LambdaShorthandToLambda extends IRPass {
     val newBranches = caseExpr.branches.map(
       _.mapExpressions(expr => desugarExpression(expr, freshNameSupply))
     )
-    val newFallback =
-      caseExpr.fallback.map(desugarExpression(_, freshNameSupply))
 
+    // TODO [AA] Make sure this handles patterns properly.
     caseExpr.scrutinee match {
       case IR.Name.Blank(loc, passData, diagnostics) =>
         val scrutineeName =
@@ -349,7 +348,6 @@ case object LambdaShorthandToLambda extends IRPass {
         val newCaseExpr = caseExpr.copy(
           scrutinee = scrutineeName,
           branches  = newBranches,
-          fallback  = newFallback
         )
 
         IR.Function.Lambda(
@@ -363,7 +361,6 @@ case object LambdaShorthandToLambda extends IRPass {
         caseExpr.copy(
           scrutinee = desugarExpression(x, freshNameSupply),
           branches  = newBranches,
-          fallback  = newFallback
         )
     }
   }

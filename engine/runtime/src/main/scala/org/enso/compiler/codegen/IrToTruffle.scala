@@ -435,7 +435,7 @@ class IrToTruffle(
       * @return the truffle nodes corresponding to `caseExpr`
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.Case.Expr(scrutinee, branches, fallback, location, _, _) =>
+      case IR.Case.Expr(scrutinee, branches, location, _, _) =>
         val targetNode = this.run(scrutinee)
 
         val cases = branches
@@ -454,11 +454,8 @@ class IrToTruffle(
           .toArray[BranchNode]
 
         // Note [Pattern Match Fallbacks]
-        val fallbackNode = fallback
-          .map(fb => FallbackBranchNode.build(this.run(fb)))
-          .getOrElse(DefaultFallbackBranchNode.build())
-
-        val matchExpr = CaseNode.build(cases, fallbackNode, targetNode)
+        val matchExpr =
+          CaseNode.build(cases, DefaultFallbackBranchNode.build(), targetNode)
         setLocation(matchExpr, location)
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")

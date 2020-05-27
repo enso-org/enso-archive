@@ -234,6 +234,10 @@ class TailCallTest extends CompilerTest {
         )
       })
     }
+
+    "mark patters and pattern elements as not tail" in {
+      pending
+    }
   }
 
   "Tail call analysis on function calls" should {

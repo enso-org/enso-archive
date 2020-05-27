@@ -15,11 +15,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * executes the catch-all case code.
  */
 @NodeInfo(shortName = "Fallback", description = "An explicit fallback branch in a case expression")
-public class FallbackBranchNode extends BranchNode {
+public class CatchAllBranchNode extends BranchNode {
   @Child private ExpressionNode functionNode;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
 
-  FallbackBranchNode(ExpressionNode functionNode) {
+  CatchAllBranchNode(ExpressionNode functionNode) {
     this.functionNode = functionNode;
   }
 
@@ -29,8 +29,8 @@ public class FallbackBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a fallback node
    */
-  public static FallbackBranchNode build(ExpressionNode functionNode) {
-    return new FallbackBranchNode(functionNode);
+  public static CatchAllBranchNode build(ExpressionNode functionNode) {
+    return new CatchAllBranchNode(functionNode);
   }
 
   private void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {

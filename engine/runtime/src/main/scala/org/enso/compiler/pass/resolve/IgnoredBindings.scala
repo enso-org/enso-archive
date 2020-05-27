@@ -83,6 +83,7 @@ case object IgnoredBindings extends IRPass {
     expression: IR.Expression,
     supply: FreshNameSupply
   ): IR.Expression = {
+    // TODO [AA] Handle case expressions properly
     expression.transformExpressions {
       case binding: IR.Expression.Binding => desugarBinding(binding, supply)
       case function: IR.Function          => desugarFunction(function, supply)

@@ -2,11 +2,12 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Case.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar._
 import org.enso.syntax.text.Debug
 
 import scala.collection.mutable
@@ -49,14 +50,14 @@ case object AliasAnalysis extends IRPass {
 
   /** Alias information for the IR. */
   override type Metadata = Info
-  override type Config = Configuration
+  override type Config   = Configuration
 
   override val precursorPasses: Seq[IRPass] = List(
     FunctionBinding,
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
-    LambdaShorthandToLambda,
+    LambdaShorthandToLambda
   )
 
   override val invalidatedPasses: Seq[IRPass] = List()
@@ -197,9 +198,9 @@ case object AliasAnalysis extends IRPass {
     expression match {
       case fn: IR.Function =>
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
-      case name: IR.Name => analyseName(name, graph, parentScope)
-      case cse: IR.Case =>
-        analyseCase(cse, graph, parentScope)
+      case name: IR.Name =>
+        analyseName(name, isInPatternContext = false, graph, parentScope)
+      case cse: IR.Case => analyseCase(cse, graph, parentScope)
       case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
         val currentScope =
           if (blockReuseScope) parentScope else parentScope.addChild()
@@ -441,22 +442,32 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis for a name.
     *
-    * @param name        the name to analyse
-    * @param graph       the graph in which the analysis is taking place
+    * @param name the name to analyse
+    * @param isInPatternContext whether or not the name is occurring in a
+    *                           pattern context
+    * @param graph the graph in which the analysis is taking place
     * @param parentScope the scope in which `name` is delcared
     * @return `name`, with alias analysis information attached
     */
   def analyseName(
     name: IR.Name,
+    isInPatternContext: Boolean,
     graph: Graph,
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
-    val occurrence =
-      Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
 
-    parentScope.add(occurrence)
-    graph.resolveUsage(occurrence)
+    // TODO [AA] Test that this works properly
+    if (isInPatternContext && name.isVariable) {
+      val occurrence =
+        Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)
+      parentScope.add(occurrence)
+    } else {
+      val occurrence =
+        Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
+      parentScope.add(occurrence)
+      graph.resolveUsage(occurrence)
+    }
 
     name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
   }
@@ -474,20 +485,82 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Case = {
     ir match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
+      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, graph, parentScope),
-            branches = branches.map(branch =>
-              branch.copy(
-                pattern = analyseExpression(branch.pattern, graph, parentScope),
-                expression =
-                  analyseExpression(branch.expression, graph, parentScope)
-              )
-            ),
-            fallback = fallback.map(analyseExpression(_, graph, parentScope))
+            branches  = branches.map(analyseCaseBranch(_, graph, parentScope))
           )
-      case _ => throw new CompilerError("Case branch in `analyseCase`.")
+      case _: IR.Case.Branch =>
+        throw new CompilerError("Case branch in `analyseCase`.")
+    }
+  }
+
+  /** Performs alias analysis on a case branch.
+    *
+    * @param branch the case branch to analyse
+    * @param graph the graph in which the analysis is taking place
+    * @param parentScope the scope in which the case branch occurs
+    * @return `branch`, possibly with alias analysis information attached
+    */
+  def analyseCaseBranch(
+    branch: IR.Case.Branch,
+    graph: Graph,
+    parentScope: Scope
+  ): IR.Case.Branch = {
+    branch.copy(
+      pattern    = analysePattern(branch.pattern, graph, parentScope),
+      expression = analyseExpression(branch.expression, graph, parentScope)
+    )
+  }
+
+  /** Performs alias analysis on a pattern.
+    *
+    * @param pattern the pattern to analyse
+    * @param graph the graph in which the analysis is taking place
+    * @param parentScope the scope in which the case branch occurs
+    * @return `pattern`, possibly with alias analysis information attached
+    */
+  def analysePattern(
+    pattern: IR.Case.Pattern,
+    graph: Graph,
+    parentScope: Scope
+  ): IR.Case.Pattern = {
+    pattern match {
+      case named @ Pattern.Name(name, _, _, _) =>
+        if (name.isReferant) {
+          throw new CompilerError(
+            "Nested patterns should be desugared by the point of alias " +
+            "analysis."
+          )
+        }
+
+        named.copy(
+          name =
+            analyseName(name, isInPatternContext = true, graph, parentScope)
+        )
+      case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+        val isDesugared = fields.forall {
+          case _: Pattern.Name        => true
+          case _: Pattern.Constructor => false
+        }
+
+        if (!isDesugared) {
+          throw new CompilerError(
+            "Nested patterns should be desugared by the point of alias " +
+            "analysis."
+          )
+        }
+
+        cons.copy(
+          constructor = analyseName(
+            constructor,
+            isInPatternContext = true,
+            graph,
+            parentScope
+          ),
+          fields = fields.map(analysePattern(_, graph, parentScope))
+        )
     }
   }
 

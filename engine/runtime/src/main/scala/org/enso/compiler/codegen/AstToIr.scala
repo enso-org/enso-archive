@@ -302,19 +302,11 @@ object AstToIr {
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
-        val nonFallbackBranches =
-          branches
-            .takeWhile(AstView.FallbackCaseBranch.unapply(_).isEmpty)
-            .map(translateCaseBranch)
-        val potentialFallback =
-          branches
-            .drop(nonFallbackBranches.length)
-            .headOption
-            .map(translateFallbackBranch)
+        val allBranches = branches.map(translateCaseBranch)
+
         Case.Expr(
           actualScrutinee,
-          nonFallbackBranches,
-          potentialFallback,
+          allBranches,
           getIdentifiedLocation(inputAst)
         )
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
@@ -701,39 +693,19 @@ object AstToIr {
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
     branch match {
-      case AstView.ConsCaseBranch(cons, args, body) =>
-        Case.Branch(
-          translateExpression(cons),
-          Function.Lambda(
-            args.map(translateArgumentDefinition(_)),
-            translateExpression(body),
-            getIdentifiedLocation(body),
-            canBeTCO = false
-          ),
-          getIdentifiedLocation(branch)
-        )
-
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
   }
 
-  /** Translates the fallback branch of a case expression from its [[AST]]
-    * representation into [[IR]].
-    *
-    * @param branch the fallback branch to translate
-    * @return the [[IR]] representation of `branch`
-    */
-  def translateFallbackBranch(branch: AST): Function = {
-    branch match {
-      case AstView.FallbackCaseBranch(body) =>
-        Function.Lambda(
-          List(),
-          translateExpression(body),
-          getIdentifiedLocation(body),
-          canBeTCO = false
-        )
-      case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
-    }
+  /** Translates a pattern in a case expression from its [[AST]] representation
+   * into [[IR]].
+   *
+   * @param pattern the case pattern to translate
+   * @return
+   */
+  // TODO [AA] Make this work properly rather than this temp hack
+  def translatePattern(pattern: AST): Case.Pattern = {
+    ???
   }
 
   /** Translates an arbitrary grouped piece of syntax from its [[AST]]

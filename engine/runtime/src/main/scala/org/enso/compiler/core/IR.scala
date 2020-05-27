@@ -1080,6 +1080,26 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Name
     override def setLocation(location: Option[IdentifiedLocation]): Name
+
+    /** Checks whether a name is in referant form.
+      *
+      * Please see the syntax specification for more details on this form.
+      *
+      * @return `true` if `this` is in referant form, otherwise `false`
+      */
+    def isReferant: Boolean = {
+      name.split("_").filterNot(_.isEmpty).forall(_.head.isUpper)
+    }
+
+    /** Checks whether a name is in variable form.
+      *
+      * Please see the syntax specification for more details on this form.
+      *
+      * @return `true` if `this` is in referant form, otherwise `false`
+      */
+    def isVariable: Boolean = !isReferant
+
+    // TODO [AA] toReferant and toVariable for converting forms
   }
   object Name {
 
@@ -2838,7 +2858,6 @@ object IR {
       *
       * @param scrutinee the expression whose value is being matched on
       * @param branches the branches of the case expression
-      * @param fallback a fallback branch, if provided explicitly
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -2846,7 +2865,6 @@ object IR {
     sealed case class Expr(
       scrutinee: Expression,
       branches: Seq[Branch],
-      fallback: Option[Expression],
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2858,7 +2876,6 @@ object IR {
         *
         * @param scrutinee the expression whose value is being matched on
         * @param branches the branches of the case expression
-        * @param fallback a fallback branch, if provided explicitly
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2868,14 +2885,13 @@ object IR {
       def copy(
         scrutinee: Expression                = scrutinee,
         branches: Seq[Branch]                = branches,
-        fallback: Option[Expression]         = fallback,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Expr = {
         val res =
-          Expr(scrutinee, branches, fallback, location, passData, diagnostics)
+          Expr(scrutinee, branches, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -2886,8 +2902,7 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Expr = {
         copy(
           scrutinee = fn(scrutinee),
-          branches.map(_.mapExpressions(fn)),
-          fallback.map(fn)
+          branches.map(_.mapExpressions(fn))
         )
       }
 
@@ -2896,7 +2911,6 @@ object IR {
         |IR.Case.Expr(
         |scutinee = $scrutinee,
         |branches = $branches,
-        |fallback = $fallback,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -2904,9 +2918,7 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] =
-        scrutinee :: branches.toList ++ fallback.toList
-
+      override def children: List[IR] = scrutinee :: branches.toList
     }
 
     /** A branch in a case statement.
@@ -2918,7 +2930,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Branch(
-      pattern: Expression,
+      pattern: Pattern,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -2938,7 +2950,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        pattern: Expression                  = pattern,
+        pattern: Pattern                     = pattern,
         expression: Expression               = expression,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -2954,7 +2966,7 @@ object IR {
         copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Branch = {
-        copy(pattern = fn(pattern), expression = fn(expression))
+        copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
       }
 
       override def toString: String =
@@ -3092,15 +3104,15 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Case.Pattern.Constructor(
-             |constructor = $constructor,
-             |fields = $fields,
-             |location = $location,
-             |passData = $passData,
-             |diagnostics = $diagnostics,
-             |id = $id
-             |)
-             |""".toSingleLine
+          |IR.Case.Pattern.Constructor(
+          |constructor = $constructor,
+          |fields = $fields,
+          |location = $location,
+          |passData = $passData,
+          |diagnostics = $diagnostics,
+          |id = $id
+          |)
+          |""".toSingleLine
 
         override def setLocation(location: Option[IdentifiedLocation]): IR =
           copy(location = location)
