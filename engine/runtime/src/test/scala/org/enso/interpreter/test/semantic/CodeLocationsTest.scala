@@ -252,7 +252,7 @@ class CodeLocationsTest extends InterpreterTest {
         |    x = 2 # assign two to #x
         |    # perform the addition
         |    x + y # the addition is performed here
-        |""".stripMargin
+        |""".stripMargin.linesIterator.mkString("\n")
     instrumenter.assertNodeExists(82, 1 , classOf[IntegerLiteralNode])
     instrumenter.assertNodeExists(164, 5, classOf[ApplicationNode])
     eval(code) shouldEqual 3
