@@ -49,12 +49,14 @@ Takes a set of module names that must be compiled and ensures that the
 corresponding modules are compiled in the newest version.
 It also performs cache invalidations on changes since the last batch.
 Caches should be invalidated for all contexts affected by this recompilation.
+This operation is idempotent and should be run before any `Execute` action.
 This operation is not currently interruptible, but may become so in the future.
 
 #### `Execute`
 Takes a context ID and an optional set of expression IDs that should be
 executed. and executes the Enso code corresponding to the context's stack.
 Updates caches and sends updates to the users.
+
 This operation is interruptible through `Thread.interrupt()`.
 
 ### Scheduling Rules
