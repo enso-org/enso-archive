@@ -73,7 +73,7 @@ class DocumentationCommentsTest extends CompilerTest {
    */
   def getDoc(ir: IR): String = {
     val meta = ir.getMetadata(DocumentationComments)
-    meta shouldBe Symbol("defined")
+    meta shouldBe defined
     meta.get.documentation
   }
 
