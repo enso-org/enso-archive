@@ -127,4 +127,22 @@ class IgnoredBindingsTest extends CompilerTest {
       ignoredInBlock.name shouldBe an[IR.Name.Literal]
     }
   }
+
+  "Ignored bindings for patterns" should {
+    "replace the ignored binding with a fresh name" in {
+      pending
+    }
+
+    "mark the binding as ignored if it was" in {
+      pending
+    }
+
+    "mark the binding as not ignored if it wasn't" in {
+      pending
+    }
+
+    "work when deeply nested" in {
+      pending
+    }
+  }
 }

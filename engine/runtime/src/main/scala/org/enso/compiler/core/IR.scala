@@ -3323,6 +3323,14 @@ object IR {
         override val location: Option[IdentifiedLocation] = name.location
       }
 
+      sealed case class PatternBinding(override val name: Name) extends Unused {
+        override def message: String = s"Unused pattern binding ${name.name}."
+
+        override def toString: String = s"Unused.PatternBinding(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+
       /** A warning about an unused binding.
         *
         * @param name the name that is unused

@@ -3,6 +3,7 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.resolve.DocumentationComments
 
 import scala.annotation.unused
 
@@ -14,6 +15,7 @@ case object NestedPatternMatch extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
+    DocumentationComments,
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies

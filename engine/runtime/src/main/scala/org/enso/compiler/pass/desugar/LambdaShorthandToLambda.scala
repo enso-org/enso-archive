@@ -326,7 +326,6 @@ case object LambdaShorthandToLambda extends IRPass {
       _.mapExpressions(expr => desugarExpression(expr, freshNameSupply))
     )
 
-    // TODO [AA] Make sure this handles patterns properly.
     caseExpr.scrutinee match {
       case IR.Name.Blank(loc, passData, diagnostics) =>
         val scrutineeName =

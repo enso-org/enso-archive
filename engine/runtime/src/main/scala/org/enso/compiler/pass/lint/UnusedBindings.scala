@@ -2,6 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -62,6 +63,7 @@ case object UnusedBindings extends IRPass {
   ): IR.Expression = ir.transformExpressions {
     case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
     case function: IR.Function          => lintFunction(function, inlineContext)
+    case cse: IR.Case                   => lintCase(cse, inlineContext)
   }
 
   // === Pass Internals =======================================================
@@ -159,6 +161,84 @@ case object UnusedBindings extends IRPass {
             )
             .addDiagnostic(IR.Warning.Unused.FunctionArgument(name))
         } else s
+    }
+  }
+
+  /** Performs linting for unused bindings on a function argument.
+    *
+    * @param cse the case expression to lint
+    * @param context the inline context in which linting is taking place
+    * @return `cse`, with any lints attached
+    */
+  def lintCase(cse: IR.Case, context: InlineContext): IR.Case = {
+    cse match {
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+        expr.copy(
+          scrutinee = runExpression(scrutinee, context),
+          branches  = branches.map(lintCaseBranch(_, context))
+        )
+      case _: Case.Branch => throw new CompilerError("Unexpected case branch.")
+    }
+  }
+
+  /** Performs linting for unused bindings on a case branch.
+    *
+    * @param branch the case branch to lint
+    * @param context the inline context in which linting is taking place
+    * @return `branch`, with any lints attached
+    */
+  def lintCaseBranch(
+    branch: Case.Branch,
+    context: InlineContext
+  ): Case.Branch = {
+    branch.copy(
+      pattern    = lintPattern(branch.pattern),
+      expression = runExpression(branch.expression, context)
+    )
+  }
+
+  /** Performs linting for unused bindings on a pattern.
+    *
+    * @param pattern the pattern to lint
+    * @return `pattern`, with any lints attached
+    */
+  //noinspection DuplicatedCode
+  def lintPattern(pattern: IR.Pattern): IR.Pattern = {
+    pattern match {
+      case n @ Pattern.Name(name, _, _, _) =>
+        val isIgnored = name
+          .unsafeGetMetadata(
+            IgnoredBindings,
+            "Free variable ignore information is required for linting."
+          )
+          .isIgnored
+
+        val aliasInfo = name
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "Aliasing information missing but is required for linting."
+          )
+          .unsafeAs[AliasAnalysis.Info.Occurrence]
+        val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
+
+        if (!isIgnored && !isUsed) {
+          n.addDiagnostic(IR.Warning.Unused.PatternBinding(name))
+        } else pattern
+      case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        val fieldsValid = fields.forall {
+          case _: Pattern.Name        => true
+          case _: Pattern.Constructor => false
+        }
+
+        if (!fieldsValid) {
+          throw new CompilerError(
+            "Nested patterns should not be present during linting."
+          )
+        }
+
+        cons.copy(
+          fields = fields.map(lintPattern)
+        )
     }
   }
 }

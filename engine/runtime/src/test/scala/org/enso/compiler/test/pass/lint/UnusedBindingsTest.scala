@@ -122,5 +122,10 @@ class UnusedBindingsTest extends CompilerTest {
 
       ir.diagnostics.toList shouldBe empty
     }
+
+    "warn on unused bindings in patterns" in {
+      // TODO [AA] Make sure this works properly
+      pending
+    }
   }
 }
