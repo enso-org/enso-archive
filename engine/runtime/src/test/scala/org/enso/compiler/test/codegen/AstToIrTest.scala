@@ -148,6 +148,18 @@ class AstToIrTest extends CompilerTest {
 
       ir.scrutinee shouldBe an[IR.Name.Blank]
     }
+
+    "support constructor patterns" in {
+      pending
+    }
+
+    "support catch all patterns" in {
+      pending
+    }
+
+    "support named catch call patterns" in {
+      pending
+    }
   }
 
   "AST translation of function definitions" should {

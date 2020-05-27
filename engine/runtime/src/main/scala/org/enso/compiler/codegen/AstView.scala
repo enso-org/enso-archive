@@ -748,7 +748,7 @@ object AstView {
   }
 
   object PatternMatch {
-    // Cons, args
+
     /** Matches an arbitrary pattern match on a constructor.
       *
       * A pattern match is of the form `<cons> <args..>` where `<cons>` is the

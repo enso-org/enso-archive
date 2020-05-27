@@ -75,7 +75,7 @@ import scala.jdk.OptionConverters._
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
   */
-class IRToTruffle(
+class IrToTruffle(
   val context: Context,
   val source: Source,
   val moduleScope: ModuleScope

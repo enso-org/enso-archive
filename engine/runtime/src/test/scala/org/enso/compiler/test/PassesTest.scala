@@ -41,6 +41,7 @@ class PassesTest extends CompilerTest {
           ComplexType,
           FunctionBinding,
           GenerateMethodBodies,
+          NestedPatternMatch,
           SectionsToBinOp,
           OperatorToFunction,
           LambdaShorthandToLambda,

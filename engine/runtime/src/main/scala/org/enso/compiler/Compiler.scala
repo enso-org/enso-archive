@@ -4,7 +4,7 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IRToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IrToTruffle}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
@@ -296,7 +296,7 @@ class Compiler(
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IRToTruffle(context, source, scope).run(ir)
+    new IrToTruffle(context, source, scope).run(ir)
   }
 
   /** Generates code for the truffle interpreter in an inline context.
@@ -312,7 +312,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): RuntimeExpression = {
-    new IRToTruffle(
+    new IrToTruffle(
       context,
       source,
       inlineContext.moduleScope.getOrElse(

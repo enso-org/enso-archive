@@ -29,6 +29,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
+      NestedPatternMatch,
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
