@@ -2,8 +2,6 @@ package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.ContextReference;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -14,10 +12,8 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.error.TypeError;
@@ -43,91 +39,36 @@ public abstract class CaseNode extends ExpressionNode {
   /**
    * Creates an instance of this node.
    *
-   * @param cases the case branches
    * @param scrutinee the value being scrutinised
+   * @param cases the case branches
    * @return a node representing a pattern match
    */
-  public static CaseNode build(BranchNode[] cases, ExpressionNode scrutinee) {
+  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases) {
     return CaseNodeGen.create(cases, scrutinee);
   }
 
   @Specialization
-  Object doError(VirtualFrame frame, RuntimeError error) {
+  public Object doError(VirtualFrame frame, RuntimeError error) {
     return error;
   }
 
-  // TODO[MK]: The atom, number and function cases are very repetitive and should be refactored.
-  //  It poses some engineering challenge – the approaches tried so far included passing the only
-  //  changing line as a lambda and introducing a separate node between this and the CaseNodes.
-  //  Both attempts resulted in a performance drop.
-
-  @ExplodeLoop
   @Specialization
-  Object doAtom(
+  @ExplodeLoop
+  public Object doAtom(
       VirtualFrame frame,
-      Atom atom,
+      Object object,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.executeAtom(frame, atom);
+        branchNode.execute(frame, object);
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(atom), this);
+          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       frame.setObject(getStateFrameSlot(), e.getResult().getState());
       return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
-    }
-  }
-
-  @ExplodeLoop
-  @Specialization
-  Object doFunction(
-      VirtualFrame frame,
-      Function function,
-      @CachedContext(Language.class) ContextReference<Context> ctx) {
-    try {
-      for (BranchNode branchNode : cases) {
-        branchNode.executeFunction(frame, function);
-      }
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
-          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(function), this);
-    } catch (BranchSelectedException e) {
-      // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
-      return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
-    }
-  }
-
-  @ExplodeLoop
-  @Specialization
-  Object doNumber(
-      VirtualFrame frame,
-      long number,
-      @CachedContext(Language.class) ContextReference<Context> ctx) {
-    try {
-
-      for (BranchNode branchNode : cases) {
-        branchNode.executeNumber(frame, number);
-      }
-      CompilerDirectives.transferToInterpreter();
-      throw new PanicException(
-          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(number), this);
-    } catch (BranchSelectedException e) {
-      // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
-      return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom: " + e.getResult(), this);
     }
   }
 

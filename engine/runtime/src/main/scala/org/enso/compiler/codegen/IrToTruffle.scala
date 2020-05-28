@@ -433,7 +433,7 @@ class IrToTruffle(
         val cases = branches.map(processCaseBranch).toArray[BranchNode]
 
         // Note [Pattern Match Fallbacks]
-        val matchExpr = CaseNode.build(cases, scrutineeNode)
+        val matchExpr = CaseNode.build(scrutineeNode, cases)
         setLocation(matchExpr, location)
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")

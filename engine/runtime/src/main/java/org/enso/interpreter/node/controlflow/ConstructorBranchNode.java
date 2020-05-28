@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -15,7 +17,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConsCaseNode")
-public class ConstructorBranchNode extends BranchNode {
+public abstract class ConstructorBranchNode extends BranchNode {
   @Child private ExpressionNode matcher;
   @Child private ExpressionNode branch;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
@@ -35,7 +37,7 @@ public class ConstructorBranchNode extends BranchNode {
    * @return a node for matching in a case expression
    */
   public static ConstructorBranchNode build(ExpressionNode matcher, ExpressionNode branch) {
-    return new ConstructorBranchNode(matcher, branch);
+    return ConstructorBranchNodeGen.create(matcher, branch);
   }
 
   /**
@@ -48,24 +50,32 @@ public class ConstructorBranchNode extends BranchNode {
    * @param target the atom to destructure
    * @throws UnexpectedResultException when evaluation fails
    */
-  @Override
-  public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+  @Specialization
+  public Object doAtom(VirtualFrame frame, Atom target) {
     Object matcherVal = matcher.executeGeneric(frame);
     AtomConstructor constructor;
 
     if (atomTypeProfile.profile(TypesGen.isAtom(matcherVal))) {
       constructor = TypesGen.asAtom(matcherVal).getConstructor();
     } else {
-      constructor = TypesGen.expectAtomConstructor(matcherVal);
+      constructor = TypesGen.asAtomConstructor(matcherVal);
     }
 
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(constructor == target.getConstructor())) {
-      Function function = branch.executeFunction(frame);
+      Function function = TypesGen.asFunction(branch.executeGeneric(frame));
       throw new BranchSelectedException(
           executeCallNode.executeCall(
-              function, null, state, target.getFields())); // Note [Caller Info For Case Branches]
+              function, null, state, target.getFields()));
+      // Note [Caller Info For Case Branches]
     }
+
+    return null;
+  }
+
+  @Fallback
+  public Object doFallback(VirtualFrame frame, Object target) {
+    return null;
   }
 
   /* Note [Caller Info For Case Branches]
@@ -75,22 +85,4 @@ public class ConstructorBranchNode extends BranchNode {
    * literals, not references, curried functions etc. Therefore, as function literals, they
    * have no way of accessing the caller frame and can safely be passed null.
    */
-
-  /**
-   * Handles the function scrutinee case, by not matching it at all.
-   *
-   * @param frame the stack frame in which to execute
-   * @param target the function to match
-   */
-  @Override
-  public void executeFunction(VirtualFrame frame, Function target) {}
-
-  /**
-   * Handles the number scrutinee case, by not matching it at all.
-   *
-   * @param frame the stack frame in which to execute
-   * @param target the function to match
-   */
-  @Override
-  public void executeNumber(VirtualFrame frame, long target) {}
 }
