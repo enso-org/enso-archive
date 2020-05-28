@@ -38,7 +38,7 @@ public class CatchAllBranchNode extends BranchNode {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     throw new BranchSelectedException(
         executeCallNode.executeCall(
-            function, null, state, new Object[0])); // Note [Caller Info For Case Branches]
+            function, null, state, new Object[]{target})); // Note [Caller Info For Case Branches]
   }
 
   /**

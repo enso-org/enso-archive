@@ -76,7 +76,6 @@ import scala.jdk.OptionConverters._
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
   */
-@nowarn("cat=unused")
 class IrToTruffle(
   val context: Context,
   val source: Source,
@@ -441,8 +440,6 @@ class IrToTruffle(
         throw new CompilerError("A CaseBranch should never occur here.")
     }
 
-    // TODO [AA] Remove nowarn
-
     /** Performs code generation for an Enso case branch.
       *
       * @param branch the case branch to generate code for
@@ -465,7 +462,29 @@ class IrToTruffle(
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
       branch.pattern match {
-        case Pattern.Name(_, _, _, _) => ???
+        case Pattern.Name(name, _, _, _) =>
+          val arg = List(
+            IR.DefinitionArgument.Specified(
+              name,
+              None,
+              suspended = false,
+              name.location,
+              passData = name.passData,
+              diagnostics = name.diagnostics
+            )
+          )
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            arg,
+            branch.expression,
+            branch.location,
+            None
+          )
+
+          val branchNode = CatchAllBranchNode.build(branchCodeNode)
+          branchNode.setTail(branchIsTail)
+
+          branchNode
         case Pattern.Constructor(constructor, fields, _, _, _) =>
           val fieldsAreValid = fields.forall {
             case _: Pattern.Name        => true
@@ -486,6 +505,7 @@ class IrToTruffle(
               None,
               suspended = false,
               name.location,
+              passData = name.passData,
               diagnostics = name.diagnostics
             )
           })
