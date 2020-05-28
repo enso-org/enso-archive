@@ -5,7 +5,11 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
-import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.exception.{
+  BadPatternMatch,
+  CompilerError,
+  UnhandledEntity
+}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
@@ -430,11 +434,37 @@ class IrToTruffle(
       case IR.Case.Expr(scrutinee, branches, location, _, _) =>
         val scrutineeNode = this.run(scrutinee)
 
-        val cases = branches.map(processCaseBranch).toArray[BranchNode]
+        val maybeCases = branches.map(processCaseBranch)
+        val allCasesValid = maybeCases.forall {
+          case Left(_)  => false
+          case Right(_) => true
+        }
 
-        // Note [Pattern Match Fallbacks]
-        val matchExpr = CaseNode.build(scrutineeNode, cases)
-        setLocation(matchExpr, location)
+        // TODO [AA] This is until we can resolve this statically in the
+        //  compiler. Doing so requires fixing issues around cyclical imports.
+        if (allCasesValid) {
+          val cases = maybeCases
+            .collect {
+              case Right(x) => x
+            }
+            .toArray[BranchNode]
+
+          // Note [Pattern Match Fallbacks]
+          val matchExpr = CaseNode.build(scrutineeNode, cases)
+          setLocation(matchExpr, location)
+        } else {
+          val invalidBranches = maybeCases.collect {
+            case Left(x) => x
+          }
+
+          val message = invalidBranches.map(_.message).mkString(", ")
+
+          val error = context.getBuiltins
+            .compileError()
+            .newInstance(message)
+
+          setLocation(ErrorNode.build(error), caseExpr.location)
+        }
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
     }
@@ -442,9 +472,12 @@ class IrToTruffle(
     /** Performs code generation for an Enso case branch.
       *
       * @param branch the case branch to generate code for
-      * @return the truffle nodes correspondingg to `caseBranch`
+      * @return the truffle nodes correspondingg to `caseBranch` or an error if
+      *         the match is invalid
       */
-    def processCaseBranch(branch: IR.Case.Branch): BranchNode = {
+    def processCaseBranch(
+      branch: IR.Case.Branch
+    ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = branch
         .unsafeGetMetadata(
           AliasAnalysis,
@@ -473,8 +506,8 @@ class IrToTruffle(
           val branchNode = CatchAllBranchNode.build(branchCodeNode)
           branchNode.setTail(branchIsTail)
 
-          branchNode
-        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
+          Right(branchNode)
+        case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -492,14 +525,30 @@ class IrToTruffle(
             None
           )
 
-          // TODO[AA]: Check this statically, before this pass runs
-          val atomCons =
-            moduleScope.getConstructor(constructor.name).toScala.get
+          moduleScope.getConstructor(constructor.name).toScala match {
+            case Some(atomCons) =>
+              val numExpectedArgs = atomCons.getArity
+              val numProvidedArgs = fields.length
 
-          val branchNode = ConstructorBranchNode.build(atomCons, branchCodeNode)
-          branchNode.setTail(branchIsTail)
+              if (numProvidedArgs != numExpectedArgs) {
+                Left(
+                  BadPatternMatch.WrongArgCount(
+                    constructor.name,
+                    numExpectedArgs,
+                    numProvidedArgs
+                  )
+                )
+              } else {
+                val branchNode =
+                  ConstructorBranchNode.build(atomCons, branchCodeNode)
+                branchNode.setTail(branchIsTail)
 
-          branchNode
+                Right(branchNode)
+              }
+            case None =>
+              Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+          }
+
       }
     }
 
