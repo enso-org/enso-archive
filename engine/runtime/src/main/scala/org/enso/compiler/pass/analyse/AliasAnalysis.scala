@@ -8,6 +8,7 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.syntax.text.Debug
 
 import scala.collection.mutable
@@ -60,7 +61,8 @@ case object AliasAnalysis extends IRPass {
     LambdaShorthandToLambda
   )
 
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] =
+    List(DataflowAnalysis, UnusedBindings)
 
   /** Performs alias analysis on a module.
     *

@@ -3,7 +3,8 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.resolve.DocumentationComments
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 
 import scala.annotation.unused
 
@@ -15,12 +16,18 @@ case object NestedPatternMatch extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
-    DocumentationComments,
     ComplexType,
+    DocumentationComments,
     FunctionBinding,
     GenerateMethodBodies
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    IgnoredBindings,
+    TailCall
+  )
 
   /** Desugars nested pattern matches in a module.
     *

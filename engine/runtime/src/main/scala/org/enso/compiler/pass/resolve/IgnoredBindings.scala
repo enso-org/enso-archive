@@ -6,10 +6,17 @@ import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   GenerateMethodBodies,
-  LambdaShorthandToLambda
+  LambdaShorthandToLambda,
+  NestedPatternMatch
 }
 
 /** This pass translates ignored bindings (of the form `_`) into fresh names
@@ -29,9 +36,15 @@ case object IgnoredBindings extends IRPass {
   override val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     GenerateMethodBodies,
-    LambdaShorthandToLambda
+    LambdaShorthandToLambda,
+    NestedPatternMatch
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    TailCall
+  )
 
   /** Desugars ignored bindings for a module.
     *

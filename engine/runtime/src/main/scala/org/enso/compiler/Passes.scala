@@ -1,22 +1,34 @@
 package org.enso.compiler
 
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, OverloadsResolution}
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  OverloadsResolution
+}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 
 class Passes(passes: Option[List[IRPass]] = None) {
 
   /** A list of the compiler phases, in the order they should be run.
     *
-    * Please note that these passes _must_ be run in this order. While we
-    * currently can't account for the dependencies between passes in the types,
-    * they nevertheless exist.
+    * The pass manager checks at runtime whether the provided order respects the
+    * dependencies between passes, and so this pass ordering must adhere to
+    * these dependencies.
     */
-  private val passOrdering: List[IRPass] = passes.getOrElse(
+  val passOrdering: List[IRPass] = passes.getOrElse(
     List(
       DocumentationComments,
       ComplexType,
@@ -32,6 +44,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       OverloadsResolution,
       AliasAnalysis,
       DemandAnalysis,
+      AliasAnalysis,
       ApplicationSaturation,
       TailCall,
       AliasAnalysis,
