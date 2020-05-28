@@ -60,6 +60,7 @@ public class Builtins {
   private final AtomConstructor debug;
   private final AtomConstructor syntaxError;
   private final AtomConstructor compileError;
+  private final AtomConstructor inexhaustivePatternMatchError;
 
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
@@ -72,6 +73,7 @@ public class Builtins {
    */
   public Builtins(Context context) {
     Language language = context.getLanguage();
+
     module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
     scope = module.parseScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
@@ -88,6 +90,10 @@ public class Builtins {
         new AtomConstructor("Compile_Error", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
+    inexhaustivePatternMatchError =
+        new AtomConstructor("Inexhaustive_Pattern_Match_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "scrutinee", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -247,6 +253,11 @@ public class Builtins {
   /** @return the builtin {@code Compile_Error} atom constructor. */
   public AtomConstructor compileError() {
     return compileError;
+  }
+
+  /** @return the builtin {@code Inexhaustive_Pattern_Match_Error} atom constructor. */
+  public AtomConstructor inexhaustivePatternMatchError() {
+    return inexhaustivePatternMatchError;
   }
 
   /**

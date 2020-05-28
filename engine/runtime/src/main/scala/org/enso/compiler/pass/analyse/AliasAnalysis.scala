@@ -534,6 +534,7 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the scope in which the case branch occurs
     * @return `pattern`, possibly with alias analysis information attached
     */
+  //noinspection DuplicatedCode
   def analysePattern(
     pattern: IR.Pattern,
     graph: Graph,

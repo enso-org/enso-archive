@@ -433,8 +433,7 @@ class IrToTruffle(
         val cases = branches.map(processCaseBranch).toArray[BranchNode]
 
         // Note [Pattern Match Fallbacks]
-        val matchExpr = CaseNode
-          .build(cases, DefaultFallbackBranchNode.build(), scrutineeNode)
+        val matchExpr = CaseNode.build(cases, scrutineeNode)
         setLocation(matchExpr, location)
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
@@ -469,7 +468,7 @@ class IrToTruffle(
               None,
               suspended = false,
               name.location,
-              passData = name.passData,
+              passData    = name.passData,
               diagnostics = name.diagnostics
             )
           )
@@ -505,7 +504,7 @@ class IrToTruffle(
               None,
               suspended = false,
               name.location,
-              passData = name.passData,
+              passData    = name.passData,
               diagnostics = name.diagnostics
             )
           })
@@ -535,6 +534,10 @@ class IrToTruffle(
      * catch-all case in a pattern match, the interpreter has to ensure that
      * it has one to catch that error.
      */
+
+    def genArgFromMatchField(name: IR.Name): IR.DefinitionArgument = {
+      ???
+    }
 
     /** Generates code for an Enso binding expression.
       *
