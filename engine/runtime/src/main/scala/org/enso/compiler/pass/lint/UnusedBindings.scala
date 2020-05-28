@@ -148,7 +148,8 @@ case object UnusedBindings extends IRPass {
     val aliasInfo = argument
       .unsafeGetMetadata(
         AliasAnalysis,
-        "Aliasing information missing but is required for linting."
+        "Aliasing information missing from function argument but is " +
+        "required for linting."
       )
       .unsafeAs[AliasAnalysis.Info.Occurrence]
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
@@ -202,7 +203,6 @@ case object UnusedBindings extends IRPass {
     * @param pattern the pattern to lint
     * @return `pattern`, with any lints attached
     */
-  //noinspection DuplicatedCode
   def lintPattern(pattern: IR.Pattern): IR.Pattern = {
     pattern match {
       case n @ Pattern.Name(name, _, _, _) =>
@@ -216,7 +216,8 @@ case object UnusedBindings extends IRPass {
         val aliasInfo = name
           .unsafeGetMetadata(
             AliasAnalysis,
-            "Aliasing information missing but is required for linting."
+            "Aliasing information missing from pattern but is " +
+            "required for linting."
           )
           .unsafeAs[AliasAnalysis.Info.Occurrence]
         val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
@@ -225,12 +226,7 @@ case object UnusedBindings extends IRPass {
           n.addDiagnostic(IR.Warning.Unused.PatternBinding(name))
         } else pattern
       case cons @ Pattern.Constructor(_, fields, _, _, _) =>
-        val fieldsValid = fields.forall {
-          case _: Pattern.Name        => true
-          case _: Pattern.Constructor => false
-        }
-
-        if (!fieldsValid) {
+        if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
           )

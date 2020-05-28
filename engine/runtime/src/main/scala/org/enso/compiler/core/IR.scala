@@ -3098,6 +3098,39 @@ object IR {
         res
       }
 
+      /** Checks if the constructor pattern has been desugared.
+       *
+      * A constructor pattern has been desugared if all of its fields are
+       * [[Pattern.Name]].
+       *
+       * @return `true` if the pattern has been desugared, `false` otherwise
+       */
+      def isDesugared: Boolean = {
+        fields.forall {
+          case _: Pattern.Name => true
+          case _: Pattern.Constructor => false
+        }
+      }
+
+      /** Gets the patterns fields as [[Pattern.Name]] if they are.
+       *
+       * @return the fields from `this`
+       */
+      def fieldsAsNamed: List[Option[Pattern.Name]] = {
+        fields.map {
+          case f: Pattern.Name => Some(f)
+          case _ => None
+        }
+      }
+
+      /** Unsafely gets the pattern's fields as if they are [[Pattern.Name]].
+       *
+       * @return the fields from `this`
+       */
+      def unsafeFieldsAsNamed: List[Pattern.Name] = {
+        fieldsAsNamed.map(_.get)
+      }
+
       override def mapExpressions(fn: Expression => Expression): Pattern =
         copy(
           constructor = constructor.mapExpressions(fn),

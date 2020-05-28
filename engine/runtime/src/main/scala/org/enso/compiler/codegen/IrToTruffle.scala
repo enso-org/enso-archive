@@ -444,7 +444,6 @@ class IrToTruffle(
       * @param branch the case branch to generate code for
       * @return the truffle nodes correspondingg to `caseBranch`
       */
-    //noinspection DuplicatedCode
     def processCaseBranch(branch: IR.Case.Branch): BranchNode = {
       val scopeInfo = branch
         .unsafeGetMetadata(
@@ -461,7 +460,7 @@ class IrToTruffle(
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
       branch.pattern match {
-        case named@Pattern.Name(_, _, _, _) =>
+        case named @ Pattern.Name(_, _, _, _) =>
           val arg = List(genArgFromMatchField(named))
 
           val branchCodeNode = childProcessor.processFunctionBody(
@@ -475,20 +474,15 @@ class IrToTruffle(
           branchNode.setTail(branchIsTail)
 
           branchNode
-        case Pattern.Constructor(constructor, fields, _, _, _) =>
-          val fieldsAreValid = fields.forall {
-            case _: Pattern.Name        => true
-            case _: Pattern.Constructor => false
-          }
-
-          if (!fieldsAreValid) {
+        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
+          if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
               "point of code generation."
             )
           }
 
-          val fieldNames = fields.map(_.asInstanceOf[Pattern.Name])
+          val fieldNames   = cons.unsafeFieldsAsNamed
           val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
 
           val branchCodeNode = childProcessor.processFunctionBody(
@@ -519,10 +513,10 @@ class IrToTruffle(
      */
 
     /** Generates an argument from a field of a pattern match.
-     *
-     * @param name the pattern field to generate from
-     * @return `name` as a function definition argument.
-     */
+      *
+      * @param name the pattern field to generate from
+      * @return `name` as a function definition argument.
+      */
     def genArgFromMatchField(name: Pattern.Name): IR.DefinitionArgument = {
       IR.DefinitionArgument.Specified(
         name.name,

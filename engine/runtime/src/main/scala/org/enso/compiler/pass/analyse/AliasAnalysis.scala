@@ -533,7 +533,6 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope the scope in which the case branch occurs
     * @return `pattern`, possibly with alias analysis information attached
     */
-  //noinspection DuplicatedCode
   def analysePattern(
     pattern: IR.Pattern,
     graph: Graph,
@@ -553,12 +552,7 @@ case object AliasAnalysis extends IRPass {
             analyseName(name, isInPatternContext = true, graph, parentScope)
         )
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
-        val isDesugared = fields.forall {
-          case _: Pattern.Name        => true
-          case _: Pattern.Constructor => false
-        }
-
-        if (!isDesugared) {
+        if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should be desugared by the point of alias " +
             "analysis."
