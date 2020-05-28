@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.type.TypesGen;
@@ -20,7 +21,7 @@ public class CatchAllBranchNode extends BranchNode {
   @Child private ExpressionNode functionNode;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
 
-  CatchAllBranchNode(ExpressionNode functionNode) {
+  CatchAllBranchNode(CreateFunctionNode functionNode) {
     this.functionNode = functionNode;
   }
 
@@ -30,11 +31,11 @@ public class CatchAllBranchNode extends BranchNode {
    * @param functionNode the function to execute in this case
    * @return a fallback node
    */
-  public static CatchAllBranchNode build(ExpressionNode functionNode) {
+  public static CatchAllBranchNode build(CreateFunctionNode functionNode) {
     return new CatchAllBranchNode(functionNode);
   }
 
-  public Object execute(VirtualFrame frame, Object target) {
+  public void execute(VirtualFrame frame, Object target) {
     Function function = TypesGen.asFunction(functionNode.executeGeneric(frame));
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     throw new BranchSelectedException(

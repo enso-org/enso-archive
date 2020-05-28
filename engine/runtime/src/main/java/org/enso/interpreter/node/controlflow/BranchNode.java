@@ -19,5 +19,5 @@ public abstract class BranchNode extends BaseNode {
    * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
    *     represented as a value of the expected return type
    */
-  public abstract Object execute(VirtualFrame frame, Object target);
+  public abstract void execute(VirtualFrame frame, Object target);
 }

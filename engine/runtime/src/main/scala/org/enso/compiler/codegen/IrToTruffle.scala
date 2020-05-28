@@ -516,10 +516,11 @@ class IrToTruffle(
             None
           )
 
-          val branchNode = ConstructorBranchNode.build(
-            childProcessor.run(constructor),
-            branchCodeNode
-          )
+          // TODO[AA]: Check this statically, before this pass runs
+          val atomCons =
+            moduleScope.getConstructor(constructor.name).toScala.get
+
+          val branchNode = ConstructorBranchNode.build(atomCons, branchCodeNode)
           branchNode.setTail(branchIsTail)
 
           branchNode
