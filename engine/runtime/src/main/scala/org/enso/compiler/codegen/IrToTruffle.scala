@@ -461,17 +461,8 @@ class IrToTruffle(
       val childProcessor = this.createChild("case_branch", scopeInfo.scope)
 
       branch.pattern match {
-        case Pattern.Name(name, _, _, _) =>
-          val arg = List(
-            IR.DefinitionArgument.Specified(
-              name,
-              None,
-              suspended = false,
-              name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
-          )
+        case named@Pattern.Name(_, _, _, _) =>
+          val arg = List(genArgFromMatchField(named))
 
           val branchCodeNode = childProcessor.processFunctionBody(
             arg,
@@ -497,17 +488,8 @@ class IrToTruffle(
             )
           }
 
-          val fieldNames = fields.map(_.asInstanceOf[Pattern.Name].name)
-          val fieldsAsArgs = fieldNames.map(name => {
-            IR.DefinitionArgument.Specified(
-              name,
-              None,
-              suspended = false,
-              name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
-          })
+          val fieldNames = fields.map(_.asInstanceOf[Pattern.Name])
+          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
 
           val branchCodeNode = childProcessor.processFunctionBody(
             fieldsAsArgs,
@@ -536,8 +518,20 @@ class IrToTruffle(
      * it has one to catch that error.
      */
 
-    def genArgFromMatchField(name: IR.Name): IR.DefinitionArgument = {
-      ???
+    /** Generates an argument from a field of a pattern match.
+     *
+     * @param name the pattern field to generate from
+     * @return `name` as a function definition argument.
+     */
+    def genArgFromMatchField(name: Pattern.Name): IR.DefinitionArgument = {
+      IR.DefinitionArgument.Specified(
+        name.name,
+        None,
+        suspended = false,
+        name.location,
+        passData    = name.name.passData,
+        diagnostics = name.name.diagnostics
+      )
     }
 
     /** Generates code for an Enso binding expression.

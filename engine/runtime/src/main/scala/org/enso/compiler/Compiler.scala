@@ -47,7 +47,10 @@ class Compiler(private val context: Context) {
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): IR = {
-    val moduleContext  = ModuleContext(freshNameSupply = Some(freshNameSupply))
+    val moduleContext = ModuleContext(
+      moduleScope     = Some(scope),
+      freshNameSupply = Some(freshNameSupply)
+    )
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
