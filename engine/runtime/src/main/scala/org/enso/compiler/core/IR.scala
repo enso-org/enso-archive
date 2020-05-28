@@ -575,7 +575,7 @@ object IR {
             |arguments = $arguments,
             |body = $body,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
@@ -767,7 +767,7 @@ object IR {
               |arguments = $arguments,
               |body = $body,
               |location = $location,
-              |passData = $passData,
+              |passData = ${this.showPassData},
               |diagnostics = $diagnostics,
               |id = $id
               |)
@@ -1104,7 +1104,7 @@ object IR {
 
     /** Represents occurrences of blank (`_`) expressions.
       *
-      * @param location the soure location that the node corresponds to.
+      * @param location the source location that the node corresponds to.
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
@@ -1117,9 +1117,9 @@ object IR {
       override val name: String             = "_"
       override protected var id: Identifier = randomId
 
-      /** Creates a copy of `this`.`
+      /** Creates a copy of `this`.
         *
-        * @param location the soure location that the node corresponds to.
+        * @param location the source location that the node corresponds to.
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the node
@@ -1146,7 +1146,7 @@ object IR {
         s"""
            |IR.Expression.Blank(
            |location = $location,
-           |passData = $passData,
+           |passData = ${this.showPassData},
            |diagnostics = $diagnostics,
            |id = $id
            |)
@@ -2600,7 +2600,7 @@ object IR {
             |arg = $arg,
             |operator =  $operator,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
@@ -2658,7 +2658,7 @@ object IR {
             |IR.Application.Operator.Section.Centre(
             |operator =  $operator,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
@@ -2725,7 +2725,7 @@ object IR {
             |operator =  $operator,
             |arg = $arg,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
@@ -3042,7 +3042,7 @@ object IR {
         |IR.Case.Pattern.Name(
         |name = $name,
         |location = $location,
-        |passData = $passData,
+        |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
         |id = $id
         |)
@@ -3110,7 +3110,7 @@ object IR {
         |constructor = $constructor,
         |fields = $fields,
         |location = $location,
-        |passData = $passData,
+        |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
         |id = $id
         |)

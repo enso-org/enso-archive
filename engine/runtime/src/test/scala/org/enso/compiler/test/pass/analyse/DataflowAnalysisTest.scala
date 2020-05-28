@@ -15,9 +15,6 @@ import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.test.Metadata
 import org.scalatest.Assertion
 
-import scala.annotation.nowarn
-
-@nowarn("cat=unused")
 class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -911,11 +908,6 @@ class DataflowAnalysisTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
       val bUse = bArg.value.asInstanceOf[IR.Name.Literal]
-
-      // TODO [AA] Need to check that changing the pattern will invalidate the
-      //  usage of `a` and hence `a + b`
-
-      // TODO [AA] Remove the nowarn
 
       // The IDs
       val caseExprId   = mkStaticDep(caseExpr.getId)

@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -86,7 +87,11 @@ class UnusedBindingsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[IR.Function.Lambda]
 
-      ir.arguments.head.diagnostics.toList shouldBe empty
+      val lintMeta = ir.arguments.head.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta shouldBe empty
     }
 
     "attach a warning to an unused binding" in {
@@ -99,7 +104,7 @@ class UnusedBindingsTest extends CompilerTest {
           .asInstanceOf[IR.Expression.Binding]
 
       val lintMeta = ir.diagnostics.collect {
-        case u: IR.Warning.Unused.Binding => u
+        case u: IR.Warning.Unused => u
       }
 
       lintMeta should not be empty
@@ -116,12 +121,39 @@ class UnusedBindingsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[IR.Expression.Binding]
 
-      ir.diagnostics.toList shouldBe empty
+      val lintMeta = ir.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta shouldBe empty
     }
 
     "warn on unused bindings in patterns" in {
-      // TODO [AA] Make sure this works properly
-      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |case x of
+          |    Cons a _ -> 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Case.Expr]
+
+      val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
+      val field1 = pattern.fields.head.asInstanceOf[Pattern.Name]
+      val field2 = pattern.fields(1).asInstanceOf[Pattern.Name]
+
+      val lintMeta1 = field1.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+      val lintMeta2 = field2.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta1 should not be empty
+      lintMeta1.head shouldBe an[IR.Warning.Unused.PatternBinding]
+      lintMeta1.head.name.name shouldEqual "a"
+
+      lintMeta2 shouldBe empty
     }
   }
 }
