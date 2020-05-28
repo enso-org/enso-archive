@@ -4,7 +4,7 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
-import org.enso.compiler.core.IR.{Error, IdentifiedLocation}
+import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
@@ -59,6 +59,7 @@ import org.enso.interpreter.runtime.error.{
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
+import scala.annotation.nowarn
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
@@ -75,6 +76,7 @@ import scala.jdk.OptionConverters._
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
   */
+@nowarn("cat=unused")
 class IrToTruffle(
   val context: Context,
   val source: Source,
@@ -427,29 +429,82 @@ class IrToTruffle(
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
       case IR.Case.Expr(scrutinee, branches, location, _, _) =>
-        val targetNode = this.run(scrutinee)
+        val scrutineeNode = this.run(scrutinee)
 
-        val cases = branches
-          .map(branch => {
-            val caseIsTail = branch.unsafeGetMetadata(
-              TailCall,
-              "Case branch missing tail position information."
-            )
-
-            val caseNode = ConstructorBranchNode
-              .build(this.run(branch.pattern), this.run(branch.expression))
-            caseNode.setTail(caseIsTail)
-
-            caseNode
-          })
-          .toArray[BranchNode]
+        val cases = branches.map(processCaseBranch).toArray[BranchNode]
 
         // Note [Pattern Match Fallbacks]
-        val matchExpr =
-          CaseNode.build(cases, DefaultFallbackBranchNode.build(), targetNode)
+        val matchExpr = CaseNode
+          .build(cases, DefaultFallbackBranchNode.build(), scrutineeNode)
         setLocation(matchExpr, location)
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
+    }
+
+    // TODO [AA] Remove nowarn
+
+    /** Performs code generation for an Enso case branch.
+      *
+      * @param branch the case branch to generate code for
+      * @return the truffle nodes correspondingg to `caseBranch`
+      */
+    //noinspection DuplicatedCode
+    def processCaseBranch(branch: IR.Case.Branch): BranchNode = {
+      val scopeInfo = branch
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "No scope information on a case branch."
+        )
+        .unsafeAs[AliasAnalysis.Info.Scope.Child]
+
+      val branchIsTail = branch.unsafeGetMetadata(
+        TailCall,
+        "Case branch is missing tail position information."
+      )
+
+      val childProcessor = this.createChild("case_branch", scopeInfo.scope)
+
+      branch.pattern match {
+        case Pattern.Name(_, _, _, _) => ???
+        case Pattern.Constructor(constructor, fields, _, _, _) =>
+          val fieldsAreValid = fields.forall {
+            case _: Pattern.Name        => true
+            case _: Pattern.Constructor => false
+          }
+
+          if (!fieldsAreValid) {
+            throw new CompilerError(
+              "Nested patterns desugaring must have taken place by the " +
+              "point of code generation."
+            )
+          }
+
+          val fieldNames = fields.map(_.asInstanceOf[Pattern.Name].name)
+          val fieldsAsArgs = fieldNames.map(name => {
+            IR.DefinitionArgument.Specified(
+              name,
+              None,
+              suspended = false,
+              name.location,
+              diagnostics = name.diagnostics
+            )
+          })
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            fieldsAsArgs,
+            branch.expression,
+            branch.location,
+            None
+          )
+
+          val branchNode = ConstructorBranchNode.build(
+            childProcessor.run(constructor),
+            branchCodeNode
+          )
+          branchNode.setTail(branchIsTail)
+
+          branchNode
+      }
     }
 
     /* Note [Pattern Match Fallbacks]
