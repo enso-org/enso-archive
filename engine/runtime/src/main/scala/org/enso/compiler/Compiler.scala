@@ -31,7 +31,6 @@ import org.enso.syntax.text.{AST, Parser}
   */
 class Compiler(
   val language: Language,
-  val topScope: TopLevelScope,
   val context: Context
 ) {
 
@@ -111,7 +110,7 @@ class Compiler(
     * @return the scope containing all definitions in the requested module
     */
   def processImport(qualifiedName: String): ModuleScope = {
-    val module = topScope.getModule(qualifiedName)
+    val module = context.getTopScope.getModule(qualifiedName)
     if (module.isPresent) {
       module.get().parseScope(context)
     } else {
