@@ -24,19 +24,18 @@ import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
-/**
-  * This class encapsulates the static transformation processes that take place
+import scala.annotation.unused
+
+/** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
   * analysis, and optimisation.
+  *
+  * @param context the language context
   */
-class Compiler(
-  val language: Language,
-  val context: Context
-) {
-
-  val freshNameSupply: FreshNameSupply = new FreshNameSupply
-  val passes: Passes                   = new Passes
-  val passManager: PassManager         = passes.passManager
+class Compiler(private val context: Context) {
+  private val freshNameSupply: FreshNameSupply = new FreshNameSupply
+  private val passes: Passes                   = new Passes
+  private val passManager: PassManager         = passes.passManager
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -48,7 +47,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): IR = {
-    val moduleContext  = ModuleContext(Some(freshNameSupply))
+    val moduleContext  = ModuleContext(freshNameSupply = Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)

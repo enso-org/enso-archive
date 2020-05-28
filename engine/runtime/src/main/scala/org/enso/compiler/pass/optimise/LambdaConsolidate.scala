@@ -75,9 +75,7 @@ case object LambdaConsolidate extends IRPass {
     case x =>
       runExpression(
         x,
-        new InlineContext(
-          freshNameSupply = moduleContext.freshNameSupply
-        )
+        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
   }
 

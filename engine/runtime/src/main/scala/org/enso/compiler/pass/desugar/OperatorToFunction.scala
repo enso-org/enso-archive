@@ -35,7 +35,7 @@ case object OperatorToFunction extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module =
     ir.transformExpressions({
-      case x => runExpression(x, new InlineContext)
+      case x => runExpression(x, new InlineContext())
     })
 
   /** Executes the conversion pass in an inline context.

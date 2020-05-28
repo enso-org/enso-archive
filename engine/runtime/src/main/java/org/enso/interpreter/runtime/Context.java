@@ -87,7 +87,7 @@ public class Context {
                     srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
     topScope = new TopLevelScope(new Builtins(this), knownFiles);
 
-    this.compiler = new Compiler(this.language, this);
+    this.compiler = new Compiler(this);
   }
 
   public TruffleFile getTruffleFile(File file) {

@@ -141,11 +141,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
-      localScope       = Some(LocalScope.root),
-      isInTailPosition = Some(false),
-      freshNameSupply  = Some(new FreshNameSupply)
-    )
+    InlineContext(localScope       = Some(LocalScope.root), isInTailPosition = Some(false), freshNameSupply  = Some(new FreshNameSupply))
   }
 
   /** Generates a new module context for testing purposes.

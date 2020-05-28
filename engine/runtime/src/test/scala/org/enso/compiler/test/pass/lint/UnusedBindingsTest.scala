@@ -50,11 +50,7 @@ class UnusedBindingsTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
-      freshNameSupply  = Some(new FreshNameSupply),
-      localScope       = Some(LocalScope.root),
-      isInTailPosition = Some(false)
-    )
+    InlineContext(localScope       = Some(LocalScope.root), isInTailPosition = Some(false), freshNameSupply  = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================
