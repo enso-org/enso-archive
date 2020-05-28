@@ -471,11 +471,7 @@ case object DataflowAnalysis extends IRPass {
       case named @ Pattern.Name(name, _, _, _) =>
         info.updateAt(asStatic(name), Set(asStatic(pattern)))
 
-        named
-          .copy(
-            name = analyseName(name, info)
-          )
-          .updateMetadata(this -->> info)
+        named.updateMetadata(this -->> info)
       case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
         info.updateAt(asStatic(constructor), Set(asStatic(pattern)))
         fields.foreach(field =>

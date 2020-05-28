@@ -512,10 +512,19 @@ case object AliasAnalysis extends IRPass {
     graph: Graph,
     parentScope: Scope
   ): IR.Case.Branch = {
-    branch.copy(
-      pattern    = analysePattern(branch.pattern, graph, parentScope),
-      expression = analyseExpression(branch.expression, graph, parentScope)
-    )
+    val currentScope = parentScope.addChild()
+
+    branch
+      .copy(
+        pattern = analysePattern(branch.pattern, graph, currentScope),
+        expression = analyseExpression(
+          branch.expression,
+          graph,
+          currentScope,
+          blockReuseScope = true
+        )
+      )
+      .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
   }
 
   /** Performs alias analysis on a pattern.
