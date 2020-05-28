@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
@@ -230,7 +231,27 @@ class TailCallTest extends CompilerTest {
     }
 
     "mark patters and pattern elements as not tail" in {
-      pending
+      val ir =
+        """
+          |case x of
+          |    Cons a b -> a + b
+          |""".stripMargin.runTCAExpression(tailCtx).asInstanceOf[IR.Case.Expr]
+
+      val caseBranch         = ir.branches.head
+      val pattern            = caseBranch.pattern.asInstanceOf[Pattern.Constructor]
+      val patternConstructor = pattern.constructor
+
+      pattern.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      patternConstructor.getMetadata(TailCall) shouldEqual Some(
+        TailPosition.NotTail
+      )
+      pattern.fields.foreach(f => {
+        f.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+
+        f.asInstanceOf[Pattern.Name]
+          .name
+          .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
+      })
     }
   }
 
