@@ -64,10 +64,11 @@ public abstract class ConstructorBranchNode extends BranchNode {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(constructor == target.getConstructor())) {
       Function function = TypesGen.asFunction(branch.executeGeneric(frame));
+
+      // Note [Caller Info For Case Branches]
       throw new BranchSelectedException(
           executeCallNode.executeCall(
               function, null, state, target.getFields()));
-      // Note [Caller Info For Case Branches]
     }
 
     return null;
@@ -80,7 +81,6 @@ public abstract class ConstructorBranchNode extends BranchNode {
 
   /* Note [Caller Info For Case Branches]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   *
    * It is assumed that functions serving as pattern match logic branches are always function
    * literals, not references, curried functions etc. Therefore, as function literals, they
    * have no way of accessing the caller frame and can safely be passed null.
