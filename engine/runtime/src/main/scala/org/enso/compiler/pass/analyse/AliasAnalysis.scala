@@ -461,7 +461,6 @@ case object AliasAnalysis extends IRPass {
   ): IR.Name = {
     val occurrenceId = graph.nextId()
 
-    // TODO [AA] Test that this works properly
     if (isInPatternContext && name.isVariable) {
       val occurrence =
         Occurrence.Def(occurrenceId, name.name, name.getId, name.getExternalId)

@@ -35,11 +35,17 @@ public class CatchAllBranchNode extends BranchNode {
     return new CatchAllBranchNode(functionNode);
   }
 
+  /**
+   * Executes the case branch on an arbitrary target.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the object to match against
+   */
   public void execute(VirtualFrame frame, Object target) {
     Function function = TypesGen.asFunction(functionNode.executeGeneric(frame));
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     throw new BranchSelectedException(
-        executeCallNode.executeCall(
-            function, null, state, new Object[] {target})); // Note [Caller Info For Case Branches]
+        // Note [Caller Info For Case Branches]
+        executeCallNode.executeCall(function, null, state, new Object[] {target}));
   }
 }

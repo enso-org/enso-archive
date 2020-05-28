@@ -5,7 +5,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
@@ -17,10 +16,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
-@NodeInfo(shortName = "ConsCaseNode")
+@NodeInfo(shortName = "ConstructorMatch")
 public abstract class ConstructorBranchNode extends BranchNode {
   private final AtomConstructor matcher;
-  private @Child  ExpressionNode branch;
+  private @Child ExpressionNode branch;
   private @Child ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
@@ -48,7 +47,6 @@ public abstract class ConstructorBranchNode extends BranchNode {
    *
    * @param frame the stack frame in which to execute
    * @param target the atom to destructure
-   * @throws UnexpectedResultException when evaluation fails
    */
   @Specialization
   public void doAtom(VirtualFrame frame, Atom target) {
@@ -62,6 +60,12 @@ public abstract class ConstructorBranchNode extends BranchNode {
     }
   }
 
+  /**
+   * The fallback specialisation for executing the constructor branch node.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the object to execute on
+   */
   @Fallback
   public void doFallback(VirtualFrame frame, Object target) {}
 

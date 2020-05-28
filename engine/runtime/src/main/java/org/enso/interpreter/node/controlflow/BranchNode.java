@@ -12,12 +12,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public abstract class BranchNode extends BaseNode {
 
   /**
-   * Executes the case expression on an
+   * Executes the case branch.
    *
    * @param frame the stack frame in which to execute
-   * @param target the number to match
-   * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
-   *     represented as a value of the expected return type
+   * @param target the object to match against
    */
   public abstract void execute(VirtualFrame frame, Object target);
 }

@@ -47,11 +47,28 @@ public abstract class CaseNode extends ExpressionNode {
     return CaseNodeGen.create(cases, scrutinee);
   }
 
+  /**
+   * Forwards an error in the case's scrutinee.
+   *
+   * It is important that this is the first specialization.
+   *
+   * @param frame the stack frame in which to execute
+   * @param error the error being matched against
+   * @return the result of executing the case expression on {@code error}
+   */
   @Specialization
   public Object doError(VirtualFrame frame, RuntimeError error) {
     return error;
   }
 
+  /**
+   * Executes the case expression.
+   *
+   * @param frame the stack frame in which to execute
+   * @param object the object being matched against
+   * @param ctx the language context reference
+   * @return the result of executing the case expression on {@code object}
+   */
   @Specialization
   @ExplodeLoop
   public Object doAtom(
