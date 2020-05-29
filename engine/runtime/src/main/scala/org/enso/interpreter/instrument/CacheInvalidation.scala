@@ -24,7 +24,6 @@ object CacheInvalidation {
 
   /** Selector of the cache index. */
   sealed trait IndexSelector
-
   object IndexSelector {
 
     /** Invalidate value from indexes. */
