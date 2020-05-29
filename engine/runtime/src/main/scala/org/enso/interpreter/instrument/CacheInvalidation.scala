@@ -32,7 +32,6 @@ object CacheInvalidation {
 
   /** Base trait for cache invalidation instructions. */
   sealed trait Command
-
   object Command {
 
     /** Instruction to invalidate all cache entries. */
