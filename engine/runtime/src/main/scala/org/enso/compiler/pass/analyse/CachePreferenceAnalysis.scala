@@ -113,7 +113,7 @@ case object CachePreferenceAnalysis extends IRPass {
       case typ: IR.Type          => typ.updateMetadata(this -->> weights)
       case name: IR.Name         => name.updateMetadata(this -->> weights)
       case cse: IR.Case          => analyseCase(cse, weights)
-      case _: IR.Comment         =>
+      case _: IR.Comment =>
         throw new CompilerError(
           "Comments should not be present during cache preference analysis."
         )

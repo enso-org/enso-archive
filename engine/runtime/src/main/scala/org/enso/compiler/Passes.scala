@@ -4,8 +4,15 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, OverloadsResolution}
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  OverloadsResolution
+}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 
 class Passes(passes: Option[List[IRPass]] = None) {

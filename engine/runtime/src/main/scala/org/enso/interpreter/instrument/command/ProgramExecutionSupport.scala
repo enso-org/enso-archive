@@ -7,9 +7,16 @@ import java.util.logging.Level
 
 import cats.implicits._
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
-import org.enso.interpreter.instrument.IdExecutionInstrument.{ExpressionCall, ExpressionValue}
+import org.enso.interpreter.instrument.IdExecutionInstrument.{
+  ExpressionCall,
+  ExpressionValue
+}
 import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
-import org.enso.interpreter.instrument.{InstrumentFrame, RuntimeCache, Visualisation}
+import org.enso.interpreter.instrument.{
+  InstrumentFrame,
+  RuntimeCache,
+  Visualisation
+}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
@@ -49,7 +56,7 @@ trait ProgramExecutionSupport {
     * @param valueCallback a listener of computed values
     */
   @scala.annotation.tailrec
-  private final def runProgram(
+  final private def runProgram(
     executionItem: ExecutionItem,
     callStack: List[UUID],
     cache: RuntimeCache,

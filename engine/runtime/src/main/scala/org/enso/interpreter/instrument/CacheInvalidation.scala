@@ -14,7 +14,11 @@ import scala.jdk.CollectionConverters._
   * @param command the invalidation command.
   * @param indexes the indexes to invalidate.
   */
-case class CacheInvalidation(elements: CacheInvalidation.StackSelector, command: CacheInvalidation.Command, indexes: Set[CacheInvalidation.IndexSelector])
+case class CacheInvalidation(
+  elements: CacheInvalidation.StackSelector,
+  command: CacheInvalidation.Command,
+  indexes: Set[CacheInvalidation.IndexSelector]
+)
 
 object CacheInvalidation {
 
@@ -61,7 +65,8 @@ object CacheInvalidation {
       *
       * @param metadata the cache metadata.
       */
-    case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata) extends Command
+    case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata)
+        extends Command
 
     /**
       * Create an invalidation instruction from [[Api.InvalidatedExpressions]].
@@ -90,7 +95,6 @@ object CacheInvalidation {
     case object Top extends StackSelector
   }
 
-
   /**
     * Create an invalidation instruction.
     *
@@ -101,21 +105,27 @@ object CacheInvalidation {
     new CacheInvalidation(elements, command, Set())
 
   /**
-   * Run cache invalidation batch.
-   *
-   * @param stack the runtime stack.
-   * @param instructions the list of cache invalidation instructions.
-   */
-  def runAll(stack: Iterable[InstrumentFrame], instructions: Iterable[CacheInvalidation]): Unit =
+    * Run cache invalidation batch.
+    *
+    * @param stack the runtime stack.
+    * @param instructions the list of cache invalidation instructions.
+    */
+  def runAll(
+    stack: Iterable[InstrumentFrame],
+    instructions: Iterable[CacheInvalidation]
+  ): Unit =
     instructions.foreach(run(stack, _))
 
   /**
-   * Run cache invalidation.
-   *
-   * @param stack the runtime stack.
-   * @param instruction the invalidation instruction.
-   */
-  def run(stack: Iterable[InstrumentFrame], instruction: CacheInvalidation): Unit = {
+    * Run cache invalidation.
+    *
+    * @param stack the runtime stack.
+    * @param instruction the invalidation instruction.
+    */
+  def run(
+    stack: Iterable[InstrumentFrame],
+    instruction: CacheInvalidation
+  ): Unit = {
     val frames = instruction.elements match {
       case StackSelector.All => stack
       case StackSelector.Top => stack.headOption.toSeq
@@ -130,7 +140,11 @@ object CacheInvalidation {
     * @param command the invalidation instruction.
     * @param indexes the list of indexes to invalidate.
     */
-  private def run(frames: Iterable[InstrumentFrame], command: Command, indexes: Set[IndexSelector]): Unit = {
+  private def run(
+    frames: Iterable[InstrumentFrame],
+    command: Command,
+    indexes: Set[IndexSelector]
+  ): Unit = {
     frames.foreach(run(_, command, indexes))
   }
 
@@ -141,7 +155,11 @@ object CacheInvalidation {
     * @param command the invalidation instruction.
     * @param indexes the list of indexes to invalidate.
     */
-  private def run(frame: InstrumentFrame, command: Command, indexes: Set[IndexSelector]): Unit =
+  private def run(
+    frame: InstrumentFrame,
+    command: Command,
+    indexes: Set[IndexSelector]
+  ): Unit =
     command match {
       case Command.InvalidateAll =>
         frame.cache.clear()

@@ -31,7 +31,13 @@ class PopContextCmd(
           Api.PopContextResponse(request.contextId)
         case Some(InstrumentFrame(_: Api.StackItem.LocalCall, cache)) =>
           val stack = ctx.contextManager.getStack(request.contextId)
-          CacheInvalidation.run(stack, CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.CopyCache(cache)))
+          CacheInvalidation.run(
+            stack,
+            CacheInvalidation(
+              CacheInvalidation.StackSelector.Top,
+              CacheInvalidation.Command.CopyCache(cache)
+            )
+          )
           withContext(runProgram(request.contextId, stack.toList)) match {
             case Right(()) => Api.PopContextResponse(request.contextId)
             case Left(e)   => Api.ExecutionFailed(request.contextId, e)

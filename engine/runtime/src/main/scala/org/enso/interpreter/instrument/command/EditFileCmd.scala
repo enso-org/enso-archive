@@ -27,7 +27,9 @@ class EditFileCmd(request: Api.EditFileNotification)
       .modifyModuleSources(request.path, request.edits.asJava)
       .toScala
     val invalidateExpressionsCommand = changesetOpt.map { changeset =>
-      CacheInvalidation.Command.InvalidateKeys(request.edits.flatMap(changeset.compute))
+      CacheInvalidation.Command.InvalidateKeys(
+        request.edits.flatMap(changeset.compute)
+      )
     }
     val invalidateStaleCommand = changesetOpt.map { changeset =>
       val scopeIds = ctx.executionService.getContext.getCompiler
@@ -37,11 +39,19 @@ class EditFileCmd(request: Api.EditFileNotification)
     }
     val cacheInvalidationCommands =
       (invalidateExpressionsCommand.toSeq ++ invalidateStaleCommand.toSeq)
-          .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _, Set(CacheInvalidation.IndexSelector.All)))
+        .map(
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.All,
+            _,
+            Set(CacheInvalidation.IndexSelector.All)
+          )
+        )
     withContext(executeAll(cacheInvalidationCommands))
   }
 
-  private def executeAll(invalidationCommands: Iterable[CacheInvalidation])(implicit ctx: RuntimeContext): Unit = {
+  private def executeAll(
+    invalidationCommands: Iterable[CacheInvalidation]
+  )(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)

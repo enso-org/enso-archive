@@ -33,10 +33,16 @@ class PushContextCmd(
           ctx.contextManager.push(request.contextId, request.stackItem)
           getCacheMetadata(stack) match {
             case Some(metadata) =>
-              CacheInvalidation.run(stack, CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.SetMetadata(metadata)))
+              CacheInvalidation.run(
+                stack,
+                CacheInvalidation(
+                  CacheInvalidation.StackSelector.Top,
+                  CacheInvalidation.Command.SetMetadata(metadata)
+                )
+              )
               withContext(runProgram(request.contextId, stack.toList)) match {
                 case Right(()) => Api.PushContextResponse(request.contextId)
-                case Left(e) => Api.ExecutionFailed(request.contextId, e)
+                case Left(e)   => Api.ExecutionFailed(request.contextId, e)
               }
             case None =>
               Api.InvalidStackItemError(request.contextId)
@@ -48,14 +54,25 @@ class PushContextCmd(
               CacheInvalidation.runAll(
                 stack,
                 Seq(
-                  CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.CopyCache(stack.top.cache)),
-                  CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.SetMetadata(metadata)),
-                  CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.InvalidateKeys(Seq(call.expressionId))),
+                  CacheInvalidation(
+                    CacheInvalidation.StackSelector.Top,
+                    CacheInvalidation.Command.CopyCache(stack.top.cache)
+                  ),
+                  CacheInvalidation(
+                    CacheInvalidation.StackSelector.Top,
+                    CacheInvalidation.Command.SetMetadata(metadata)
+                  ),
+                  CacheInvalidation(
+                    CacheInvalidation.StackSelector.Top,
+                    CacheInvalidation.Command.InvalidateKeys(
+                      Seq(call.expressionId)
+                    )
+                  )
                 )
               )
               withContext(runProgram(request.contextId, stack.toList)) match {
                 case Right(()) => Api.PushContextResponse(request.contextId)
-                case Left(e) => Api.ExecutionFailed(request.contextId, e)
+                case Left(e)   => Api.ExecutionFailed(request.contextId, e)
               }
             case None =>
               Api.InvalidStackItemError(request.contextId)
@@ -72,11 +89,19 @@ class PushContextCmd(
     }
   }
 
-  private def getCacheMetadata(stack: Iterable[InstrumentFrame])(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
+  private def getCacheMetadata(
+    stack: Iterable[InstrumentFrame]
+  )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
     stack.lastOption flatMap {
       case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _) =>
-        ctx.executionService.getContext.getModuleForFile(ptr.file).toScala.map { module =>
-          module.parseIr(ctx.executionService.getContext).unsafeGetMetadata(CachePreferenceAnalysis, "Empty cache preference metadata")
+        ctx.executionService.getContext.getModuleForFile(ptr.file).toScala.map {
+          module =>
+            module
+              .parseIr(ctx.executionService.getContext)
+              .unsafeGetMetadata(
+                CachePreferenceAnalysis,
+                "Empty cache preference metadata"
+              )
         }
       case _ => None
     }

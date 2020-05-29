@@ -1,10 +1,18 @@
 package org.enso.interpreter.instrument.command
 
 import cats.implicits._
-import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{EvalFailure, EvaluationFailed, ModuleNotFound}
+import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{
+  EvalFailure,
+  EvaluationFailed,
+  ModuleNotFound
+}
 import org.enso.interpreter.instrument.{CacheInvalidation, Visualisation}
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, RequestId, VisualisationId}
+import org.enso.polyglot.runtime.Runtime.Api.{
+  ExpressionId,
+  RequestId,
+  VisualisationId
+}
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import scala.util.control.NonFatal
@@ -57,7 +65,13 @@ abstract class BaseVisualisationCmd
           Api.Response(requestId, replyWith)
         )
         val stack = ctx.contextManager.getStack(config.executionContextId)
-        CacheInvalidation.run(stack, CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.InvalidateKeys(Seq(expressionId))))
+        CacheInvalidation.run(
+          stack,
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.Top,
+            CacheInvalidation.Command.InvalidateKeys(Seq(expressionId))
+          )
+        )
         withContext(runProgram(config.executionContextId, stack.toList))
     }
   }

@@ -5,12 +5,21 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  IdExecutionInstrument,
+  InstrumentFrame,
+  RuntimeServerInstrument
+}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.{
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions,
+  RuntimeServerInfo
+}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -668,7 +677,9 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(Api.OpenFileNotification(visualisationFile, context.Visualisation.code))
+    send(
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -694,7 +705,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     context.send(
@@ -737,16 +748,24 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive should contain (
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+    context.receive should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
     // recompute invalidating x
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, Some(Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX)))))
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
+          )
+        )
+      )
     )
     val recomputeResponses2 = context.receive(3)
-    recomputeResponses2 should contain allOf(
+    recomputeResponses2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
     )
@@ -772,7 +791,9 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(Api.OpenFileNotification(visualisationFile, context.Visualisation.code))
+    send(
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -798,7 +819,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     context.send(
@@ -856,20 +877,21 @@ class RuntimeServerTest
       Api.Response(requestId, Api.VisualisationModified()),
       context.Main.Update.mainX(contextId),
     )
-    val Some(dataAfterModification) = modifyVisualisationResponses.collectFirst {
-      case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
-          ) =>
-        data
-    }
+    val Some(dataAfterModification) =
+      modifyVisualisationResponses.collectFirst {
+        case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+            ) =>
+          data
+      }
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
@@ -878,7 +900,9 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(Api.OpenFileNotification(visualisationFile, context.Visualisation.code))
+    send(
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    )
 
     val contextId       = UUID.randomUUID()
     val requestId       = UUID.randomUUID()
@@ -942,15 +966,25 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive should contain (
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+    context.receive should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
     // recompute invalidating x
-    context.send(Api.Request(requestId, Api.RecomputeContextRequest(contextId, Some(Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))))))
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
+          )
+        )
+      )
+    )
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainX(contextId)
     )
   }
 
