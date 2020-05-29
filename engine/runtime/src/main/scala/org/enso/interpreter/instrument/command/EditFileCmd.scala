@@ -21,29 +21,28 @@ class EditFileCmd(request: Api.EditFileNotification)
     val changesetOpt = ctx.executionService
       .modifyModuleSources(request.path, request.edits.asJava)
       .toScala
-    val invalidateExpressions = changesetOpt.map { changeset =>
-      CacheInvalidation.InvalidateKeys(request.edits.flatMap(changeset.compute))
+    val invalidateExpressionsCommand = changesetOpt.map { changeset =>
+      CacheInvalidation.Command.InvalidateKeys(request.edits.flatMap(changeset.compute))
     }
-    val invalidateStale = changesetOpt.map { changeset =>
+    val invalidateStaleCommand = changesetOpt.map { changeset =>
       val scopeIds = ctx.executionService.getContext.getCompiler
         .parseMeta(changeset.source.toString)
         .map(_._2)
-      CacheInvalidation.InvalidateStale(scopeIds)
+      CacheInvalidation.Command.InvalidateStale(scopeIds)
     }
-    withContext(
-      executeAll(invalidateExpressions.toSeq ++ invalidateStale.toSeq)
-    )
+    val cacheInvalidationCommands =
+      (invalidateExpressionsCommand.toSeq ++ invalidateStaleCommand.toSeq)
+          .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _, Set(CacheInvalidation.IndexSelector.All)))
+    withContext(executeAll(cacheInvalidationCommands))
   }
 
-  private def executeAll(
-    invalidationRules: Iterable[CacheInvalidation]
-  )(implicit ctx: RuntimeContext): Unit = {
+  private def executeAll(invalidationCommands: Iterable[CacheInvalidation])(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .foreach {
         case (contextId, stack) =>
-          CacheInvalidation.run(stack, invalidationRules)
+          CacheInvalidation.runAll(stack, invalidationCommands)
           runProgram(contextId, stack)
       }
   }

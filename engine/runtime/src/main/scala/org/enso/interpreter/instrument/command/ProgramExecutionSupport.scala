@@ -6,16 +6,10 @@ import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
-import org.enso.interpreter.instrument.IdExecutionInstrument.{
-  ExpressionCall,
-  ExpressionValue
-}
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
+import org.enso.interpreter.instrument.IdExecutionInstrument.{ExpressionCall, ExpressionValue}
 import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
-import org.enso.interpreter.instrument.{
-  InstrumentFrame,
-  RuntimeCache,
-  Visualisation
-}
+import org.enso.interpreter.instrument.{InstrumentFrame, RuntimeCache, Visualisation}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
@@ -55,7 +49,7 @@ trait ProgramExecutionSupport {
     * @param valueCallback a listener of computed values
     */
   @scala.annotation.tailrec
-  final def runProgram(
+  private final def runProgram(
     executionItem: ExecutionItem,
     callStack: List[UUID],
     cache: RuntimeCache,
@@ -105,7 +99,7 @@ trait ProgramExecutionSupport {
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program
     */
-  def runProgram(
+  final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
@@ -120,7 +114,7 @@ trait ProgramExecutionSupport {
         case Nil =>
           (explicitCalls.lastOption, localCalls, caches.lastOption)
         case List(InstrumentFrame(call: Api.StackItem.ExplicitCall, cache)) =>
-          (Some(call), localCalls, Some(cache))
+          (Some(call), localCalls, (cache :: caches).lastOption)
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
       }

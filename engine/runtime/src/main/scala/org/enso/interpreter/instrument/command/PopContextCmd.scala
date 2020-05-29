@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.InstrumentFrame
+import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -23,8 +23,9 @@ class PopContextCmd(
       val payload = ctx.contextManager.pop(request.contextId) match {
         case Some(InstrumentFrame(_: Api.StackItem.ExplicitCall, _)) =>
           Api.PopContextResponse(request.contextId)
-        case Some(InstrumentFrame(_: Api.StackItem.LocalCall, _)) =>
+        case Some(InstrumentFrame(_: Api.StackItem.LocalCall, cache)) =>
           val stack = ctx.contextManager.getStack(request.contextId)
+          CacheInvalidation.run(stack, CacheInvalidation(CacheInvalidation.StackSelector.Top, CacheInvalidation.Command.CopyCache(cache)))
           withContext(runProgram(request.contextId, stack.toList)) match {
             case Right(()) => Api.PopContextResponse(request.contextId)
             case Left(e)   => Api.ExecutionFailed(request.contextId, e)

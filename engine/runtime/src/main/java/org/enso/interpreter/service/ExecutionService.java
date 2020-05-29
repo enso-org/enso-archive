@@ -134,40 +134,35 @@ public class ExecutionService {
     execute(callMay.get(), cache, valueCallback, funCallCallback);
   }
 
-    /**
-     * Evaluates an expression in the scope of the provided module.
-     *
-     * @param module the module providing a scope for the expression
-     * @param expression the expression to evluated
-     * @return a result of evaluation
-     */
+  /**
+   * Evaluates an expression in the scope of the provided module.
+   *
+   * @param module the module providing a scope for the expression
+   * @param expression the expression to evluated
+   * @return a result of evaluation
+   */
   public Object evaluateExpression(Module module, String expression)
-        throws UnsupportedMessageException, ArityException,
-        UnknownIdentifierException, UnsupportedTypeException {
-    return interopLibrary.invokeMember(
-            module,
-            MethodNames.Module.EVAL_EXPRESSION,
-            expression
-    );
+      throws UnsupportedMessageException, ArityException, UnknownIdentifierException,
+          UnsupportedTypeException {
+    return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
   }
 
-    /**
-     * Calls a function with the given argument.
-     *
-     * @param fn the function object
-     * @param argument the argument applied to the function
-     * @return the result of calling the function
-     */
+  /**
+   * Calls a function with the given argument.
+   *
+   * @param fn the function object
+   * @param argument the argument applied to the function
+   * @return the result of calling the function
+   */
   public Object callFunction(Object fn, Object argument)
-        throws UnsupportedTypeException, ArityException,
-        UnsupportedMessageException {
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     return interopLibrary.execute(fn, argument);
   }
 
   /**
    * Sets a module at a given path to use a literal source.
    *
-   * If a module does not exist it will be created.
+   * <p>If a module does not exist it will be created.
    *
    * @param path the module path.
    * @param contents the sources to use for it.
@@ -190,12 +185,12 @@ public class ExecutionService {
     module.ifPresent(Module::unsetLiteralSource);
   }
 
-    /**
-     * Finds a module by qualified name.
-     *
-     * @param moduleName the qualified name of the module
-     * @return the relevant module, if exists
-     */
+  /**
+   * Finds a module by qualified name.
+   *
+   * @param moduleName the qualified name of the module
+   * @return the relevant module, if exists
+   */
   public Optional<Module> findModule(String moduleName) {
     return context.findModule(moduleName);
   }
@@ -216,9 +211,10 @@ public class ExecutionService {
     if (module.getLiteralSource() == null) {
       return Optional.empty();
     }
-    Changeset dc = new Changeset(module.getLiteralSource().toString(), module.getIr());
+    Changeset changeset =
+        new Changeset(module.getLiteralSource().toString(), module.parseIr(context));
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);
-    return Optional.of(dc);
+    return Optional.of(changeset);
   }
 }

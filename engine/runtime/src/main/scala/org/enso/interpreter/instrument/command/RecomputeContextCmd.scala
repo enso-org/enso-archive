@@ -24,10 +24,10 @@ class RecomputeContextCmd(
       val payload = if (stack.isEmpty) {
         Api.EmptyStackError(request.contextId)
       } else {
-        CacheInvalidation.run(
-          stack,
-          request.expressions.toSeq.map(CacheInvalidation(_))
-        )
+        val cacheInvalidationCommands = request.expressions.toSeq
+          .map(CacheInvalidation.Command(_))
+          .map(CacheInvalidation(CacheInvalidation.StackSelector.Top, _))
+        CacheInvalidation.runAll(stack, cacheInvalidationCommands)
         withContext(runProgram(request.contextId, stack.toList)) match {
           case Right(()) => Api.RecomputeContextResponse(request.contextId)
           case Left(e)   => Api.ExecutionFailed(request.contextId, e)

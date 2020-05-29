@@ -164,9 +164,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       }
       Node node = context.getInstrumentedNode();
       UUID nodeId = null;
-      if (node instanceof FunctionCallInstrumentationNode) {
-        nodeId = ((FunctionCallInstrumentationNode) node).getId();
-      } else if (node instanceof ExpressionNode) {
+      if (node instanceof ExpressionNode) {
         nodeId = ((ExpressionNode) node).getId();
       }
 
@@ -200,6 +198,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
+        cache.offer(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
                 nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
