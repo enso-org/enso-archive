@@ -8,6 +8,11 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 /**
   * A command that forces a recomputation of the current position.
   *
+  * == Caching ==
+  *
+  * Invalidate top frame according to the [[Api.InvalidatedExpressions]]
+  * parameter.
+  *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */

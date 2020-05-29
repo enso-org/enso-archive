@@ -10,6 +10,11 @@ import scala.jdk.OptionConverters._
 /**
   * A command that edits a file.
   *
+  * == Caching ==
+  *
+  * Compute invalidated external ids by applying the text edits to the
+  * changeset. Invalidated ids are removed from all stack frames.
+  *
   * @param request a request for a service
   */
 class EditFileCmd(request: Api.EditFileNotification)

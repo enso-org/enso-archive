@@ -8,6 +8,12 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 /**
   * A command that pops an item from a stack.
   *
+  * == Caching ==
+  *
+  * Cache is copied to the top frame from the popped frame. It may happen that
+  * cache had been invalidated with the text edit, and the popped frame contains
+  * the latest precomputed values.
+  *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */

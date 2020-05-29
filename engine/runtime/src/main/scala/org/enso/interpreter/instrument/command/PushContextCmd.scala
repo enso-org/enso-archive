@@ -11,6 +11,10 @@ import scala.jdk.OptionConverters._
 /**
   * A command that pushes an item onto a stack.
   *
+  * == Caching ==
+  *
+  * Cache is copied to the next frame, and pushed expression is invalidated.
+  *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
