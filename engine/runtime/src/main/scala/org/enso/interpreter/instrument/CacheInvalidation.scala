@@ -182,6 +182,6 @@ object CacheInvalidation {
       case Command.CopyCache(source) =>
         frame.copy(cache = source)
       case Command.SetMetadata(metadata) =>
-        frame.cache.setWeights(metadata.weights)
+        frame.cache.setWeights(metadata.asJavaWeights)
     }
 }

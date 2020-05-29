@@ -10,7 +10,7 @@ import java.util.UUID;
 public class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
-  private Map<UUID, Long> weights = new HashMap<>();
+  private Map<UUID, Double> weights = new HashMap<>();
 
   /**
    * Add value to the cache if it is possible.
@@ -20,7 +20,7 @@ public class RuntimeCache {
    * @return {@code true} if the value was added to the cache.
    */
   public boolean offer(UUID key, Object value) {
-    if (weights.getOrDefault(key, 0L) > 0) {
+    if (weights.getOrDefault(key, 0.0) > 0) {
       cache.put(key, new SoftReference<>(value));
       return true;
     }
@@ -50,12 +50,12 @@ public class RuntimeCache {
   }
 
   /** @return the weights of this cache. */
-  public Map<UUID, Long> getWeights() {
+  public Map<UUID, Double> getWeights() {
     return weights;
   }
 
   /** Set the new weights. */
-  public void setWeights(Map<UUID, Long> weights) {
+  public void setWeights(Map<UUID, Double> weights) {
     this.weights = weights;
   }
 

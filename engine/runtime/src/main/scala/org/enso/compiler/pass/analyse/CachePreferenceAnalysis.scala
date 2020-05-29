@@ -7,6 +7,10 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+
+import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
 /** This pass implements the preference analysis for caching.
   *
@@ -23,9 +27,12 @@ case object CachePreferenceAnalysis extends IRPass {
 
   /** @inheritdoc **/
   override val precursorPasses: Seq[IRPass] = List(
-    AliasAnalysis,
-    DemandAnalysis,
-    TailCall
+    ComplexType,
+    FunctionBinding,
+    GenerateMethodBodies,
+    LambdaShorthandToLambda,
+    OperatorToFunction,
+    SectionsToBinOp
   )
 
   /** @inheritdoc **/
@@ -131,7 +138,7 @@ case object CachePreferenceAnalysis extends IRPass {
           .updateMetadata(this -->> weights)
 
       case binding @ IR.Expression.Binding(name, expression, _, _, _) =>
-        expression.getExternalId.foreach(weights.update(_, 1L))
+        expression.getExternalId.foreach(weights.update(_, Weight.Always))
         binding
           .copy(
             name       = name.updateMetadata(this -->> weights),
@@ -278,17 +285,41 @@ case object CachePreferenceAnalysis extends IRPass {
 
   // === Pass Metadata ========================================================
 
-  case class WeightInfo(
-    weights: util.HashMap[IR.ExternalId, java.lang.Long] = new util.HashMap()
+  /** Storage for a preference information.
+    *
+    * @param weights the storage for weights of the program components
+    */
+  sealed case class WeightInfo(
+    weights: mutable.HashMap[IR.ExternalId, Double] = mutable.HashMap()
   ) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "CachePreferenceAnalysis.Weights"
 
-    def update(id: IR.ExternalId, weight: Long): Unit =
+    /** Assign the weight to an id.
+      *
+      * @param id the external id
+      * @param weight the assigned weight
+      */
+    def update(id: IR.ExternalId, weight: Double): Unit =
       weights.put(id, weight)
 
-    def get(id: IR.ExternalId): Long =
-      weights.getOrDefault(id, 0L)
+    /** Get the weight associated with given id */
+    def get(id: IR.ExternalId): Double =
+      weights.getOrElse(id, 0.0)
+
+    /** @return weights as the Java collection */
+    def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =
+      weights.asJava.asInstanceOf[util.Map[IR.ExternalId, java.lang.Double]]
+  }
+
+  /** Weight constants */
+  object Weight {
+
+    /** Maximum weight meaning that the program component is always cached. */
+    val Always: Double = 1.0
+
+    /** Minimum weight meaning that the program component is never cached. */
+    val Never: Double = 0.0
   }
 }

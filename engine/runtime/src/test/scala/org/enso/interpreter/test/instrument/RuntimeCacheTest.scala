@@ -20,7 +20,7 @@ class RuntimeCacheTest extends AnyFlatSpec with Matchers {
     cache.get(key) shouldEqual null
 
     cache.setWeights(
-      Map(key -> 1L).asJava.asInstanceOf[util.Map[UUID, java.lang.Long]]
+      Map(key -> 1.0).asJava.asInstanceOf[util.Map[UUID, java.lang.Double]]
     )
     cache.offer(key, obj) shouldEqual true
     cache.get(key) shouldEqual obj
@@ -32,7 +32,7 @@ class RuntimeCacheTest extends AnyFlatSpec with Matchers {
     val obj   = new Object
 
     cache.setWeights(
-      Map(key -> 1L).asJava.asInstanceOf[util.Map[UUID, java.lang.Long]]
+      Map(key -> 1.0).asJava.asInstanceOf[util.Map[UUID, java.lang.Double]]
     )
     cache.offer(key, obj) shouldEqual true
     cache.remove(key) shouldEqual obj
