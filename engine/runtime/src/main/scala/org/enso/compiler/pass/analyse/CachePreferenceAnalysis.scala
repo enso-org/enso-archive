@@ -56,7 +56,7 @@ case object CachePreferenceAnalysis extends IRPass {
 
   // === Pass Internals =======================================================
 
-  /** Performas preference analysis on a module definition
+  /** Performas preference analysis on a module definition.
     *
     * @param binding the binding to perform dataflow analysis on
     * @param weights the weights information for the module
