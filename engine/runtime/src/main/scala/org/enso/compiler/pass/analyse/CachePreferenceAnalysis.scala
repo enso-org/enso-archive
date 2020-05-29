@@ -7,7 +7,14 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies,
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
+}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
