@@ -83,7 +83,6 @@ object CacheInvalidation {
 
   /** Base trait for selecting stack elements. */
   sealed trait StackSelector
-
   object StackSelector {
 
     /** Select all stack elements. */
