@@ -8,11 +8,15 @@ import org.enso.polyglot.runtime.Runtime.Api
 import scala.jdk.CollectionConverters._
 
 /**
-  * Cache invalidation command.
+  * Cache invalidation instruction.
   *
-  * @param elements the cache of which stack elements to invalidate.
-  * @param command the invalidation command.
-  * @param indexes the indexes to invalidate.
+  * An instruction describes the stack `elements` selected for invalidation, the
+  * invalidation `command` itself, and the extra set of `indexes` that should also
+  * be cleared with an invalidation `command`.
+  *
+  * @param elements the cache of which stack elements to invalidate
+  * @param command the invalidation command
+  * @param indexes the extra indexes to invalidate
   */
 case class CacheInvalidation(
   elements: CacheInvalidation.StackSelector,
@@ -30,7 +34,10 @@ object CacheInvalidation {
     case object All extends IndexSelector
   }
 
-  /** Base trait for cache invalidation instructions. */
+  /**
+    * Base trait for cache invalidation commands. Commands describe how the
+    * state of the cache is changed.
+    */
   sealed trait Command
   object Command {
 
@@ -40,28 +47,28 @@ object CacheInvalidation {
     /**
       * Instruction to invalidate provided cache keys.
       *
-      * @param keys a list of keys that should be invalidated.
+      * @param keys a list of keys that should be invalidated
       */
     case class InvalidateKeys(keys: Iterable[UUID]) extends Command
 
     /**
       * Instruction to invalidate stale entries from the cache.
       *
-      * @param scope all ids of the source.
+      * @param scope all ids of the source
       */
     case class InvalidateStale(scope: Iterable[UUID]) extends Command
 
     /**
       * Instruction to set the cache from the source.
       *
-      * @param source the source runtime cache.
+      * @param source the source runtime cache
       */
     case class CopyCache(source: RuntimeCache) extends Command
 
     /**
       * Set cache metadata form the compiler pass.
       *
-      * @param metadata the cache metadata.
+      * @param metadata the cache metadata
       */
     case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata)
         extends Command
@@ -69,8 +76,8 @@ object CacheInvalidation {
     /**
       * Create an invalidation instruction from [[Api.InvalidatedExpressions]].
       *
-      * @param expressions invalidated expressions.
-      * @return an invalidation instruction.
+      * @param expressions invalidated expressions
+      * @return an invalidation instruction
       */
     def apply(expressions: Api.InvalidatedExpressions): Command =
       expressions match {
@@ -102,10 +109,10 @@ object CacheInvalidation {
     new CacheInvalidation(elements, command, Set())
 
   /**
-    * Run cache invalidation batch.
+    * Run a sequence of invalidation instructions on an execution stack.
     *
-    * @param stack the runtime stack.
-    * @param instructions the list of cache invalidation instructions.
+    * @param stack the runtime stack
+    * @param instructions the list of cache invalidation instructions
     */
   def runAll(
     stack: Iterable[InstrumentFrame],
@@ -114,10 +121,10 @@ object CacheInvalidation {
     instructions.foreach(run(stack, _))
 
   /**
-    * Run cache invalidation.
+    * Run a cache invalidation instruction on an execution stack.
     *
-    * @param stack the runtime stack.
-    * @param instruction the invalidation instruction.
+    * @param stack the runtime stack
+    * @param instruction the invalidation instruction
     */
   def run(
     stack: Iterable[InstrumentFrame],
@@ -131,11 +138,11 @@ object CacheInvalidation {
   }
 
   /**
-    * Run cache invalidation.
+    * Run cache invalidation of a multiple instrument frames.
     *
-    * @param frames stack elements which cache should be invalidated.
-    * @param command the invalidation instruction.
-    * @param indexes the list of indexes to invalidate.
+    * @param frames stack elements which cache should be invalidated
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
     */
   private def run(
     frames: Iterable[InstrumentFrame],
@@ -146,11 +153,11 @@ object CacheInvalidation {
   }
 
   /**
-    * Run cache invalidation.
+    * Run cache invalidation of a single instrument frame.
     *
     * @param frame stack element to invalidate
-    * @param command the invalidation instruction.
-    * @param indexes the list of indexes to invalidate.
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
     */
   private def run(
     frame: InstrumentFrame,
