@@ -32,7 +32,7 @@ case object CachePreferenceAnalysis extends IRPass {
 
   override type Metadata = WeightInfo
 
-  /** @inheritdoc **/
+  /** Run deshugaring passes first. */
   override val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     FunctionBinding,
@@ -42,10 +42,15 @@ case object CachePreferenceAnalysis extends IRPass {
     SectionsToBinOp
   )
 
-  /** @inheritdoc **/
   override val invalidatedPasses: Seq[IRPass] = List()
 
-  /** @inheritdoc **/
+  /** Performs the cache preference analysis on a module.
+    *
+    * @param ir the IR to process
+    * @param moduleContext a context that contains information needed to process
+    * a module
+    * @return ir annotated with the preference information
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
@@ -55,7 +60,13 @@ case object CachePreferenceAnalysis extends IRPass {
       .updateMetadata(this -->> weights)
   }
 
-  /** @inheritdoc **/
+  /** Performs the cache preference analysis on an inline expression.
+    *
+    * @param ir the IR to process
+    * @param inlineContext a context object that contains the information needed
+    * for inline evaluation
+    * @return ir annotated with the preference information
+    */
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
