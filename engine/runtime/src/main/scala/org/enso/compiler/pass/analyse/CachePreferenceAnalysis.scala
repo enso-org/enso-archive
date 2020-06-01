@@ -133,6 +133,7 @@ case object CachePreferenceAnalysis extends IRPass {
   ): IR.Expression = {
     expression.transformExpressions {
       case binding: IR.Expression.Binding =>
+        binding.getExternalId.foreach(weights.update(_, Weight.Never))
         binding.expression.getExternalId
           .foreach(weights.update(_, Weight.Always))
         binding
@@ -144,6 +145,9 @@ case object CachePreferenceAnalysis extends IRPass {
       case error: IR.Error =>
         error
       case expr =>
+        expr.getExternalId.collect {
+          case id if !weights.contains(id) => weights.update(id, Weight.Never)
+        }
         expr
           .mapExpressions(analyseExpression(_, weights))
           .updateMetadata(this -->> weights)
@@ -191,7 +195,11 @@ case object CachePreferenceAnalysis extends IRPass {
 
     /** Get the weight associated with given id */
     def get(id: IR.ExternalId): Double =
-      weights.getOrElse(id, 0.0)
+      weights.getOrElse(id, Weight.Never)
+
+    /** Check if the weight is assigned to this id. */
+    def contains(id: IR.ExternalId): Boolean =
+      weights.contains(id)
 
     /** @return weights as the Java collection */
     def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =

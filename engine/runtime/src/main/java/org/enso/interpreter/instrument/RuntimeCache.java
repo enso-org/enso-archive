@@ -20,7 +20,8 @@ public class RuntimeCache {
    * @return {@code true} if the value was added to the cache.
    */
   public boolean offer(UUID key, Object value) {
-    if (weights.getOrDefault(key, 0.0) > 0) {
+    Double weight = weights.get(key);
+    if (weight != null && weight > 0) {
       cache.put(key, new SoftReference<>(value));
       return true;
     }
