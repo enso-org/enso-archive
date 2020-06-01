@@ -32,7 +32,7 @@ case object CachePreferenceAnalysis extends IRPass {
 
   override type Metadata = WeightInfo
 
-  /** Run deshugaring passes first. */
+  /** Run desugaring passes first. */
   override val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     FunctionBinding,
