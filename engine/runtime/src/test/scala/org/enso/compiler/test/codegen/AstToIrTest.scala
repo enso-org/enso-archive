@@ -225,6 +225,17 @@ class AstToIrTest extends CompilerTest {
       branch2.fields.head shouldBe an[IR.Pattern.Name]
       branch2.fields(1) shouldBe an[IR.Pattern.Constructor]
     }
+
+    "support constructor-only patterns" in {
+      val ir =
+        """
+          |case foo of
+          |    Nil -> 10
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      val pattern = ir.branches.head.pattern
+      pattern shouldBe an[IR.Pattern.Constructor]
+    }
   }
 
   "AST translation of function definitions" should {
