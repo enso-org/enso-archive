@@ -22,7 +22,9 @@ class EditFileCmd(request: Api.EditFileNotification)
       .modifyModuleSources(request.path, request.edits.asJava)
       .toScala
     val invalidateExpressions = changesetOpt.map { changeset =>
-      CacheInvalidation.InvalidateKeys(request.edits.flatMap(changeset.compute))
+      CacheInvalidation.InvalidateKeys(
+        changeset.compute(request.edits)
+      )
     }
     val invalidateStale = changesetOpt.map { changeset =>
       val scopeIds = ctx.executionService.getContext.getCompiler
