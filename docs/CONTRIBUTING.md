@@ -103,15 +103,17 @@ look at the design documentation for the language. These files explain provide
 both a rigorous specification of Enso's design, but also insight into the _why_
 behind the decisions that have been made.
 
-These can be found in [`docs/`](README.md), and are organised by the
-part of the compiler that they relate to.
+These can be found in [`docs/`](README.md), and are organised by the part of the
+compiler that they relate to.
 
 ### System Requirements
 In order to build and run Enso you will need the following tools:
 
-- [sbt](https://www.scala-sbt.org/) with the same version as specified in [`project/build.properties`](../project/build.properties).
+- [sbt](https://www.scala-sbt.org/) with the same version as specified in
+  [`project/build.properties`](../project/build.properties).
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
-  the [`build.sbt`](../build.sbt) file, and Java 8, configured as your default JVM.
+  the [`build.sbt`](../build.sbt) file, and Java 8, configured as your default
+  JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 
