@@ -7,8 +7,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.CollectionConverters._
 
-/**
-  * Cache invalidation instruction.
+/** Cache invalidation instruction.
   *
   * An instruction describes the stack `elements` selected for invalidation, the
   * invalidation `command` itself, and the extra set of `indexes` that should also
@@ -34,50 +33,44 @@ object CacheInvalidation {
     case object All extends IndexSelector
   }
 
-  /**
-    * Base trait for cache invalidation commands. Commands describe how the
+  /** Base trait for cache invalidation commands. Commands describe how the
     * state of the cache is changed.
     */
   sealed trait Command
   object Command {
 
-    /** Instruction to invalidate all cache entries. */
+    /** A command to invalidate all cache entries. */
     case object InvalidateAll extends Command
 
-    /**
-      * Instruction to invalidate provided cache keys.
+    /** A command to invalidate provided cache keys.
       *
       * @param keys a list of keys that should be invalidated
       */
     case class InvalidateKeys(keys: Iterable[UUID]) extends Command
 
-    /**
-      * Instruction to invalidate stale entries from the cache.
+    /** A command to invalidate stale entries from the cache.
       *
       * @param scope all ids of the source
       */
     case class InvalidateStale(scope: Iterable[UUID]) extends Command
 
-    /**
-      * Instruction to set the cache from the source.
+    /** A command to set the cache from the source.
       *
       * @param source the source runtime cache
       */
     case class CopyCache(source: RuntimeCache) extends Command
 
-    /**
-      * Set cache metadata form the compiler pass.
+    /** A command to set the cache metadata form the compiler pass.
       *
       * @param metadata the cache metadata
       */
     case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata)
         extends Command
 
-    /**
-      * Create an invalidation instruction from [[Api.InvalidatedExpressions]].
+    /** Create an invalidation command from [[Api.InvalidatedExpressions]].
       *
       * @param expressions invalidated expressions
-      * @return an invalidation instruction
+      * @return an invalidation command
       */
     def apply(expressions: Api.InvalidatedExpressions): Command =
       expressions match {
@@ -99,8 +92,8 @@ object CacheInvalidation {
     case object Top extends StackSelector
   }
 
-  /**
-    * Create an invalidation instruction.
+  /** Create an invalidation instruction using a stack selector and an
+    * invalidation command.
     *
     * @param elements the stack elements selector.
     * @param command the invalidation command.
@@ -108,8 +101,7 @@ object CacheInvalidation {
   def apply(elements: StackSelector, command: Command): CacheInvalidation =
     new CacheInvalidation(elements, command, Set())
 
-  /**
-    * Run a sequence of invalidation instructions on an execution stack.
+  /** Run a sequence of invalidation instructions on an execution stack.
     *
     * @param stack the runtime stack
     * @param instructions the list of cache invalidation instructions
@@ -120,8 +112,7 @@ object CacheInvalidation {
   ): Unit =
     instructions.foreach(run(stack, _))
 
-  /**
-    * Run a cache invalidation instruction on an execution stack.
+  /** Run a cache invalidation instruction on an execution stack.
     *
     * @param stack the runtime stack
     * @param instruction the invalidation instruction
@@ -137,8 +128,7 @@ object CacheInvalidation {
     run(frames, instruction.command, instruction.indexes)
   }
 
-  /**
-    * Run cache invalidation of a multiple instrument frames.
+  /** Run cache invalidation of a multiple instrument frames.
     *
     * @param frames stack elements which cache should be invalidated
     * @param command the invalidation instruction
@@ -152,8 +142,7 @@ object CacheInvalidation {
     frames.foreach(run(_, command, indexes))
   }
 
-  /**
-    * Run cache invalidation of a single instrument frame.
+  /** Run cache invalidation of a single instrument frame.
     *
     * @param frame stack element to invalidate
     * @param command the invalidation instruction
