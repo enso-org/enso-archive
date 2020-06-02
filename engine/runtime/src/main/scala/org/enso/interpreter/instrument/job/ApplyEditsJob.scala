@@ -16,8 +16,8 @@ class ApplyEditsJob(file: File, edits: Seq[TextEdit])
     * @param ctx contains suppliers of services to perform a request
     */
   override def run(implicit ctx: RuntimeContext): List[CacheInvalidation] = {
-    ctx.lockRegistry.getFileLock(file).lock()
-    ctx.lockRegistry.getCompilationLock().readLock().lock()
+    ctx.locking.acquireFileLock(file)
+    ctx.locking.acquireReadCompilationLock()
     try {
       val maybeChangeSet =
         ctx.executionService
@@ -38,8 +38,8 @@ class ApplyEditsJob(file: File, edits: Seq[TextEdit])
 
       invalidateExpressions.toList ++ invalidateStale.toList
     } finally {
-      ctx.lockRegistry.getCompilationLock().readLock().unlock()
-      ctx.lockRegistry.getFileLock(file).unlock()
+      ctx.locking.releaseReadCompilationLock()
+      ctx.locking.releaseFileLock(file)
     }
   }
 

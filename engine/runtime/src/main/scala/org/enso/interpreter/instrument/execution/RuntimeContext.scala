@@ -4,8 +4,6 @@ import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
 import org.enso.interpreter.service.ExecutionService
 
-import scala.concurrent.ExecutionContext
-
 /**
   * Contains suppliers of services that provide application specific
   * functionality.
@@ -25,5 +23,5 @@ case class RuntimeContext(
   commandProcessor: CommandProcessor,
   jobProcessor: JobProcessor,
   jobControlPlane: JobControlPlane,
-  lockRegistry: LockRegistry
+  locking: Locking
 )

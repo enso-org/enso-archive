@@ -53,7 +53,7 @@ class ExecutionEngine(
       commandProcessor = this,
       jobProcessor     = this,
       jobControlPlane  = this,
-      lockRegistry     = new ReentrantLockRegistry
+      locking          = new ReentrantLocking
     )
 
   /** @inheritdoc **/

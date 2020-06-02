@@ -14,7 +14,7 @@ class EnsureCompiledJob(files: List[File])
     * @param ctx contains suppliers of services to perform a request
     */
   override def run(implicit ctx: RuntimeContext): Unit = {
-    ctx.lockRegistry.getCompilationLock().writeLock().lock()
+    ctx.locking.acquireWriteCompilationLock()
     try {
       files
         .flatMap { file =>
@@ -24,7 +24,8 @@ class EnsureCompiledJob(files: List[File])
           module.parseScope(ctx.executionService.getContext)
         }
     } finally {
-      ctx.lockRegistry.getCompilationLock().writeLock().unlock()
+      ctx.locking.releaseWriteCompilationLock()
     }
   }
+
 }
