@@ -172,7 +172,7 @@ case object NestedPatternMatch extends IRPass {
     */
   def desugarCase(
     expr: IR.Case,
-    freshNameSupply: FreshNameSupply,
+    freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     expr match {
       case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
@@ -185,13 +185,14 @@ case object NestedPatternMatch extends IRPass {
 
         val processedBranches = branches.zipWithIndex.map {
           case (branch, ix) =>
-            val remainingBranches = branches.drop(ix + 1)
+            val remainingBranches = branches.drop(ix + 1).toList
 
             desugarCaseBranch(
               branch,
               caseExprScrutinee,
+              branch.location,
               remainingBranches,
-              freshNameSupply
+              freshNameSupply,
             )
         }
 
@@ -212,6 +213,8 @@ case object NestedPatternMatch extends IRPass {
     *
     * @param branch the branch to desugar
     * @param originalScrutinee the original scrutinee of the pattern match
+    * @param topBranchLocation the location of the source branch that is being
+    *                           desugared
     * @param remainingBranches all subsequent branches at the current pattern
     *                          match level
     * @param freshNameSupply the compiler's supply of fresh names
@@ -221,7 +224,8 @@ case object NestedPatternMatch extends IRPass {
   def desugarCaseBranch(
     branch: IR.Case.Branch,
     originalScrutinee: IR.Expression,
-    remainingBranches: Seq[IR.Case.Branch],
+    topBranchLocation: Option[IR.IdentifiedLocation],
+    remainingBranches: List[IR.Case.Branch],
     freshNameSupply: FreshNameSupply
   ): IR.Case.Branch = {
     if (containsNestedPatterns(branch.pattern)) {
@@ -231,8 +235,6 @@ case object NestedPatternMatch extends IRPass {
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
-          // TODO [AA] What should the locations of all of these components be?
-          // TODO [AA] What about the identifiers?
           val newName         = freshNameSupply.newName()
           val newField        = Pattern.Name(newName, None)
           val nestedScrutinee = newName.duplicate()
@@ -243,7 +245,7 @@ case object NestedPatternMatch extends IRPass {
             ))
 
           val newPattern = cons.copy(
-            fields = newFields
+            fields = newFields.duplicate()
           )
 
           val newExpression = generateNestedCase(
@@ -254,14 +256,16 @@ case object NestedPatternMatch extends IRPass {
             remainingBranches
           )
 
-          val partDesugaredBranch = branch.copy(
-            pattern    = newPattern,
-            expression = newExpression
+          val partDesugaredBranch = IR.Case.Branch(
+            pattern    = newPattern.duplicate(),
+            expression = newExpression.duplicate(),
+            None
           )
 
           desugarCaseBranch(
             partDesugaredBranch,
             originalScrutinee,
+            topBranchLocation,
             remainingBranches,
             freshNameSupply
           )
@@ -272,7 +276,8 @@ case object NestedPatternMatch extends IRPass {
       }
     } else {
       branch.copy(
-        expression = desugarExpression(branch.expression, freshNameSupply)
+        expression = desugarExpression(branch.expression, freshNameSupply),
+        location   = topBranchLocation
       )
     }
   }
@@ -300,25 +305,24 @@ case object NestedPatternMatch extends IRPass {
     nestedScrutinee: IR.Expression,
     topLevelScrutineeExpr: IR.Expression,
     currentBranchExpr: IR.Expression,
-    remainingBranches: Seq[IR.Case.Branch]
+    remainingBranches: List[IR.Case.Branch]
   ): IR.Expression = {
-    // TODO [AA]: Two problems here:
-    //  1. We reuse pieces of IR without giving them new identifiers. This needs
-    //     to be done _deeply_ via a `duplicate` function.
-    //  2. Potentially an issue with the desugaring itself.
-    val fallbackCase =
-      IR.Case.Expr(topLevelScrutineeExpr, remainingBranches, None)
+    val fallbackCase = IR.Case.Expr(
+      topLevelScrutineeExpr.duplicate(),
+      remainingBranches.duplicate(),
+      None
+    )
 
-    def patternBranch = IR.Case.Branch(pattern, currentBranchExpr, None)
-    def fallbackBranch =
-      IR.Case.Branch(
-        IR.Pattern.Name(IR.Name.Blank(None), None),
-        fallbackCase,
-        None
-      )
+    def patternBranch =
+      IR.Case.Branch(pattern.duplicate(), currentBranchExpr.duplicate(), None)
+    def fallbackBranch = IR.Case.Branch(
+      IR.Pattern.Name(IR.Name.Blank(None), None),
+      fallbackCase,
+      None
+    )
 
     IR.Case.Expr(
-      nestedScrutinee,
+      nestedScrutinee.duplicate(),
       List(patternBranch, fallbackBranch),
       None
     )

@@ -252,7 +252,7 @@ class NestedPatternMatchTest extends CompilerTest {
     case Expression.Block(expressions, returnValue, _, suspended, _, _) =>
       val r = if (suspended) {
         (expressions :+ returnValue)
-          .map(showCode(_, ind + "    "))
+          .map(ind + showCode(_, ind))
       } else {
         (expressions :+ returnValue).map(showCode(_, ind))
       }
@@ -265,8 +265,9 @@ class NestedPatternMatchTest extends CompilerTest {
     case n:IR.Name => n.name
     case ap: IR.Application.Prefix => (showCode(ap.function) :: ap.arguments.map(v => showCode(v.value))).mkString(" ")
     case IR.Case.Expr(scrut, branches, _, _, _) =>
+      val indAdd = "    " + ind
       val s = showCode(scrut)
-      val bs: List[String] = branches.map(showCode(_, ind + "    ")).map("    " + _).toList
+      val bs: List[String] = branches.map(showCode(_, indAdd)).map(indAdd + _).toList
       (s"case $s of" :: bs).mkString("\n")
     case IR.Case.Branch(pat, expr, _, _, _) =>
       val p = showCode(pat)

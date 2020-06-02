@@ -4616,7 +4616,7 @@ object IR {
     * @param sequence the list
     * @tparam T the concrete IR type
     */
-  implicit class ListAsIr[T <: IR](sequence: Seq[T]) {
+  implicit class ListAsIr[T <: IR](sequence: List[T]) {
 
     /** Calls [[IR.duplicate]] on the elemtsn in [[sequence]].
       *
@@ -4624,8 +4624,8 @@ object IR {
       *                      duplicated IR
       * @return a duplicate of [[sequence]]
       */
-    def duplicate(keepLocations: Boolean = true): Seq[T] = {
-      sequence.map(_.duplicate(keepLocations)).asInstanceOf[Seq[T]]
+    def duplicate(keepLocations: Boolean = true): List[T] = {
+      sequence.map(_.duplicate(keepLocations)).asInstanceOf[List[T]]
     }
   }
 }
