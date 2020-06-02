@@ -170,10 +170,6 @@ class IRToTruffle(
             DataflowAnalysis,
             "No dataflow information associated with an atom."
           )
-          val cacheInfo = atomDefn.unsafeGetMetadata(
-            CachePreferenceAnalysis,
-            "No cache information associated with an atom"
-          )
 
           val argFactory =
             new DefinitionArgumentProcessor(
@@ -181,8 +177,7 @@ class IRToTruffle(
                 None,
                 scopeInfo.graph,
                 scopeInfo.graph.rootScope,
-                dataflowInfo,
-                cacheInfo
+                dataflowInfo
               )
             )
           val argDefs =
@@ -207,10 +202,6 @@ class IRToTruffle(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
-      val cacheInfo = methodDef.unsafeGetMetadata(
-        CachePreferenceAnalysis,
-        "Method definition missing cache information"
-      )
 
       val typeName =
         if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
@@ -223,8 +214,7 @@ class IRToTruffle(
         typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
         scopeInfo.graph,
         scopeInfo.graph.rootScope,
-        dataflowInfo,
-        cacheInfo
+        dataflowInfo
       )
 
       val funNode = methodDef.body match {
@@ -323,11 +313,10 @@ class IRToTruffle(
       scopeName: String,
       graph: AliasGraph,
       scope: AliasScope,
-      dataflowInfo: DataflowAnalysis.Metadata,
-      cacheInfo: CachePreferenceAnalysis.Metadata
+      dataflowInfo: DataflowAnalysis.Metadata
     ) = {
       this(
-        new LocalScope(None, graph, scope, dataflowInfo, cacheInfo),
+        new LocalScope(None, graph, scope, dataflowInfo),
         scopeName
       )
     }

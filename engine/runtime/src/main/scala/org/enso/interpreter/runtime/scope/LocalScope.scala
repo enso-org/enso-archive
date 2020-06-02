@@ -40,7 +40,6 @@ class LocalScope(
   final val aliasingGraph: AliasAnalysis.Graph,
   final val scope: AliasAnalysis.Graph.Scope,
   final val dataflowInfo: DataflowAnalysis.Metadata,
-  final val cacheInfo: CachePreferenceAnalysis.Metadata,
   final val flattenToParent: Boolean                     = false,
   final val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
 ) {
@@ -70,7 +69,6 @@ class LocalScope(
       aliasingGraph,
       childScope,
       dataflowInfo,
-      cacheInfo,
       flattenToParent,
       frameSlots
     )
@@ -150,8 +148,7 @@ object LocalScope {
       None,
       graph,
       graph.rootScope,
-      DataflowAnalysis.DependencyInfo(),
-      CachePreferenceAnalysis.WeightInfo()
+      DataflowAnalysis.DependencyInfo()
     )
   }
 }

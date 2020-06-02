@@ -70,14 +70,8 @@ case object CachePreferenceAnalysis extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
-    val localScope = inlineContext.localScope.getOrElse(
-      throw new CompilerError(
-        "A valid local scope is required for the inline flow."
-      )
-    )
-    analyseExpression(ir, localScope.cacheInfo)
-  }
+  ): IR.Expression =
+    analyseExpression(ir, WeightInfo())
 
   // === Pass Internals =======================================================
 
