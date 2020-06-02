@@ -4,7 +4,11 @@ import java.util.UUID
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
 
-abstract class Job[+A](val contextIds: List[UUID], val isCancellable: Boolean) {
+abstract class Job[+A](
+  val contextIds: List[UUID],
+  val isCancellable: Boolean,
+  val mayInterruptIfRunning: Boolean
+) {
 
   /**
     *

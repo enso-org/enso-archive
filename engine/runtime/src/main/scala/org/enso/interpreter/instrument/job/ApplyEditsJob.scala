@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 class ApplyEditsJob(file: File, edits: Seq[TextEdit])
-    extends Job[List[CacheInvalidation]](List.empty, false) {
+    extends Job[List[CacheInvalidation]](List.empty, false, false) {
 
   /**
     *

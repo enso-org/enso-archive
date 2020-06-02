@@ -7,7 +7,7 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import scala.jdk.OptionConverters._
 
 class EnsureCompiledJob(files: List[File])
-    extends Job[Unit](List.empty, false) {
+    extends Job[Unit](List.empty, true, false) {
 
   /**
     *

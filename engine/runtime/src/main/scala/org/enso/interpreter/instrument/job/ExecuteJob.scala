@@ -6,7 +6,7 @@ import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.RuntimeContext
 
 class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
-    extends Job[Unit](List(contextId), true)
+    extends Job[Unit](List(contextId), true, true)
     with ProgramExecutionSupport {
 
   /**
