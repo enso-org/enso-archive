@@ -6,12 +6,15 @@ import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
-import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
+import org.enso.interpreter.instrument.command.ProgramExecutionSupport.{
+  ExecutionFrame,
+  ExecutionItem,
+  LocalCallFrame
+}
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
   RuntimeCache,
@@ -50,16 +53,15 @@ trait ProgramExecutionSupport {
   /**
     * Runs an Enso program.
     *
-    * @param executionItem an execution item
+    * @param executionFrame an execution frame
     * @param callStack a call stack
-    * @param cache the runtime cache
     * @param valueCallback a listener of computed values
+    * @param visualisationCallback a listener of fired visualisations
     */
   @scala.annotation.tailrec
   final private def runProgram(
-    executionItem: ExecutionItem,
-    callStack: List[UUID],
-    cache: RuntimeCache,
+    executionFrame: ExecutionFrame,
+    callStack: List[LocalCallFrame],
     valueCallback: Consumer[ExpressionValue],
     visualisationCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
@@ -68,21 +70,23 @@ trait ProgramExecutionSupport {
       if (callStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
-    executionItem match {
-      case ExecutionItem.Method(file, cons, function) =>
+    executionFrame match {
+      case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
         ctx.executionService.execute(
           file,
           cons,
           function,
           cache,
+          callStack.headOption.map(_.expressionId).orNull,
           valsCallback,
           visualisationCallback,
           callablesCallback
         )
-      case ExecutionItem.CallData(callData) =>
+      case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
         ctx.executionService.execute(
           callData,
           cache,
+          callStack.headOption.map(_.expressionId).orNull,
           valsCallback,
           visualisationCallback,
           callablesCallback
@@ -92,12 +96,11 @@ trait ProgramExecutionSupport {
     callStack match {
       case Nil => ()
       case item :: tail =>
-        enterables.get(item) match {
+        enterables.get(item.expressionId) match {
           case Some(call) =>
             runProgram(
-              ExecutionItem.CallData(call),
+              ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
-              cache,
               valueCallback,
               visualisationCallback
             )
@@ -124,44 +127,47 @@ trait ProgramExecutionSupport {
     @scala.annotation.tailrec
     def unwind(
       stack: List[InstrumentFrame],
-      explicitCalls: List[Api.StackItem.ExplicitCall],
-      localCalls: List[UUID],
-      caches: List[RuntimeCache]
-    ): (Option[Api.StackItem.ExplicitCall], List[UUID], Option[RuntimeCache]) =
+      explicitCalls: List[ExecutionFrame],
+      localCalls: List[LocalCallFrame]
+    ): (Option[ExecutionFrame], List[LocalCallFrame]) =
       stack match {
         case Nil =>
-          (explicitCalls.lastOption, localCalls, caches.lastOption)
+          (explicitCalls.lastOption, localCalls)
         case List(InstrumentFrame(call: Api.StackItem.ExplicitCall, cache)) =>
-          (Some(call), localCalls, (cache :: caches).lastOption)
+          (Some(ExecutionFrame(ExecutionItem.Method(call), cache)), localCalls)
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
-          unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
+          unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
       }
-    val visualisationUpdate: Consumer[ExpressionValue] = { value =>
+    def getName(item: ExecutionItem): String =
+      item match {
+        case ExecutionItem.Method(_, _, function) => function
+        case ExecutionItem.CallData(call)         => call.getFunction.getName
+      }
+
+    val visualisationUpdateCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId))
         onVisualisationUpdate(contextId, value)
     }
-    val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
+    val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
+
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
-      cache     <- Either.fromOption(cacheOpt, "cache does not exist")
-      item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
           runProgram(
-            item,
+            stackItem,
             localCalls,
-            cache,
             onExpressionValueComputed(contextId, _),
-            visualisationUpdate
+            visualisationUpdateCallback
           )
         )
         .leftMap { ex =>
           ctx.executionService.getLogger.log(
             Level.FINE,
-            s"Error executing a function '${item.function}'",
+            s"Error executing a function '${getName(stackItem.item)}'",
             ex
           )
-          s"error in function: ${item.function}"
+          s"error in function: ${getName(stackItem.item)}"
         }
     } yield ()
   }
@@ -280,31 +286,63 @@ trait ProgramExecutionSupport {
       functionName.module
     )
 
-  private def toExecutionItem(
-    call: Api.StackItem.ExplicitCall
-  ): ExecutionItem.Method =
-    ExecutionItem.Method(
-      call.methodPointer.file,
-      call.methodPointer.definedOnType,
-      call.methodPointer.name
-    )
-
 }
 
 object ProgramExecutionSupport {
 
-  sealed private trait ExecutionItem
+  /** An execution frame.
+    *
+    * @param item the executionitem
+    * @param cache the cache of this stack frame.
+    */
+  sealed private case class ExecutionFrame(
+    item: ExecutionItem,
+    cache: RuntimeCache
+  )
 
+  /** A local call frame defined by the expression id.
+    *
+    * @param expressionId the id of the expression
+    * @param cache the cache of this frame
+    */
+  sealed private case class LocalCallFrame(
+    expressionId: UUID,
+    cache: RuntimeCache
+  )
+
+  /** An execution item. */
+  sealed private trait ExecutionItem
   private object ExecutionItem {
 
-    case class Method(
-      file: File,
-      constructor: String,
-      function: String
-    ) extends ExecutionItem
+    /** The explicit method call.
+      *
+      * @param file the file containing the method
+      * @param constructor the type on which the method is defined
+      * @param function the method name
+      */
+    case class Method(file: File, constructor: String, function: String)
+        extends ExecutionItem
 
+    object Method {
+
+      /** Construct the method call from the [[Api.StackItem.ExplicitCall]].
+        *
+        * @param call the Api call
+        * @return the method call
+        */
+      def apply(call: Api.StackItem.ExplicitCall): Method =
+        Method(
+          call.methodPointer.file,
+          call.methodPointer.definedOnType,
+          call.methodPointer.name
+        )
+    }
+
+    /** The call data, captured during the program execution.
+      *
+      * @param callData the fucntion call data
+      */
     case class CallData(callData: FunctionCall) extends ExecutionItem
-
   }
 
 }

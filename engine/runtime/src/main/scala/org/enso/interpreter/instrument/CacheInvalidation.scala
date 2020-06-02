@@ -54,12 +54,6 @@ object CacheInvalidation {
       */
     case class InvalidateStale(scope: Iterable[UUID]) extends Command
 
-    /** A command to set the cache from the source.
-      *
-      * @param source the source runtime cache
-      */
-    case class CopyCache(source: RuntimeCache) extends Command
-
     /** A command to set the cache metadata form the compiler pass.
       *
       * @param metadata the cache metadata
@@ -139,38 +133,36 @@ object CacheInvalidation {
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit = {
-    frames.foreach(run(_, command, indexes))
+    frames.foreach(frame => run(frame.cache, command, indexes))
   }
 
   /** Run cache invalidation of a single instrument frame.
     *
-    * @param frame stack element to invalidate
+    * @param cache the cache to invalidate
     * @param command the invalidation instruction
     * @param indexes the list of indexes to invalidate
     */
   private def run(
-    frame: InstrumentFrame,
+    cache: RuntimeCache,
     command: Command,
     indexes: Set[IndexSelector]
   ): Unit =
     command match {
       case Command.InvalidateAll =>
-        frame.cache.clear()
-        if (indexes.contains(IndexSelector.All)) frame.cache.clearWeights()
+        cache.clear()
+        if (indexes.contains(IndexSelector.All)) cache.clearWeights()
       case Command.InvalidateKeys(keys) =>
         keys.foreach { key =>
-          frame.cache.remove(key)
-          if (indexes.contains(IndexSelector.All)) frame.cache.removeWeight(key)
+          cache.remove(key)
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
       case Command.InvalidateStale(scope) =>
-        val staleKeys = frame.cache.getKeys.asScala.diff(scope.toSet)
+        val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
-          frame.cache.remove(key)
-          if (indexes.contains(IndexSelector.All)) frame.cache.removeWeight(key)
+          cache.remove(key)
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
-      case Command.CopyCache(source) =>
-        frame.copy(cache = source)
       case Command.SetMetadata(metadata) =>
-        frame.cache.setWeights(metadata.asJavaWeights)
+        cache.setWeights(metadata.asJavaWeights)
     }
 }

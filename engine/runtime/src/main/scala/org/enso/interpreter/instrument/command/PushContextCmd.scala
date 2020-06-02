@@ -11,10 +11,6 @@ import scala.jdk.OptionConverters._
 /**
   * A command that pushes an item onto a stack.
   *
-  * == Caching ==
-  *
-  * Cache is copied to the next frame, and pushed expression is invalidated.
-  *
   * @param maybeRequestId an option with request id
   * @param request a request for a service
   */
@@ -47,27 +43,15 @@ class PushContextCmd(
             case None =>
               Api.InvalidStackItemError(request.contextId)
           }
-        case call: Api.StackItem.LocalCall if stack.nonEmpty =>
+        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
           ctx.contextManager.push(request.contextId, request.stackItem)
           getCacheMetadata(stack) match {
             case Some(metadata) =>
-              CacheInvalidation.runAll(
+              CacheInvalidation.run(
                 stack,
-                Seq(
-                  CacheInvalidation(
-                    CacheInvalidation.StackSelector.Top,
-                    CacheInvalidation.Command.CopyCache(stack.top.cache)
-                  ),
-                  CacheInvalidation(
-                    CacheInvalidation.StackSelector.Top,
-                    CacheInvalidation.Command.SetMetadata(metadata)
-                  ),
-                  CacheInvalidation(
-                    CacheInvalidation.StackSelector.Top,
-                    CacheInvalidation.Command.InvalidateKeys(
-                      Seq(call.expressionId)
-                    )
-                  )
+                CacheInvalidation(
+                  CacheInvalidation.StackSelector.Top,
+                  CacheInvalidation.Command.SetMetadata(metadata)
                 )
               )
               withContext(runProgram(request.contextId, stack.toList)) match {
