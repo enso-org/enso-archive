@@ -722,10 +722,9 @@ class RuntimeServerTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
-      context.Main.Update.mainX(contextId),
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -837,10 +836,9 @@ class RuntimeServerTest
       )
     )
 
-    val attachVisualisationResponses = context.receive(3)
-    attachVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationAttached()),
-      context.Main.Update.mainX(contextId),
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
     )
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
@@ -872,10 +870,9 @@ class RuntimeServerTest
         )
       )
     )
-    val modifyVisualisationResponses = context.receive(3)
-    modifyVisualisationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualisationModified()),
-      context.Main.Update.mainX(contextId),
+    val modifyVisualisationResponses = context.receive(2)
+    modifyVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationModified())
     )
     val Some(dataAfterModification) =
       modifyVisualisationResponses.collectFirst {

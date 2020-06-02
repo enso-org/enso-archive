@@ -65,14 +65,9 @@ abstract class BaseVisualisationCmd
           Api.Response(requestId, replyWith)
         )
         val stack = ctx.contextManager.getStack(config.executionContextId)
-        CacheInvalidation.run(
-          stack,
-          CacheInvalidation(
-            CacheInvalidation.StackSelector.Top,
-            CacheInvalidation.Command.InvalidateKeys(Seq(expressionId))
-          )
+        withContext(
+          runProgram(config.executionContextId, stack.toList, Seq(expressionId))
         )
-        withContext(runProgram(config.executionContextId, stack.toList))
     }
   }
 

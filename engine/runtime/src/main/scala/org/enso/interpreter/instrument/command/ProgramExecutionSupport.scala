@@ -60,7 +60,8 @@ trait ProgramExecutionSupport {
     executionItem: ExecutionItem,
     callStack: List[UUID],
     cache: RuntimeCache,
-    valueCallback: Consumer[ExpressionValue]
+    valueCallback: Consumer[ExpressionValue],
+    visualisationCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
@@ -75,6 +76,7 @@ trait ProgramExecutionSupport {
           function,
           cache,
           valsCallback,
+          visualisationCallback,
           callablesCallback
         )
       case ExecutionItem.CallData(callData) =>
@@ -82,6 +84,7 @@ trait ProgramExecutionSupport {
           callData,
           cache,
           valsCallback,
+          visualisationCallback,
           callablesCallback
         )
     }
@@ -91,7 +94,13 @@ trait ProgramExecutionSupport {
       case item :: tail =>
         enterables.get(item) match {
           case Some(call) =>
-            runProgram(ExecutionItem.CallData(call), tail, cache, valueCallback)
+            runProgram(
+              ExecutionItem.CallData(call),
+              tail,
+              cache,
+              valueCallback,
+              visualisationCallback
+            )
           case None =>
             ()
         }
@@ -103,12 +112,14 @@ trait ProgramExecutionSupport {
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
+    * @param updatedVisualisations a list of updated visualisations
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program
     */
   final def runProgram(
     contextId: Api.ContextId,
-    stack: List[InstrumentFrame]
+    stack: List[InstrumentFrame],
+    updatedVisualisations: Seq[Api.ExpressionId] = Seq()
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
@@ -125,6 +136,10 @@ trait ProgramExecutionSupport {
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
       }
+    val visualisationUpdate: Consumer[ExpressionValue] = { value =>
+      if (updatedVisualisations.contains(value.getExpressionId))
+        onVisualisationUpdate(contextId, value)
+    }
     val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
@@ -136,7 +151,8 @@ trait ProgramExecutionSupport {
             item,
             localCalls,
             cache,
-            onExpressionValueComputed(contextId, _)
+            onExpressionValueComputed(contextId, _),
+            visualisationUpdate
           )
         )
         .leftMap { ex =>
@@ -149,6 +165,12 @@ trait ProgramExecutionSupport {
         }
     } yield ()
   }
+
+  private def onVisualisationUpdate(
+    contextId: Api.ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit =
+    fireVisualisationUpdates(contextId, value)
 
   private def onExpressionValueComputed(
     contextId: Api.ContextId,

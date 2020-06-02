@@ -8,13 +8,13 @@ import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.HashMap;
-import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -130,6 +130,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
+    private final Consumer<ExpressionValue> visualisationCallback;
     private final RuntimeCache cache;
     private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
@@ -140,16 +141,19 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param cache the precomputed expression values.
      * @param functionCallCallback the consumer of function call events.
      * @param valueCallback the consumer of the node value events.
+     * @param visualisationCallback the consumer of the node visualisation events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
         RuntimeCache cache,
         Consumer<ExpressionCall> functionCallCallback,
-        Consumer<ExpressionValue> valueCallback) {
+        Consumer<ExpressionValue> valueCallback,
+        Consumer<ExpressionValue> visualisationCallback) {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
+      this.visualisationCallback = visualisationCallback;
     }
 
     @Override
@@ -170,6 +174,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       Object overrideValue = cache.get(nodeId);
       if (overrideValue != null) {
+        visualisationCallback.accept(
+            new ExpressionValue(
+                nodeId,
+                Types.getName(overrideValue).orElse(null),
+                overrideValue,
+                calls.get(nodeId)));
         throw context.createUnwind(overrideValue);
       }
     }
@@ -248,6 +258,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param funSourceLength the length of the observed source range.
    * @param cache the precomputed expression values.
    * @param valueCallback the consumer of the node value events.
+   * @param visualisationCallback the consumer of the node visualisation events.
    * @param functionCallCallback the consumer of function call events.
    * @return a reference to the attached event listener.
    */
@@ -257,6 +268,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       int funSourceLength,
       RuntimeCache cache,
       Consumer<ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
       Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
@@ -269,7 +281,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
         env.getInstrumenter()
             .attachExecutionEventListener(
                 filter,
-                new IdExecutionEventListener(entryCallTarget, cache, functionCallCallback, valueCallback));
+                new IdExecutionEventListener(
+                    entryCallTarget,
+                    cache,
+                    functionCallCallback,
+                    valueCallback,
+                    visualisationCallback));
     return binding;
   }
 }
