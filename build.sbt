@@ -576,9 +576,9 @@ lazy val `polyglot-api` = project
         .mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
-      "org.scalatest"          %% "scalatest"       % scalatestVersion  % Test,
+      "org.scalatest"          %% "scalatest"       % scalatestVersion % Test,
       "org.scalacheck"         %% "scalacheck"      % scalacheckVersion % Test
     ),
     libraryDependencies ++= jackson,
