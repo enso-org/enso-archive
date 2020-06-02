@@ -31,19 +31,23 @@ object GenerateFlatbuffers {
     val out = (sourceManaged in Compile).value
     // Note [flatc Generated Sources Detection]
     val generatedFilenames = schemas flatMap { schema =>
-        val cmd = s"$flatcCmd -M --java -o ${out.getAbsolutePath} $schema"
-        try {
-          val makeRules = cmd.!!
-          extractGeneratedFilenamesFromMakefile(makeRules)
-        } catch {
-          case ex: RuntimeException =>
-            val restarted = cmd.run() // Note [flatc Error Reporting]
-            val exitValue = restarted.exitValue()
-            println(
-              f"Generating $schema with command `$cmd` has failed with exit code $exitValue"
-            )
-            throw ex
+        val cmdGenerate = s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
+        val cmdMakeRules =
+          s"$flatcCmd -M --java -o ${out.getAbsolutePath} $schema"
+
+        val exitCode = cmdGenerate.!
+        if (exitCode != 0) {
+          println(
+            f"Generating $schema with command `$cmdGenerate` has failed with exit code $exitCode"
+          )
+
+          throw new RuntimeException(
+            f"Flatbuffer code generation failed for $schema"
+          )
         }
+
+        val makeRules = cmdMakeRules.!!
+        extractGeneratedFilenamesFromMakefile(makeRules)
       }
 
     val uniqueFilenames      = generatedFilenames.distinct
@@ -52,7 +56,7 @@ object GenerateFlatbuffers {
     if (uniqueGeneratedFiles.nonEmpty) {
       val projectName = name.value
       println(
-        f"*** Flatbuffers code generation generated ${uniqueGeneratedFiles.length} files for project $projectName"
+        f"*** Flatbuffers code generation generated ${uniqueGeneratedFiles.length} files in project $projectName"
       )
     }
 
@@ -77,11 +81,4 @@ object GenerateFlatbuffers {
  * ```
  * Each flatc run lists all affected files, for files used in multiple schemas that means they may appear more than
  * once. Because of that we make sure to remove any potential duplicates before returning the list of generated sources.
- */
-
-/* Note [flatc Error Reporting]
- * As flatc reports errors to stdout and not stderr, if it fails the output is captured but not accessible (because !!
- * only returns the output if the command succeeded).
- * To avoid complex process handling logic, upon detecting an error, flatc is re-run giving it a chance to print the
- * errors.
  */
