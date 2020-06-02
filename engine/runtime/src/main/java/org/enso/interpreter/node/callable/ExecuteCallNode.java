@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -10,6 +11,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.control.ThreadInterruptedException;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -63,6 +65,11 @@ public abstract class ExecuteCallNode extends Node {
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("create(cachedTarget)") DirectCallNode callNode) {
+    if (CompilerDirectives.inInterpreter()) {
+      if (Thread.currentThread().isInterrupted()) {
+        throw new ThreadInterruptedException();
+      }
+    }
     return (Stateful)
         callNode.call(
             Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
@@ -88,6 +95,11 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached IndirectCallNode callNode) {
+    if (CompilerDirectives.inInterpreter()) {
+      if (Thread.interrupted()) {
+        throw new ThreadInterruptedException();
+      }
+    }
     return (Stateful)
         callNode.call(
             function.getCallTarget(),

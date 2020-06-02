@@ -10,14 +10,27 @@ class ThreadInterruptionTest extends InterpreterTest {
     var res: Try[Value] = Failure(new RuntimeException)
     val code =
       """
-        |foo x = 
-        |  ifZero x 0 (here.foo x-1)
+        |foo x = here.foo x
         |
-        |main = here.foo 1000000000
+        |main =
+        |    IO.println "pre"
+        |    x = Thread.with_interrupt_handler (here.foo 10) (IO.println "Tell my sister I loved her.")
         |""".stripMargin
-    val t = new Thread {  res = Try(eval(code))  }
+
+    println(Thread.currentThread())
+    val t =
+      new Thread({ () =>
+        println(Thread.currentThread())
+        res = Try(eval(code))
+      })
+//    ctx.
+    t.start()
+    println("Thread launched")
+    Thread.sleep(2000)
     t.interrupt()
+    println("Thread interrupted")
     t.join()
     println(res)
+    println(consumeOut)
   }
 }
