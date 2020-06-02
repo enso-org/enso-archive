@@ -169,25 +169,37 @@ case object NestedPatternMatch extends IRPass {
     * @param freshNameSupply the compiler's supply of fresh names
     * @return `expr`, with any nested patterns desugared
     */
-  def desugarCase(expr: IR.Case, freshNameSupply: FreshNameSupply): IR.Case = {
+  def desugarCase(
+    expr: IR.Case,
+    freshNameSupply: FreshNameSupply
+  ): IR.Expression = {
     expr match {
       case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
+        val scrutineeBindingName = freshNameSupply.newName()
+        val scrutineeExpression  = desugarExpression(scrutinee, freshNameSupply)
+        val scrutineeBinding =
+          IR.Expression.Binding(scrutineeBindingName, scrutineeExpression, None)
+
+        val caseExprScrutinee = scrutineeBindingName.duplicate()
+
         val processedBranches = branches.zipWithIndex.map {
           case (branch, ix) =>
             val remainingBranches = branches.drop(ix + 1)
 
             desugarCaseBranch(
               branch,
-              scrutinee,
+              caseExprScrutinee,
               remainingBranches,
               freshNameSupply
             )
         }
 
-        expr.copy(
-          scrutinee = desugarExpression(scrutinee, freshNameSupply),
+        val desugaredCaseExpr = expr.copy(
+          scrutinee = caseExprScrutinee,
           branches  = processedBranches
         )
+
+        IR.Expression.Block(List(scrutineeBinding), desugaredCaseExpr, None)
       case _: IR.Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch during case desugaring."
@@ -219,9 +231,10 @@ case object NestedPatternMatch extends IRPass {
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
           // TODO [AA] What should the locations of all of these components be?
-          val newName          = freshNameSupply.newName()
-          val newField         = Pattern.Name(newName, None)
-          val newScrutineeName = newName.name
+          // TODO [AA] What about the identifiers?
+          val newName         = freshNameSupply.newName()
+          val newField        = Pattern.Name(newName, None)
+          val nestedScrutinee = newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -234,7 +247,7 @@ case object NestedPatternMatch extends IRPass {
 
           val newExpression = generateNestedCase(
             lastNestedPattern,
-            newScrutineeName,
+            nestedScrutinee,
             originalScrutinee,
             branch.expression,
             remainingBranches
@@ -273,7 +286,7 @@ case object NestedPatternMatch extends IRPass {
     * }}}
     *
     * @param pattern the pattern being replaced in the desugaring
-    * @param scrutineeName the name of the variable replacing `pattern` in the
+    * @param nestedScrutinee the name of the variable replacing `pattern` in the
     *                      branch
     * @param topLevelScrutineeExpr the scrutinee of the original case expression
     * @param currentBranchExpr the expression executed in the current branch on
@@ -283,7 +296,7 @@ case object NestedPatternMatch extends IRPass {
     */
   def generateNestedCase(
     pattern: Pattern,
-    scrutineeName: String,
+    nestedScrutinee: IR.Expression,
     topLevelScrutineeExpr: IR.Expression,
     currentBranchExpr: IR.Expression,
     remainingBranches: Seq[IR.Case.Branch]
@@ -292,7 +305,6 @@ case object NestedPatternMatch extends IRPass {
     //  1. We reuse pieces of IR without giving them new identifiers. This needs
     //     to be done _deeply_ via a `duplicate` function.
     //  2. Potentially an issue with the desugaring itself.
-    val scrutinee = IR.Name.Literal(scrutineeName, None)
     val fallbackCase =
       IR.Case.Expr(topLevelScrutineeExpr, remainingBranches, None)
 
@@ -305,7 +317,7 @@ case object NestedPatternMatch extends IRPass {
       )
 
     IR.Case.Expr(
-      scrutinee,
+      nestedScrutinee,
       List(patternBranch, fallbackBranch),
       None
     )
@@ -344,10 +356,10 @@ case object NestedPatternMatch extends IRPass {
   }
 
   /** Checks if a given pattern is a catch all branch.
-   *
-   * @param pattern the pattern to check
-   * @return `true` if `pattern` is a catch all, otherwise `false`
-   */
+    *
+    * @param pattern the pattern to check
+    * @return `true` if `pattern` is a catch all, otherwise `false`
+    */
   def isCatchAll(pattern: Pattern): Boolean = pattern match {
     case _: Pattern.Name        => true
     case _: Pattern.Constructor => false

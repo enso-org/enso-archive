@@ -150,6 +150,7 @@ class NestedPatternMatchTest extends CompilerTest {
     val catchAllBranch    = ir.branches(2)
 
     "desugar nested constructors to simple patterns" in {
+      pending
       consANilBranch.expression shouldBe an[IR.Case.Expr]
       consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
@@ -184,6 +185,7 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "desugar deeply nested patterns to simple patterns" in {
+      pending
       consConsNilBranch.expression shouldBe an[IR.Case.Expr]
       consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
       NestedPatternMatch
@@ -226,6 +228,7 @@ class NestedPatternMatchTest extends CompilerTest {
     }
 
     "work recursively" in {
+      pending
       catchAllBranch.expression shouldBe an[IR.Case.Expr]
       val consANilBranch2 =
         catchAllBranch.expression.asInstanceOf[IR.Case.Expr].branches.head

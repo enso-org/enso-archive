@@ -151,6 +151,14 @@ class LambdaShorthandArgsTest extends InterpreterTest {
   }
 
   subject should "work properly when used with dot notation" in {
-    pending
+    val code =
+      """
+        |main =
+        |    f = (+ 10)
+        |    fun = _.f
+        |    fun 10
+        |""".stripMargin
+
+    eval(code) shouldEqual 20
   }
 }
