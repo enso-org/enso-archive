@@ -50,7 +50,7 @@ object GenerateFlatbuffers {
     val uniqueGeneratedFiles = uniqueFilenames.map(file)
 
     if (uniqueGeneratedFiles.nonEmpty) {
-      val projectName = "TODO"
+      val projectName = name.value
       println(
         f"*** Flatbuffers code generation generated ${uniqueGeneratedFiles.length} files for project $projectName"
       )

@@ -1,5 +1,5 @@
 namespace org.enso.polyglot.protocol.debugger;
 
-struct ObjectRepr {
+table ObjectRepr {
   representation: string;
 }
