@@ -293,7 +293,7 @@ object ProgramExecutionSupport {
   /** An execution frame.
     *
     * @param item the executionitem
-    * @param cache the cache of this stack frame.
+    * @param cache the cache of this stack frame
     */
   sealed private case class ExecutionFrame(
     item: ExecutionItem,
@@ -338,7 +338,7 @@ object ProgramExecutionSupport {
         )
     }
 
-    /** The call data, captured during the program execution.
+    /** The call data captured during the program execution.
       *
       * @param callData the fucntion call data
       */

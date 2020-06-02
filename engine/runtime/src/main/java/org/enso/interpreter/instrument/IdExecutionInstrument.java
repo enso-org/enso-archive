@@ -182,8 +182,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       Object result = cache.get(nodeId);
       // When executing the call stack we need to capture the FunctionCall of the next (top) stack
-      // item in the `functionCallCallback`. We allow to execute the cached `stackTip` value to be
-      // able to continue stack execution.
+      // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
+      // able to continue the stack execution.
       if (result != null && !nodeId.equals(stackTop)) {
         visualisationCallback.accept(
             new ExpressionValue(
