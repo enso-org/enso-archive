@@ -78,7 +78,7 @@ expression or an exception that has been raised during evaluation.
 
 #### Parameters
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplEvaluationRequest {
   expression: String (required);
@@ -87,7 +87,7 @@ table ReplEvaluationRequest {
 
 #### Result
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplEvaluationSuccess {
   result: ObjectRepr (required);
@@ -108,14 +108,14 @@ Lists all the bindings available in the current execution scope.
 
 #### Parameters
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplListBindingsRequest {}
 ```
 
 #### Result
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplListBindingsResult {
   bindings: [Binding];
@@ -134,14 +134,14 @@ called.
 
 #### Parameters
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplExitRequest {}
 ```
 
 #### Result
 ```idl
-namespace org.enso.runner.protocol.binary;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplExitSuccess {}
 ```

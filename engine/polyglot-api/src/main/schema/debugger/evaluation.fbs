@@ -1,6 +1,6 @@
 include "common.fbs";
 include "exception.fbs";
-namespace org.enso.polyglotapi.protocol.debugger;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ReplEvaluationRequest {
   expression: string (required);

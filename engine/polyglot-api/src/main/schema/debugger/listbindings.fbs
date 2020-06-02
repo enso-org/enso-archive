@@ -1,5 +1,5 @@
 include "common.fbs";
-namespace org.enso.polyglotapi.protocol.debugger;
+namespace org.enso.polyglot.protocol.debugger;
 
 table Binding {
   name: string;

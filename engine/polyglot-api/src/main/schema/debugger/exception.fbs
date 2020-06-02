@@ -1,3 +1,5 @@
+namespace org.enso.polyglot.protocol.debugger;
+
 // corresponds to java.lang.StackTraceElement
 table StackTraceElement {
   declaringClass: string;

@@ -1,4 +1,4 @@
-namespace org.enso.polyglotapi.protocol.debugger;
+namespace org.enso.polyglot.protocol.debugger;
 
 table ObjectRepr {
   representation: string;
