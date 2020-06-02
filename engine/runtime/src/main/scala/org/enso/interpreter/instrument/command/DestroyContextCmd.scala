@@ -26,22 +26,37 @@ class DestroyContextCmd(
   ): Future[Unit] =
     Future {
       if (ctx.contextManager.get(request.contextId).isDefined) {
-        ctx.contextManager.destroy(request.contextId)
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            maybeRequestId,
-            Api.DestroyContextResponse(request.contextId)
-          )
-        )
+        removeContext(ctx)
       } else {
-        ctx.endpoint.sendToClient(
-          Api
-            .Response(
-              maybeRequestId,
-              Api.ContextNotExistError(request.contextId)
-            )
-        )
+        sendErrorResponse(ctx)
       }
     }
+
+  private def sendErrorResponse(ctx: RuntimeContext): Unit = {
+    ctx.endpoint.sendToClient(
+      Api
+        .Response(
+          maybeRequestId,
+          Api.ContextNotExistError(request.contextId)
+        )
+    )
+  }
+
+  private def removeContext(ctx: RuntimeContext): Unit = {
+    ctx.jobControlPlane.abortJobs(request.contextId)
+
+    ctx.locking.acquireContextLock(request.contextId)
+    try {
+      ctx.contextManager.destroy(request.contextId)
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          maybeRequestId,
+          Api.DestroyContextResponse(request.contextId)
+        )
+      )
+    } finally {
+      ctx.locking.releaseContextLock(request.contextId)
+    }
+  }
 
 }
