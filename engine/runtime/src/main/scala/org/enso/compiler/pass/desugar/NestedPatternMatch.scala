@@ -13,8 +13,9 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 
-import scala.annotation.unused
+import scala.annotation.{nowarn, unused}
 
+@nowarn("cat=unused")
 /** This pass handles the desugaring of nested pattern matches into simple
   * pattern matches (those with only one match at each level).
   *
@@ -171,7 +172,7 @@ case object NestedPatternMatch extends IRPass {
     */
   def desugarCase(
     expr: IR.Case,
-    freshNameSupply: FreshNameSupply
+    freshNameSupply: FreshNameSupply,
   ): IR.Expression = {
     expr match {
       case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>

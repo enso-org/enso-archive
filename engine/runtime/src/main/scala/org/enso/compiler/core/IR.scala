@@ -1287,7 +1287,7 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Expression.Blank(
+           |IR.Name.Blank(
            |location = $location,
            |passData = ${this.showPassData},
            |diagnostics = $diagnostics,
@@ -3219,6 +3219,7 @@ object IR {
     /** The main body of the Enso case expression.
       *
       * @param scrutinee the expression whose value is being matched on
+      * @param scrutinee the expression whose value is being matched on
       * @param branches the branches of the case expression
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
@@ -3280,7 +3281,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Case.Expr(
-        |scutinee = $scrutinee,
+        |scrutinee = $scrutinee,
         |branches = $branches,
         |location = $location,
         |passData = ${this.showPassData},

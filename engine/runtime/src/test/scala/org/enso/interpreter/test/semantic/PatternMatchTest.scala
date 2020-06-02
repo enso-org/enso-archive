@@ -9,77 +9,75 @@ class PatternMatchTest extends InterpreterTest {
 
   // === The Tests ============================================================
 
-  subject should "work for simple patterns" in {
-    val code =
-      """
-        |main =
-        |    f = case _ of
-        |        Cons a _ -> a
-        |        Nil -> -10
-        |
-        |    (10.Cons Nil . f) - Nil.f
-        |""".stripMargin
-
-    eval(code) shouldEqual 20
-  }
-
-  subject should "work for anonymous catch-all patterns" in {
-    val code =
-      """
-        |type MyAtom a
-        |
-        |main =
-        |    f = case _ of
-        |        MyAtom a -> a
-        |        _ -> -100
-        |
-        |    (50.MyAtom . f) + Nil.f
-        |""".stripMargin
-
-    eval(code) shouldEqual -50
-  }
-
-  subject should "work for named catch-all patterns" in {
-    val code =
-      """
-        |type MyAtom a
-        |
-        |main =
-        |    f = case _ of
-        |        MyAtom a -> a
-        |        a -> a + 5
-        |
-        |    (50.MyAtom . f) + 30.f
-        |""".stripMargin
-
-    eval(code) shouldEqual 85
-  }
-
-  subject should "work without assignment" in {
-    val code =
-    """
-        |type MyAtom
-        |
-        |main = case MyAtom of
-        |    MyAtom -> 10
-        |    _ -> - 10
-        |""".stripMargin
-
-    eval(code) shouldEqual 10
-  }
+//  subject should "work for simple patterns" in {
+//    val code =
+//      """
+//        |main =
+//        |    f = case _ of
+//        |        Cons a _ -> a
+//        |        Nil -> -10
+//        |
+//        |    (10.Cons Nil . f) - Nil.f
+//        |""".stripMargin
+//
+//    eval(code) shouldEqual 20
+//  }
+//
+//  subject should "work for anonymous catch-all patterns" in {
+//    val code =
+//      """
+//        |type MyAtom a
+//        |
+//        |main =
+//        |    f = case _ of
+//        |        MyAtom a -> a
+//        |        _ -> -100
+//        |
+//        |    (50.MyAtom . f) + Nil.f
+//        |""".stripMargin
+//
+//    eval(code) shouldEqual -50
+//  }
+//
+//  subject should "work for named catch-all patterns" in {
+//    val code =
+//      """
+//        |type MyAtom a
+//        |
+//        |main =
+//        |    f = case _ of
+//        |        MyAtom a -> a
+//        |        a -> a + 5
+//        |
+//        |    (50.MyAtom . f) + 30.f
+//        |""".stripMargin
+//
+//    eval(code) shouldEqual 85
+//  }
+//
+//  subject should "work without assignment" in {
+//    val code =
+//    """
+//        |type MyAtom
+//        |
+//        |main = case MyAtom of
+//        |    MyAtom -> 10
+//        |    _ -> - 10
+//        |""".stripMargin
+//
+//    eval(code) shouldEqual 10
+//  }
 
   subject should "work for level one nested patterns" in {
     // TODO [AA] Make this use lambda shorthand
     val code =
       """
-        |type MyAtom
+        |type MyAtom a
+        |type Foo
         |
         |main =
-        |    f = a -> case a of
-        |        Cons MyAtom _ -> 30
-        |        _ -> -30
-        |
-        |    f (Cons MyAtom Nil)
+        |    case MyAtom Foo of
+        |        MyAtom Foo -> 30
         |""".stripMargin
 
 //    val code =
@@ -87,12 +85,18 @@ class PatternMatchTest extends InterpreterTest {
 //        |type MyAtom
 //        |
 //        |main =
-//        |    f = a -> case a of
-//        |        Cons x _ -> case x of
-//        |            MyAtom -> 30
-//        |            _ -> case a of
-//        |                _ -> -30
-//        |        _ -> -30
+//        |    f = a ->
+//        |         scrut = a
+//        |         case scrut of
+//        |             Cons x _ ->
+//        |                 foo = x
+//        |                 case foo of
+//        |                     MyAtom -> 30
+//        |                     _ ->
+//        |                         bar = scrut
+//        |                         case bar of
+//        |                             _ -> -30
+//        |             _ -> -30
 //        |
 //        |    f (Cons MyAtom Nil)
 //        |""".stripMargin

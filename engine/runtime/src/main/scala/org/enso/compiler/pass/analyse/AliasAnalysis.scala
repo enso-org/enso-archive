@@ -11,6 +11,7 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.syntax.text.Debug
 
+import scala.annotation.unused
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -144,8 +145,7 @@ case object AliasAnalysis extends IRPass {
                   body,
                   topLevelGraph,
                   topLevelGraph.rootScope,
-                  lambdaReuseScope = true,
-                  blockReuseScope  = true
+                  lambdaReuseScope = true
                 )
               )
               .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
@@ -190,8 +190,6 @@ case object AliasAnalysis extends IRPass {
     * @param parentScope      the parent scope for this expression
     * @param lambdaReuseScope whether to reuse the parent scope for a lambda
     *                         instead of creating a new scope
-    * @param blockReuseScope  whether to reuse the parent scope for a block
-    *                         instead of creating a new scope
     * @return `expression`, potentially with aliasing information attached
     */
   def analyseExpression(
@@ -199,7 +197,6 @@ case object AliasAnalysis extends IRPass {
     graph: Graph,
     parentScope: Scope,
     lambdaReuseScope: Boolean = false,
-    blockReuseScope: Boolean  = false
   ): IR.Expression = {
     expression match {
       case fn: IR.Function =>
@@ -207,9 +204,16 @@ case object AliasAnalysis extends IRPass {
       case name: IR.Name =>
         analyseName(name, isInPatternContext = false, graph, parentScope)
       case cse: IR.Case => analyseCase(cse, graph, parentScope)
-      case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
+      case block @ IR.Expression.Block(
+            expressions,
+            retVal,
+            _,
+            isSuspended,
+            _,
+            _
+          ) =>
         val currentScope =
-          if (blockReuseScope) parentScope else parentScope.addChild()
+          if (!isSuspended) parentScope else parentScope.addChild()
 
         block
           .copy(
@@ -229,7 +233,10 @@ case object AliasAnalysis extends IRPass {
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
       case binding @ IR.Expression.Binding(name, expression, _, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
-          val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
+          val isSuspended = expression match {
+            case IR.Expression.Block(_, _, _, isSuspended, _, _) => isSuspended
+            case _                                               => false
+          }
           val occurrenceId = graph.nextId()
           val occurrence =
             Occurrence.Def(
@@ -435,7 +442,6 @@ case object AliasAnalysis extends IRPass {
               body,
               graph,
               currentScope,
-              blockReuseScope = true
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -522,7 +528,6 @@ case object AliasAnalysis extends IRPass {
           branch.expression,
           graph,
           currentScope,
-          blockReuseScope = true
         )
       )
       .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))

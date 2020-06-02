@@ -41,9 +41,12 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
    */
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
+    System.out.println(getFramePointer().getParentLevel());
+    System.out.println(getFramePointer().getFrameSlot());
     if (getFramePointer().getParentLevel() == 0)
       return frame.getLong(getFramePointer().getFrameSlot());
     MaterializedFrame currentFrame = getProperFrame(frame);
+    System.out.println(currentFrame);
     return currentFrame.getLong(getFramePointer().getFrameSlot());
   }
 
