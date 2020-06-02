@@ -19,7 +19,28 @@ TODO - TOC
 
 ## Types
 
-TODO do we need any custom defs here?
+There are some helper types used within the debugger's protocol. These are
+specified here.
+
+### `ObjectRepr`
+External representation of arbitrary values returned by the REPL (internally
+these are of type `Object`).
+
+As these values are only used for presentation, they are represented by String.
+
+```typescript
+type ObjectRepr = String;
+```
+
+### `Binding`
+Represents a single binding in the current scope.
+
+```typescript
+interface Binding {
+    name: String;
+    value: ObjectRepr;
+}
+```
 
 ## Messages
 
@@ -27,38 +48,41 @@ TODO do we need any custom defs here?
 Evaluates an arbitrary expression in the current execution context.
 
 #### Parameters
-```typescript
-{
+```idl
+namespace org.enso.runner.protocol.binary;
+
+table ReplEvaluationRequest {
   expression: String;
 }
 ```
 
 #### Result
-```typescript
-{
-  TODO Object
+```idl
+namespace org.enso.runner.protocol.binary;
+
+table ReplEvaluationResult {
+  result: ObjectRepr;
 }
 ```
-
-TODO - reply message ? should execution be synchronous or async (send a separate reply)
 
 ### `repl/listBindings`
 Lists all the bindings available in the current execution scope.
 
 #### Parameters
-```typescript
-null
+```idl
+namespace org.enso.runner.protocol.binary;
+
+table ReplListBindingsRequest {}
 ```
 
 #### Result
-```typescript
-{
-  TODO Map<String, Object>
+```idl
+namespace org.enso.runner.protocol.binary;
+
+table ReplListBindingsResult {
+  bindings: [Binding];
 }
 ```
-
-return a map, where keys are variable names and values are current values of 
-variables.
 
 ### `repl/exit`
 Terminates this REPL session (and resumes normal program execution).
@@ -71,11 +95,16 @@ program will never resume. It's forbidden to use this object after exit has been
 called.
 
 #### Parameters
-```typescript
-null
+```idl
+namespace org.enso.runner.protocol.binary;
+
+table ReplExitRequest {}
 ```
 
 #### Result
-```typescript
-null
+```idl
+namespace org.enso.runner.protocol.binary;
+
+//Indicates an operation has succeeded.
+table Success {}
 ```
