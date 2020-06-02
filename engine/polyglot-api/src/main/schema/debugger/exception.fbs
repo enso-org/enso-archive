@@ -1,0 +1,13 @@
+// corresponds to java.lang.StackTraceElement
+table StackTraceElement {
+  declaringClass: string;
+  methodName: string;
+  fileName: string;
+  lineNumber: int;
+}
+
+table Exception {
+  message: string;
+  stackTrace: [StackTraceElement];
+  cause: Exception;
+}

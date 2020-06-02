@@ -1,0 +1,5 @@
+namespace org.enso.polyglotapi.protocol.debugger;
+
+table ObjectRepr {
+  representation: string;
+}

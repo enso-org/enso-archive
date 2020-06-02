@@ -576,9 +576,10 @@ lazy val `polyglot-api` = project
         .mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion      % "provided",
-      "org.scalatest"   %% "scalatest"   % scalatestVersion  % Test,
-      "org.scalacheck"  %% "scalacheck"  % scalacheckVersion % Test
+      "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion      % "provided",
+      "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
+      "org.scalatest"          %% "scalatest"       % scalatestVersion  % Test,
+      "org.scalacheck"         %% "scalacheck"      % scalacheckVersion % Test
     ),
     libraryDependencies ++= jackson,
     addCompilerPlugin(
@@ -587,7 +588,8 @@ lazy val `polyglot-api` = project
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
-    scalacOptions ++= splainOptions
+    scalacOptions ++= splainOptions,
+    sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)

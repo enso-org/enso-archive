@@ -1,0 +1,6 @@
+namespace org.enso.polyglotapi.protocol.debugger;
+
+table ReplExitRequest {}
+
+//Indicates the operation has succeeded.
+table ReplExitSuccess {}

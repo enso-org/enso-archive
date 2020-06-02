@@ -1,0 +1,20 @@
+include "common.fbs";
+include "exception.fbs";
+namespace org.enso.polyglotapi.protocol.debugger;
+
+table ReplEvaluationRequest {
+  expression: string (required);
+}
+
+table ReplEvaluationSuccess {
+  result: ObjectRepr (required);
+}
+
+table ReplEvaluationFailure {
+  exception: Exception (required);
+}
+
+union ReplEvaluationResult {
+  success: ReplEvaluationSuccess,
+  failure: ReplEvaluationFailure
+}

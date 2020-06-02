@@ -1,0 +1,13 @@
+include "common.fbs";
+namespace org.enso.polyglotapi.protocol.debugger;
+
+table Binding {
+  name: string;
+  value: ObjectRepr;
+}
+
+table ReplListBindingsRequest {}
+
+table ReplListBindingsResult {
+  bindings: [Binding];
+}

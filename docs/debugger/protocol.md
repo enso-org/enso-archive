@@ -29,7 +29,33 @@ these are of type `Object`).
 As these values are only used for presentation, they are represented by String.
 
 ```typescript
-type ObjectRepr = String;
+interface ObjectRepr {
+  representation: String;
+}
+```
+
+### `StackTraceElement`
+Represents a line of the stack trace. Corresponds to
+`java.lang.StackTraceElement`.
+
+```typescript
+interface StackTraceElement {
+  declaringClass: String;
+  methodName: String;
+  fileName: String;
+  lineNumber: Int;
+}
+```
+
+### `Exception`
+Represents an exception that may have been raised during requested execution.
+
+```typescript
+interface Exception {
+  message: String;
+  stackTrace: [StackTraceElement];
+  cause: Exception;
+}
 ```
 
 ### `Binding`
@@ -47,12 +73,15 @@ interface Binding {
 ### `repl/evaluate`
 Evaluates an arbitrary expression in the current execution context.
 
+Returns an union-type that contains either the value of successfully evaluated
+expression or an exception that has been raised during evaluation.
+
 #### Parameters
 ```idl
 namespace org.enso.runner.protocol.binary;
 
 table ReplEvaluationRequest {
-  expression: String;
+  expression: String (required);
 }
 ```
 
@@ -60,8 +89,17 @@ table ReplEvaluationRequest {
 ```idl
 namespace org.enso.runner.protocol.binary;
 
-table ReplEvaluationResult {
-  result: ObjectRepr;
+table ReplEvaluationSuccess {
+  result: ObjectRepr (required);
+}
+
+table ReplEvaluationFailure {
+  exception: Exception (required);
+}
+
+union ReplEvaluationResult {
+  success: ReplEvaluationSuccess,
+  failure: ReplEvaluationFailure
 }
 ```
 
@@ -105,6 +143,5 @@ table ReplExitRequest {}
 ```idl
 namespace org.enso.runner.protocol.binary;
 
-//Indicates the operation has succeeded.
 table ReplExitSuccess {}
 ```
