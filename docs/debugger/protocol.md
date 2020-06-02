@@ -1,8 +1,8 @@
 ---
 layout: developer-doc
 title: Enso Debugger Protocol Message Specification
-category: repl
-tags: [repl, protocol, specification]
+category: debugger
+tags: [repl, debugger, protocol, specification]
 order: 1
 ---
 
@@ -105,6 +105,6 @@ table ReplExitRequest {}
 ```idl
 namespace org.enso.runner.protocol.binary;
 
-//Indicates an operation has succeeded.
-table Success {}
+//Indicates the operation has succeeded.
+table ReplExitSuccess {}
 ```
