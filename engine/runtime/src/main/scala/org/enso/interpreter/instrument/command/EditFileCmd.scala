@@ -2,8 +2,10 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.ProgramExecutionSupport
 import org.enso.polyglot.runtime.Runtime.Api
 
+import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
@@ -17,12 +19,17 @@ class EditFileCmd(request: Api.EditFileNotification)
     with ProgramExecutionSupport {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = Future {
     val changesetOpt = ctx.executionService
       .modifyModuleSources(request.path, request.edits.asJava)
       .toScala
     val invalidateExpressions = changesetOpt.map { changeset =>
-      CacheInvalidation.InvalidateKeys(request.edits.flatMap(changeset.compute))
+      CacheInvalidation.InvalidateKeys(
+        request.edits.flatMap(changeset.compute)
+      )
     }
     val invalidateStale = changesetOpt.map { changeset =>
       val scopeIds = ctx.executionService.getContext.getCompiler

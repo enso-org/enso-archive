@@ -8,6 +8,7 @@ import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{
 }
 import org.enso.interpreter.instrument.Visualisation
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.ProgramExecutionSupport
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
   RequestId,

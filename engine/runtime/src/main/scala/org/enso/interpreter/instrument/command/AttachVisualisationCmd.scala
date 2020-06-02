@@ -4,6 +4,8 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.concurrent.{ExecutionContext, Future}
+
 /**
   * A command that attaches a visualisation to an expression.
   *
@@ -16,27 +18,31 @@ class AttachVisualisationCmd(
 ) extends BaseVisualisationCmd {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.contains(
-          request.visualisationConfig.executionContextId
-        )) {
-      upsertVisualisation(
-        maybeRequestId,
-        request.visualisationId,
-        request.expressionId,
-        request.visualisationConfig,
-        Api.VisualisationAttached()
-      )
-    } else {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.ContextNotExistError(
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      if (ctx.contextManager.contains(
             request.visualisationConfig.executionContextId
+          )) {
+        upsertVisualisation(
+          maybeRequestId,
+          request.visualisationId,
+          request.expressionId,
+          request.visualisationConfig,
+          Api.VisualisationAttached()
+        )
+      } else {
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            maybeRequestId,
+            Api.ContextNotExistError(
+              request.visualisationConfig.executionContextId
+            )
           )
         )
-      )
+      }
     }
-  }
 
 }

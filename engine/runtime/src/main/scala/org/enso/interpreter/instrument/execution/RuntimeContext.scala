@@ -23,6 +23,7 @@ case class RuntimeContext(
   endpoint: Endpoint,
   truffleContext: TruffleContext,
   commandProcessor: CommandProcessor,
-  commandExecutionContext: ExecutionContext,
-  jobProcessor: JobProcessor
+  jobProcessor: JobProcessor,
+  jobControlPlane: JobControlPlane,
+  lockRegistry: LockRegistry
 )

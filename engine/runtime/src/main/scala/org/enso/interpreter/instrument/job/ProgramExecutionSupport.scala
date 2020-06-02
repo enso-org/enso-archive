@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument.command
+package org.enso.interpreter.instrument.job
 
 import java.io.File
 import java.util.UUID
@@ -10,13 +10,13 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
+import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.ProgramExecutionSupport.ExecutionItem
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
   RuntimeCache,
   Visualisation
 }
-import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api

@@ -6,6 +6,6 @@ import scala.concurrent.Future
 
 trait JobProcessor {
 
-  def run(job: Job): Future[Done.type]
+  def run[A](job: Job[A]): Future[A]
 
 }

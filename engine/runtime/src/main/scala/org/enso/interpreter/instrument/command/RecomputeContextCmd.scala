@@ -2,8 +2,11 @@ package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.ProgramExecutionSupport
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * A command that forces a recomputation of the current position.
@@ -18,28 +21,35 @@ class RecomputeContextCmd(
     with ProgramExecutionSupport {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.get(request.contextId).isDefined) {
-      val stack = ctx.contextManager.getStack(request.contextId)
-      val payload = if (stack.isEmpty) {
-        Api.EmptyStackError(request.contextId)
-      } else {
-        CacheInvalidation.run(
-          stack,
-          request.expressions.toSeq.map(CacheInvalidation(_))
-        )
-        withContext(runProgram(request.contextId, stack.toList)) match {
-          case Right(()) => Api.RecomputeContextResponse(request.contextId)
-          case Left(e)   => Api.ExecutionFailed(request.contextId, e)
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      if (ctx.contextManager.get(request.contextId).isDefined) {
+        val stack = ctx.contextManager.getStack(request.contextId)
+        val payload = if (stack.isEmpty) {
+          Api.EmptyStackError(request.contextId)
+        } else {
+          CacheInvalidation.run(
+            stack,
+            request.expressions.toSeq.map(CacheInvalidation(_))
+          )
+          withContext(runProgram(request.contextId, stack.toList)) match {
+            case Right(()) => Api.RecomputeContextResponse(request.contextId)
+            case Left(e)   => Api.ExecutionFailed(request.contextId, e)
+          }
         }
+        ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
+      } else {
+        ctx.endpoint.sendToClient(
+          Api
+            .Response(
+              maybeRequestId,
+              Api.ContextNotExistError(request.contextId)
+            )
+        )
       }
-      ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
-    } else {
-      ctx.endpoint.sendToClient(
-        Api
-          .Response(maybeRequestId, Api.ContextNotExistError(request.contextId))
-      )
     }
-  }
 
 }

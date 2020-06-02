@@ -15,6 +15,6 @@ trait CommandProcessor {
     * @param cmd a command to execute
     * @return a future signaling the completion of computations
     */
-  def invoke(cmd: Command): Future[Done.type]
+  def invoke(cmd: Command): Future[Completion]
 
 }

@@ -4,6 +4,8 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.concurrent.{ExecutionContext, Future}
+
 /**
   * A command that detaches a visualisation from the expression.
   *
@@ -16,27 +18,31 @@ class DetachVisualisationCmd(
 ) extends Command {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.contains(request.contextId)) {
-      ctx.contextManager.removeVisualisation(
-        request.contextId,
-        request.expressionId,
-        request.visualisationId
-      )
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.VisualisationDetached()
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      if (ctx.contextManager.contains(request.contextId)) {
+        ctx.contextManager.removeVisualisation(
+          request.contextId,
+          request.expressionId,
+          request.visualisationId
         )
-      )
-    } else {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.ContextNotExistError(request.contextId)
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            maybeRequestId,
+            Api.VisualisationDetached()
+          )
         )
-      )
+      } else {
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            maybeRequestId,
+            Api.ContextNotExistError(request.contextId)
+          )
+        )
+      }
     }
-  }
 
 }

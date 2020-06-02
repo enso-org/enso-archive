@@ -41,7 +41,7 @@ object CommandFactory {
 
       case payload: Api.OpenFileNotification  => new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
-      case payload: Api.EditFileNotification  => new EditFileCmd(payload)
+      case payload: Api.EditFileNotification  => new EditFileCommand(payload)
     }
 
 }

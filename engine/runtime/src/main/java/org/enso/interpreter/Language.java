@@ -82,7 +82,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected boolean isThreadAccessAllowed(Thread thread, boolean singleThreaded) {
-    return super.isThreadAccessAllowed(thread, singleThreaded);
+    return true;
   }
 
   /**
