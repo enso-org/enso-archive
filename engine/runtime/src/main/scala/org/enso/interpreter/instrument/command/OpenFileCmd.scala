@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.OpenFileJob
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -18,6 +17,15 @@ class OpenFileCmd(request: Api.OpenFileNotification) extends Command {
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    ctx.jobProcessor.run(new OpenFileJob(request.path, request.contents))
+    Future {
+      ctx.locking.acquireFileLock(request.path)
+      ctx.locking.acquireReadCompilationLock()
+      try {
+        ctx.executionService.setModuleSources(request.path, request.contents)
+      } finally {
+        ctx.locking.releaseReadCompilationLock()
+        ctx.locking.releaseFileLock(request.path)
+      }
+    }
 
 }
