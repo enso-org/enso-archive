@@ -288,6 +288,10 @@ case object NestedPatternMatch extends IRPass {
     currentBranchExpr: IR.Expression,
     remainingBranches: Seq[IR.Case.Branch]
   ): IR.Expression = {
+    // TODO [AA]: Two problems here:
+    //  1. We reuse pieces of IR without giving them new identifiers. This needs
+    //     to be done _deeply_ via a `duplicate` function.
+    //  2. Potentially an issue with the desugaring itself.
     val scrutinee = IR.Name.Literal(scrutineeName, None)
     val fallbackCase =
       IR.Case.Expr(topLevelScrutineeExpr, remainingBranches, None)

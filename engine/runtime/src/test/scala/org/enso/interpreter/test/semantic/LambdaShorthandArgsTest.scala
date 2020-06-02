@@ -149,4 +149,8 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     eval(code)
     consumeOut shouldEqual List("1", "2", "3", "4")
   }
+
+  subject should "work properly when used with dot notation" in {
+    pending
+  }
 }

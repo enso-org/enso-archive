@@ -45,7 +45,7 @@ sealed trait IR {
     * @param location the new location for the IR node
     * @return the IR node with its location set to `location`
     */
-  def setLocation(location: Option[IdentifiedLocation]): IR
+  def setLocation(location: Option[IdentifiedLocation]): this.type
 
   /** Gets the external identifier from an IR node, if it is present.
     *
@@ -61,7 +61,7 @@ sealed trait IR {
     * @param fn the function to transform the expressions
     * @return `this`, potentially having had its children transformed by `fn`
     */
-  def mapExpressions(fn: Expression => Expression): IR
+  def mapExpressions(fn: Expression => Expression): this.type
 
   /** Gets the list of all children IR nodes of this node.
     *
@@ -92,6 +92,16 @@ sealed trait IR {
 
   /** Storage for compiler diagnostics related to the IR node. */
   val diagnostics: DiagnosticStorage
+
+  /** Creates a deep structural copy of `this`, representing the same structure
+    * but with all new identifiers.
+    *
+    * The location, diagnostics and metadata will be empty in the duplicated
+    * node.
+    *
+    * @return a deep structural copy of `this`
+    */
+  def duplicate: this.type
 }
 object IR {
 
@@ -175,16 +185,24 @@ object IR {
       passData: MetadataStorage            = passData,
       diagnostics: DiagnosticStorage       = diagnostics,
       id: Identifier                       = id
-    ): Empty = {
+    ): this.type = {
       val res = Empty(location, passData, diagnostics)
       res.id = id
       res
     }
 
-    override def setLocation(location: Option[IdentifiedLocation]): Empty =
+    override def duplicate: this.type =
+      copy(
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+    override def setLocation(location: Option[IdentifiedLocation]): this.type =
       copy(location = location)
 
-    override def mapExpressions(fn: Expression => Expression): Empty = this
+    override def mapExpressions(fn: Expression => Expression): this.type = this
 
     override def toString: String =
       s"""
@@ -242,16 +260,26 @@ object IR {
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
       id: Identifier                          = id
-    ): Module = {
+    ): this.type = {
       val res = Module(imports, bindings, location, passData, diagnostics)
       res.id = id
       res
     }
 
-    override def setLocation(location: Option[IdentifiedLocation]): Module =
+    override def duplicate: this.type =
+      copy(
+        imports     = imports.map(_.duplicate),
+        bindings    = bindings.map(_.duplicate),
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+    override def setLocation(location: Option[IdentifiedLocation]): this.type =
       copy(location = location)
 
-    override def mapExpressions(fn: Expression => Expression): Module = {
+    override def mapExpressions(fn: Expression => Expression): this.type = {
       copy(
         imports  = imports.map(_.mapExpressions(fn)),
         bindings = bindings.map(_.mapExpressions(fn))
@@ -336,6 +364,14 @@ object IR {
             res
           }
 
+          override def duplicate: this.type =
+            copy(
+              location    = None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Module =
@@ -411,6 +447,14 @@ object IR {
             res
           }
 
+          override def duplicate: this.type =
+            copy(
+              location    = None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Polyglot = copy(location = location)
@@ -482,6 +526,15 @@ object IR {
             res.id = id
             res
           }
+
+          override def duplicate: this.type = copy(
+            name        = name.duplicate,
+            arguments   = arguments.map(_.duplicate),
+            location    = None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
 
           override def setLocation(location: Option[IdentifiedLocation]): Atom =
             copy(location = location)
@@ -560,6 +613,17 @@ object IR {
             res.id = id
             res
           }
+
+          override def duplicate: this.type =
+            copy(
+              name        = name.duplicate,
+              arguments   = arguments.map(_.duplicate),
+              body        = body.map(_.duplicate),
+              location    = None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
 
           override def mapExpressions(fn: Expression => Expression): Type =
             copy(body = body.map(_.mapExpressions(fn)))
@@ -649,6 +713,17 @@ object IR {
               res.id = id
               res
             }
+
+            override def duplicate: this.type =
+              copy(
+                typeName    = typeName.duplicate,
+                methodName  = methodName.duplicate,
+                body        = body.duplicate,
+                location    = None,
+                passData    = MetadataStorage(),
+                diagnostics = DiagnosticStorage(),
+                id          = randomId
+              )
 
             override def setLocation(
               location: Option[IdentifiedLocation]
@@ -742,6 +817,18 @@ object IR {
               res.id = id
               res
             }
+
+            override def duplicate: this.type =
+              copy(
+                typeName    = typeName.duplicate,
+                methodName  = methodName.duplicate,
+                arguments   = arguments.map(_.duplicate),
+                body        = body.duplicate,
+                location    = None,
+                passData    = MetadataStorage(),
+                diagnostics = DiagnosticStorage(),
+                id          = randomId
+              )
 
             override def setLocation(
               location: Option[IdentifiedLocation]
@@ -859,6 +946,16 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          expressions = expressions.map(_.duplicate),
+          returnValue = returnValue.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Block =
         copy(location = location)
 
@@ -929,6 +1026,16 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          name        = name.duplicate,
+          expression  = expression.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
 
@@ -997,6 +1104,14 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Number =
         copy(location = location)
 
@@ -1050,6 +1165,14 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
       override def setLocation(location: Option[IdentifiedLocation]): Text =
         copy(location = location)
@@ -1136,6 +1259,14 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def mapExpressions(fn: Expression => Expression): Blank =
         this
 
@@ -1191,6 +1322,14 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Literal =
         copy(location = location)
 
@@ -1243,6 +1382,14 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): This =
         copy(location = location)
 
@@ -1294,6 +1441,14 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type =
+        copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
       override def setLocation(location: Option[IdentifiedLocation]): Here =
         copy(location = location)
@@ -1368,6 +1523,16 @@ object IR {
         res
       }
 
+      override def duplicate: this.type =
+        copy(
+          typed       = typed.duplicate,
+          signature   = signature.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Ascription = copy(location = location)
@@ -1434,6 +1599,16 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type =
+        copy(
+          typed       = typed.duplicate,
+          context     = context.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
       override def setLocation(location: Option[IdentifiedLocation]): Context =
         copy(location = location)
@@ -1513,6 +1688,16 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          label       = label.duplicate,
+          memberType  = memberType.duplicate,
+          value       = value.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Member =
           copy(location = location)
 
@@ -1585,6 +1770,15 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Subsumption = copy(location = location)
@@ -1654,6 +1848,15 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Equality = copy(location = location)
@@ -1721,6 +1924,15 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Concat =
           copy(location = location)
 
@@ -1787,6 +1999,15 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Union =
           copy(location = location)
 
@@ -1852,6 +2073,15 @@ object IR {
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
@@ -1921,6 +2151,15 @@ object IR {
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
@@ -2029,6 +2268,15 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        arguments   = arguments.map(_.duplicate),
+        body        = body.duplicate,
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Lambda =
         copy(location = location)
 
@@ -2109,6 +2357,16 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type = copy(
+        name        = name.duplicate,
+        arguments   = arguments.map(_.duplicate),
+        body        = body.duplicate,
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
 
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
@@ -2218,6 +2476,15 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        name         = name.duplicate,
+        defaultValue = defaultValue.map(_.duplicate),
+        location     = None,
+        passData     = MetadataStorage(),
+        diagnostics  = DiagnosticStorage(),
+        id           = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
@@ -2310,6 +2577,15 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        function    = function.duplicate,
+        arguments   = arguments.map(_.duplicate),
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Prefix =
         copy(location = location)
 
@@ -2370,6 +2646,14 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type = copy(
+        target      = target.duplicate,
+        passData    = MetadataStorage(),
+        location    = None,
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
 
       override def setLocation(location: Option[IdentifiedLocation]): Force =
         copy(location = location)
@@ -2440,6 +2724,14 @@ object IR {
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          items       = items.map(_.duplicate),
+          passData    = MetadataStorage(),
+          location    = None,
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
@@ -2513,6 +2805,16 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          left        = left.duplicate,
+          operator    = operator.duplicate,
+          right       = right.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Binary =
           copy(location = location)
 
@@ -2585,6 +2887,15 @@ object IR {
             res
           }
 
+          override def duplicate: this.type = copy(
+            arg         = arg.duplicate,
+            operator    = operator.duplicate,
+            passData    = MetadataStorage(),
+            location    = None,
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
           override def setLocation(location: Option[IdentifiedLocation]): Left =
             copy(location = location)
 
@@ -2645,6 +2956,14 @@ object IR {
             res.id = id
             res
           }
+
+          override def duplicate: this.type = copy(
+            operator    = operator.duplicate,
+            location    = None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
 
           override def setLocation(
             location: Option[IdentifiedLocation]
@@ -2707,6 +3026,15 @@ object IR {
             res.id = id
             res
           }
+
+          override def duplicate: this.type = copy(
+            operator    = operator.duplicate,
+            arg         = arg.duplicate,
+            location    = None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
 
           override def setLocation(
             location: Option[IdentifiedLocation]
@@ -2819,6 +3147,15 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        name        = name.map(_.duplicate),
+        value       = value.duplicate,
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
@@ -2895,6 +3232,15 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        scrutinee   = scrutinee.duplicate,
+        branches    = branches.map(_.duplicate),
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Expr =
         copy(location = location)
 
@@ -2960,6 +3306,15 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type = copy(
+        pattern     = pattern.duplicate,
+        expression  = expression.duplicate,
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
 
       override def setLocation(location: Option[IdentifiedLocation]): Branch =
         copy(location = location)
@@ -3033,6 +3388,14 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        name        = name.duplicate,
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def mapExpressions(fn: Expression => Expression): Pattern = {
         copy(name = name.mapExpressions(fn))
       }
@@ -3098,35 +3461,44 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        constructor = constructor.duplicate,
+        fields      = fields.map(_.duplicate),
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       /** Checks if the constructor pattern has been desugared.
-       *
-      * A constructor pattern has been desugared if all of its fields are
-       * [[Pattern.Name]].
-       *
-       * @return `true` if the pattern has been desugared, `false` otherwise
-       */
+        *
+        * A constructor pattern has been desugared if all of its fields are
+        * [[Pattern.Name]].
+        *
+        * @return `true` if the pattern has been desugared, `false` otherwise
+        */
       def isDesugared: Boolean = {
         fields.forall {
-          case _: Pattern.Name => true
+          case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
         }
       }
 
       /** Gets the patterns fields as [[Pattern.Name]] if they are.
-       *
-       * @return the fields from `this`
-       */
+        *
+        * @return the fields from `this`
+        */
       def fieldsAsNamed: List[Option[Pattern.Name]] = {
         fields.map {
           case f: Pattern.Name => Some(f)
-          case _ => None
+          case _               => None
         }
       }
 
       /** Unsafely gets the pattern's fields as if they are [[Pattern.Name]].
-       *
-       * @return the fields from `this`
-       */
+        *
+        * @return the fields from `this`
+        */
       def unsafeFieldsAsNamed: List[Pattern.Name] = {
         fieldsAsNamed.map(_.get)
       }
@@ -3202,6 +3574,13 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Documentation = copy(location = location)
@@ -3275,6 +3654,13 @@ object IR {
         res.id = id
         res
       }
+
+      override def duplicate: this.type = copy(
+        location    = None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
 
       override def setLocation(
         location: Option[IdentifiedLocation]
@@ -3451,6 +3837,12 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Syntax =
         this
 
@@ -3591,6 +3983,13 @@ object IR {
         res
       }
 
+      override def duplicate: this.type = copy(
+        ir          = ir.duplicate,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): InvalidIR = this
@@ -3651,15 +4050,22 @@ object IR {
           * @return a copy of `this`, with the specified values updated
           */
         def copy(
-          location: Option[IdentifiedLocation],
-          passData: MetadataStorage      = passData,
-          diagnostics: DiagnosticStorage = diagnostics,
-          id: Identifier                 = id
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
         ): ThisArg = {
           val res = ThisArg(location, passData, diagnostics)
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
@@ -3721,6 +4127,15 @@ object IR {
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          atomName    = atomName.duplicate,
+          methodName  = methodName.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(location: Option[IdentifiedLocation]): Method =
           copy(location = location)
@@ -3789,6 +4204,14 @@ object IR {
           res
         }
 
+        override def duplicate: this.type = copy(
+          atomName    = atomName.duplicate,
+          location    = None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Atom =
           copy(location = location)
 
@@ -3848,6 +4271,13 @@ object IR {
           res.id = id
           res
         }
+
+        override def duplicate: this.type = copy(
+          invalidBinding = invalidBinding.duplicate,
+          passData       = MetadataStorage(),
+          diagnostics    = DiagnosticStorage(),
+          id             = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
