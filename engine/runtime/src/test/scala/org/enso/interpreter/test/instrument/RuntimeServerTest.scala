@@ -647,10 +647,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
+    Thread.sleep(1000)
+    Set.fill(3)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(
         Api.Response(
-          requestId,
+          None,
           Api.ExecutionFailed(contextId, "error in function: main")
         )
       ),

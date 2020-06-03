@@ -1,8 +1,12 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.CacheInvalidation
-import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.ProgramExecutionSupport
+import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.job.{
+  EnsureCompiledJob,
+  ExecuteJob,
+  ProgramExecutionSupport
+}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -17,38 +21,41 @@ import scala.concurrent.{ExecutionContext, Future}
 class RecomputeContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.RecomputeContextRequest
-) extends Command(maybeRequestId)
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    Future {
-      if (ctx.contextManager.get(request.contextId).isDefined) {
+    if (ctx.contextManager.get(request.contextId).isDefined) {
+      Future {
+        ctx.jobControlPlane.abortJobs(request.contextId)
         val stack = ctx.contextManager.getStack(request.contextId)
-        val payload = if (stack.isEmpty) {
-          Api.EmptyStackError(request.contextId)
+        if (stack.isEmpty) {
+          reply(Api.EmptyStackError(request.contextId))
+          false
         } else {
           CacheInvalidation.run(
             stack,
             request.expressions.toSeq.map(CacheInvalidation(_))
           )
-          withContext(runProgram(request.contextId, stack.toList)) match {
-            case Right(()) => Api.RecomputeContextResponse(request.contextId)
-            case Left(e)   => Api.ExecutionFailed(request.contextId, e)
-          }
+          reply(Api.RecomputeContextResponse(request.contextId))
+          true
         }
-        ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
-      } else {
-        ctx.endpoint.sendToClient(
-          Api
-            .Response(
-              maybeRequestId,
-              Api.ContextNotExistError(request.contextId)
-            )
-        )
+      } flatMap {
+        case false => Future.successful(())
+        case true =>
+          val stack      = ctx.contextManager.getStack(request.contextId)
+          val executable = Executable(request.contextId, stack)
+          for {
+            _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
+            _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+          } yield ()
+      }
+    } else {
+      Future {
+        reply(Api.ContextNotExistError(request.contextId))
       }
     }
 
