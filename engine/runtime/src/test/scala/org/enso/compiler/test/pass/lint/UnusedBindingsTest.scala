@@ -50,7 +50,11 @@ class UnusedBindingsTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(localScope       = Some(LocalScope.root), isInTailPosition = Some(false), freshNameSupply  = Some(new FreshNameSupply))
+    InlineContext(
+      localScope       = Some(LocalScope.root),
+      isInTailPosition = Some(false),
+      freshNameSupply  = Some(new FreshNameSupply)
+    )
   }
 
   // === The Tests ============================================================
@@ -132,11 +136,13 @@ class UnusedBindingsTest extends CompilerTest {
           |case x of
           |    Cons a _ -> 10
           |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
           .asInstanceOf[IR.Case.Expr]
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
-      val field1 = pattern.fields.head.asInstanceOf[Pattern.Name]
-      val field2 = pattern.fields(1).asInstanceOf[Pattern.Name]
+      val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
 
       val lintMeta1 = field1.diagnostics.collect {
         case u: IR.Warning.Unused => u

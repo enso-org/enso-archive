@@ -21,9 +21,17 @@ class TailCallTest extends CompilerTest {
     freshNameSupply = Some(new FreshNameSupply)
   )
 
-  val tailCtx: InlineContext = InlineContext(localScope       = Some(LocalScope.root), isInTailPosition = Some(true), freshNameSupply  = Some(new FreshNameSupply))
+  val tailCtx: InlineContext = InlineContext(
+    localScope       = Some(LocalScope.root),
+    isInTailPosition = Some(true),
+    freshNameSupply  = Some(new FreshNameSupply)
+  )
 
-  val noTailCtx: InlineContext = InlineContext(localScope       = Some(LocalScope.root), isInTailPosition = Some(false), freshNameSupply  = Some(new FreshNameSupply))
+  val noTailCtx: InlineContext = InlineContext(
+    localScope       = Some(LocalScope.root),
+    isInTailPosition = Some(false),
+    freshNameSupply  = Some(new FreshNameSupply)
+  )
 
   val passes = new Passes
 
@@ -170,6 +178,8 @@ class TailCallTest extends CompilerTest {
         .head
         .asInstanceOf[IR.Expression.Binding]
         .expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
         .asInstanceOf[IR.Case.Expr]
 
       caseExpr.getMetadata(TailCall) shouldEqual Some(
@@ -202,6 +212,8 @@ class TailCallTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Expression.Block]
         .returnValue
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
         .asInstanceOf[IR.Case.Expr]
 
       caseExpr.getMetadata(TailCall) shouldEqual Some(
@@ -225,6 +237,8 @@ class TailCallTest extends CompilerTest {
           |case x of
           |    Cons a b -> a + b
           |""".stripMargin.preprocessExpression.get.analyse
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
           .asInstanceOf[IR.Case.Expr]
 
       val caseBranch         = ir.branches.head

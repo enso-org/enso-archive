@@ -138,13 +138,18 @@ class IgnoredBindingsTest extends CompilerTest {
         |    Cons a _ -> case y of
         |        MyCons a _ -> 10
         |""".stripMargin.preprocessExpression.get.desugar
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
         .asInstanceOf[IR.Case.Expr]
 
     val pattern    = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
     val aPat       = pattern.fields.head.asInstanceOf[Pattern.Name]
     val ignoredPat = pattern.fields(1).asInstanceOf[Pattern.Name]
 
-    val nestedCase = ir.branches.head.expression.asInstanceOf[IR.Case.Expr]
+    val nestedCase = ir.branches.head.expression
+      .asInstanceOf[IR.Expression.Block]
+      .returnValue
+      .asInstanceOf[IR.Case.Expr]
     val nestedPattern =
       nestedCase.branches.head.pattern.asInstanceOf[Pattern.Constructor]
     val nestedAPat       = nestedPattern.fields.head.asInstanceOf[Pattern.Name]
