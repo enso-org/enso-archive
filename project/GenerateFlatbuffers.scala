@@ -2,6 +2,7 @@ import java.io.IOException
 
 import sbt.Keys._
 import sbt._
+import sbt.util.FilesInfo
 
 import scala.sys.process._
 
@@ -27,34 +28,23 @@ object GenerateFlatbuffers {
     Tracked.diffOutputs(generatedSourcesStore, FileInfo.exists)(
       generatedSources
     ) { generatedDiff: ChangeReport[File] =>
-      generatedDiff.removed foreach { removedFile =>
-        println(
-          s"Deleting obsolete file $removedFile"
-        ) // TODO delete debug comments
-        removedFile.delete()
-      }
-      generatedSources
+      generatedDiff.removed foreach { removedFile => removedFile.delete() }
     }
 
-    Tracked.diffInputs(schemaSourcesStore, FileInfo.full)(schemas.toSet) {
+    Tracked.diffInputs(schemaSourcesStore, FileInfo.lastModified)(schemas.toSet) {
       schemasDiff: ChangeReport[File] =>
-        if (schemasDiff.modified.nonEmpty) {
-          println(
-            s"Files ${schemasDiff.modified} were modified - recompiling"
-          ) // TODO delete debug comments
-
+        val allGeneratedSourcesExist = generatedSources.forall(_.exists())
+        if (schemasDiff.modified.nonEmpty || !allGeneratedSourcesExist) {
           schemas foreach { schema =>
             val cmdGenerate =
               s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
             cmdGenerate.!! // Note [flatc Error Reporting]
           }
 
-          if (generatedSources.nonEmpty) {
-            val projectName = name.value
-            println(
-              f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
-            )
-          }
+          val projectName = name.value
+          println(
+            f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
+          )
         }
     }
 
