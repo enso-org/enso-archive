@@ -43,7 +43,7 @@ class ModifyVisualisationCmd(
           }
 
         case Some(visualisation) =>
-          val maybeExeFuture =
+          val maybeFutureExecutable =
             ctx.jobProcessor.run(
               new UpsertVisualisationJob(
                 maybeRequestId,
@@ -53,16 +53,14 @@ class ModifyVisualisationCmd(
                 Api.VisualisationModified()
               )
             )
-          maybeExeFuture flatMap {
+          maybeFutureExecutable flatMap {
             case None =>
               Future.successful(())
 
-            case Some(executable) =>
+            case Some(exec) =>
               for {
-                _ <- ctx.jobProcessor.run(
-                  new EnsureCompiledJob(executable.stack)
-                )
-                _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+                _ <- ctx.jobProcessor.run(new EnsureCompiledJob(exec.stack))
+                _ <- ctx.jobProcessor.run(new ExecuteJob(exec))
               } yield ()
           }
       }

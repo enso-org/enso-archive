@@ -30,7 +30,7 @@ class AttachVisualisationCmd(
     if (ctx.contextManager.contains(
           request.visualisationConfig.executionContextId
         )) {
-      val maybeExeFuture =
+      val maybeFutureExecutable =
         ctx.jobProcessor.run(
           new UpsertVisualisationJob(
             maybeRequestId,
@@ -41,7 +41,7 @@ class AttachVisualisationCmd(
           )
         )
 
-      maybeExeFuture flatMap {
+      maybeFutureExecutable flatMap {
         case None =>
           Future.successful(())
 
