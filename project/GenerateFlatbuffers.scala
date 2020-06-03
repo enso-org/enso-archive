@@ -4,7 +4,6 @@ import sbt.Keys._
 import sbt._
 
 import scala.sys.process._
-import sbt.Tracked
 
 object GenerateFlatbuffers {
 
@@ -18,40 +17,37 @@ object GenerateFlatbuffers {
     val schemas =
       (file(s"$root/src/main/schema") ** "*.fbs").get
 
-    val out = (sourceManaged in Compile).value
-    // Note [flatc Generated Sources Detection]
-    val generatedFilenames = schemas flatMap { schema =>
-        val cmdGenerate = s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
-        val cmdMakeRules =
-          s"$flatcCmd -M --java -o ${out.getAbsolutePath} $schema"
+    val out              = (sourceManaged in Compile).value
+    val generatedSources = gatherGeneratedSources(schemas, out)
 
-        val exitCode = cmdGenerate.!
-        if (exitCode != 0) {
-          println(
-            f"Generating $schema with command `$cmdGenerate` has failed with exit code $exitCode"
-          )
+    // TODO check if there are files to delete
+    // TODO check caches if running code generation is necessary
 
-          throw new RuntimeException(
-            f"Flatbuffer code generation failed for $schema"
-          )
-        }
+    schemas foreach { schema =>
+      val cmdGenerate = s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
+      cmdGenerate.!! // Note [flatc Error Reporting]
+    }
 
-        val makeRules = cmdMakeRules.!!
-        extractGeneratedFilenamesFromMakefile(makeRules)
-      }
-
-    val uniqueFilenames      = generatedFilenames.distinct
-    val uniqueGeneratedFiles = uniqueFilenames.map(file)
-
-    if (uniqueGeneratedFiles.nonEmpty) {
+    if (generatedSources.nonEmpty) {
       val projectName = name.value
       println(
-        f"*** Flatbuffers code generation generated ${uniqueGeneratedFiles.length} files in project $projectName"
+        f"*** Flatbuffers code generation generated ${generatedSources.length} files in project $projectName"
       )
     }
 
-    uniqueGeneratedFiles
+    generatedSources
   }
+
+  /* Note [flatc Error Reporting]
+   * As flatc reports errors to stdout and not stderr, if it fails the output is captured but not accessible (because !!
+   * only returns the output if the command succeeded).
+   * To avoid complex process handling logic, upon detecting an error, flatc is re-run giving it a chance to print the
+   * errors.
+   * The errors are printed when gathering source files (gatherGeneratedSources), so when flatc is re-run afterwards for
+   * actual code generation, no new errors should show up, so in this case the error reporting logic is skipped.
+   * In case an error did show up, an exception will be thrown (but this could only happen if the file has been edited
+   * during compilation).
+   */
 
   private def verifyFlatcVersion(expectedVersion: String): Unit = {
     val cmd = f"$flatcCmd --version"
@@ -76,6 +72,21 @@ object GenerateFlatbuffers {
 
   /** Parses the Make rules returned by flatc to get a list of affected files.
     *
+    * The flatc compiler can print Make rules for files it generates (using the -M option).
+    * We use this feature to easily get a list of files affected by each schema definition.
+    * The printed rules have the following format:
+    * ```
+    * file1.java \
+    * file2.java \
+    *   ...
+    * fileN.java: \
+    * fileA.fbs \
+    * fileB.fbs \
+    *   ...
+    * ```
+    * Each flatc run lists all affected files, for files used in multiple schemas that means they may appear more than
+    * once. Because of that we make sure to remove any potential duplicates before returning the list of generated sources.
+    *
     * @param makeRules a string representing the rules returned by flatc
     * @return a sequence of filenames that are mentioned in the provided rules
     */
@@ -89,25 +100,26 @@ object GenerateFlatbuffers {
     filenames
   }
 
-  private def gatherGeneratedSources(schemas: Seq[File]): Seq[File] = {
-    Nil // FIXME
+  private def gatherGeneratedSources(
+    schemas: Seq[File],
+    out: File
+  ): Seq[File] = {
+    val affectedSources =
+      schemas.flatMap { schema =>
+        val cmdMakeRules =
+          s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
+        try {
+          val makeRules = cmdMakeRules.!!
+          extractGeneratedFilenamesFromMakefile(makeRules)
+        } catch {
+          case ex: RuntimeException =>
+            val exitCode = cmdMakeRules.! // Note [flatc Error Reporting]
+            println(
+              s"flatc on ${schema.getAbsolutePath} failed with exit code $exitCode"
+            )
+            throw ex
+        }
+      }
+    affectedSources.distinct.map(file)
   }
 }
-
-/* Note [flatc Generated Sources Detection]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * The flatc compiler can print Make rules for files it generates (using the -M option).
- * We use this feature to easily get a list of files affected by each schema definition.
- * The printed rules have the following format:
- * ```
- * file1.java \
- * file2.java \
- *   ...
- * fileN.java: \
- * fileA.fbs \
- * fileB.fbs \
- *   ...
- * ```
- * Each flatc run lists all affected files, for files used in multiple schemas that means they may appear more than
- * once. Because of that we make sure to remove any potential duplicates before returning the list of generated sources.
- */
