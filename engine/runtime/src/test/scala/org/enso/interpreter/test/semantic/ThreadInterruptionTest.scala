@@ -33,11 +33,11 @@ class ThreadInterruptionTest extends InterpreterTest {
       }
     }
 
-    def runTest(n: Int = 10): Unit = {
+    def runTest(n: Int = 5): Unit = {
       val expectedOut = List.fill(n)("Interrupted.")
       val threads = 0.until(n).map(_ => new Thread(runnable))
       threads.foreach(_.start())
-      Thread.sleep(100)
+      Thread.sleep(200)
       threads.foreach(_.interrupt())
       langCtx.getThreadManager.checkInterrupts()
       threads.foreach(_.join())
