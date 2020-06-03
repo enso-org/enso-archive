@@ -13,9 +13,8 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
 
-import scala.annotation.{nowarn, unused}
+import scala.annotation.unused
 
-@nowarn("cat=unused")
 /** This pass handles the desugaring of nested pattern matches into simple
   * pattern matches (those with only one match at each level).
   *
@@ -192,7 +191,7 @@ case object NestedPatternMatch extends IRPass {
               caseExprScrutinee,
               branch.location,
               remainingBranches,
-              freshNameSupply,
+              freshNameSupply
             )
         }
 
@@ -282,6 +281,13 @@ case object NestedPatternMatch extends IRPass {
     }
   }
 
+  /* Note [Unsafe Getting the Nested Field]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * It is always safe to call `get` here, as the fact that we're in this `true`
+   * branch for the `if` indicates that there is _at least one_ nested pattern
+   * in the current pattern.
+   */
+
   /** Generates a nested case expression of the following form.
     *
     * {{{
@@ -313,9 +319,9 @@ case object NestedPatternMatch extends IRPass {
       None
     )
 
-    def patternBranch =
+    val patternBranch =
       IR.Case.Branch(pattern.duplicate(), currentBranchExpr.duplicate(), None)
-    def fallbackBranch = IR.Case.Branch(
+    val fallbackBranch = IR.Case.Branch(
       IR.Pattern.Name(IR.Name.Blank(None), None),
       fallbackCase,
       None
@@ -327,13 +333,6 @@ case object NestedPatternMatch extends IRPass {
       None
     )
   }
-
-  /* Note [Unsafe Getting the Nested Field]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * It is always safe to call `get` here, as the fact that we're in this `true`
-   * branch for the `if` indicates that there is _at least one_ nested pattern
-   * in the current pattern.
-   */
 
   /** Tests if a pattern contains nested patterns.
     *

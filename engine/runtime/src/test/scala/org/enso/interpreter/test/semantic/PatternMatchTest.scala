@@ -122,4 +122,24 @@ class PatternMatchTest extends InterpreterTest {
     val msg = "Inexhaustive_Pattern_Match_Error MyAtom"
     the[InterpreterException] thrownBy eval(code) should have message msg
   }
+
+  subject should "work for pattern matches in pattern matches" in {
+    val code =
+      """
+        |type MyAtom a
+        |type One a
+        |type Two a
+        |
+        |main =
+        |    f = case _ of
+        |        MyAtom a -> case a of
+        |            One Nil -> 50
+        |            _ -> 30
+        |        _ -> 20
+        |
+        |    f (MyAtom (One Nil))
+        |""".stripMargin
+
+    eval(code) shouldEqual 50
+  }
 }

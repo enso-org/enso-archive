@@ -11,7 +11,8 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
-  LambdaConsolidate
+  LambdaConsolidate,
+  UnreachableMatchBranches
 }
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
@@ -37,6 +38,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
+      UnreachableMatchBranches,
       NestedPatternMatch,
       IgnoredBindings,
       AliasAnalysis,

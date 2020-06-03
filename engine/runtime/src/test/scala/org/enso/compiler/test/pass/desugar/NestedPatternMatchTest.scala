@@ -4,11 +4,9 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Pattern}
+import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
-import org.enso.compiler.pass.desugar.{FunctionBinding, NestedPatternMatch}
 import org.enso.compiler.test.CompilerTest
-
-import scala.annotation.nowarn
 
 class NestedPatternMatchTest extends CompilerTest {
 
@@ -131,122 +129,143 @@ class NestedPatternMatchTest extends CompilerTest {
     }
   }
 
-//  "Nested pattern desugaring" should {
-//    implicit val ctx: InlineContext = mkInlineContext
-//
-//    val ir =
-//      """
-//        |case x of
-//        |    Cons (Cons MyAtom b) Nil -> a + b
-//        |    Cons a Nil -> a
-//        |    _ -> case y of
-//        |        Cons a Nil -> a
-//        |        _ -> 0
-//        |""".stripMargin.preprocessExpression.get.desugar
-//        .asInstanceOf[IR.Case.Expr]
-//
-//    val consConsNilBranch = ir.branches.head
-//    val consANilBranch    = ir.branches(1)
-//    val catchAllBranch    = ir.branches(2)
-//
-//    "desugar nested constructors to simple patterns" in {
-//      pending
-//      consANilBranch.expression shouldBe an[IR.Case.Expr]
-//      consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
-//      NestedPatternMatch
-//        .containsNestedPatterns(consANilBranch.pattern) shouldEqual false
-//
-//      val nestedCase = consANilBranch.expression.asInstanceOf[IR.Case.Expr]
-//
-//      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
-//      nestedCase.branches.length shouldEqual 2
-//
-//      val nilBranch      = nestedCase.branches.head
-//      val fallbackBranch = nestedCase.branches(1)
-//
-//      nilBranch.pattern shouldBe a[Pattern.Constructor]
-//      nilBranch.pattern
-//        .asInstanceOf[Pattern.Constructor]
-//        .constructor
-//        .name shouldEqual "Nil"
-//      nilBranch.expression shouldBe an[IR.Name.Literal]
-//      nilBranch.expression.asInstanceOf[IR.Name].name shouldEqual "a"
-//
-//      fallbackBranch.pattern shouldBe a[Pattern.Name]
-//      fallbackBranch.pattern
-//        .asInstanceOf[Pattern.Name]
-//        .name shouldBe an[IR.Name.Blank]
-//
-//      fallbackBranch.expression shouldBe an[IR.Case.Expr]
-//      fallbackBranch.expression
-//        .asInstanceOf[IR.Case.Expr]
-//        .branches
-//        .length shouldEqual 1
-//    }
-//
-//    "desugar deeply nested patterns to simple patterns" in {
-//      pending
-//      consConsNilBranch.expression shouldBe an[IR.Case.Expr]
-//      consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
-//      NestedPatternMatch
-//        .containsNestedPatterns(consConsNilBranch.pattern) shouldEqual false
-//
-//      val nestedCase = consConsNilBranch.expression.asInstanceOf[IR.Case.Expr]
-//
-//      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
-//      nestedCase.branches.length shouldEqual 2
-//
-//      val consBranch      = nestedCase.branches.head
-//      val fallbackBranch1 = nestedCase.branches(1)
-//
-//      consBranch.expression shouldBe an[IR.Case.Expr]
-//      fallbackBranch1.expression shouldBe an[IR.Case.Expr]
-//
-//      val consBranchBody = consBranch.expression.asInstanceOf[IR.Case.Expr]
-//      val fallbackBranch1Body =
-//        fallbackBranch1.expression.asInstanceOf[IR.Case.Expr]
-//
-//      consBranchBody.branches.length shouldEqual 2
-//      consBranchBody.branches.head.expression shouldBe an[IR.Case.Expr]
-//      consBranchBody.branches.head.pattern
-//        .asInstanceOf[Pattern.Constructor]
-//        .constructor
-//        .name shouldEqual "MyAtom"
-//      NestedPatternMatch.containsNestedPatterns(
-//        consBranchBody.branches.head.pattern
-//      ) shouldEqual false
-//
-//      fallbackBranch1Body.branches.length shouldEqual 2
-//      fallbackBranch1Body.branches.head.pattern shouldBe a[Pattern.Constructor]
-//      fallbackBranch1Body.branches.head.pattern
-//        .asInstanceOf[Pattern.Constructor]
-//        .constructor
-//        .name shouldEqual "Cons"
-//      NestedPatternMatch.containsNestedPatterns(
-//        fallbackBranch1Body.branches.head.pattern
-//      ) shouldEqual false
-//    }
-//
-//    "work recursively" in {
-//      pending
-//      catchAllBranch.expression shouldBe an[IR.Case.Expr]
-//      val consANilBranch2 =
-//        catchAllBranch.expression.asInstanceOf[IR.Case.Expr].branches.head
-//
-//      NestedPatternMatch.containsNestedPatterns(
-//        consANilBranch2.pattern
-//      ) shouldEqual false
-//      consANilBranch2.expression shouldBe an[IR.Case.Expr]
-//      val consANilBranch2Expr =
-//        consANilBranch2.expression.asInstanceOf[IR.Case.Expr]
-//
-//      consANilBranch2Expr.branches.length shouldEqual 2
-//      consANilBranch2Expr.branches.head.pattern
-//        .asInstanceOf[Pattern.Constructor]
-//        .constructor
-//        .name shouldEqual "Nil"
-//    }
-//  }
+  "Nested pattern desugaring" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    val ir =
+      """
+        |case x of
+        |    Cons (Cons MyAtom b) Nil -> a + b
+        |    Cons a Nil -> a
+        |    _ -> case y of
+        |        Cons a Nil -> a
+        |        _ -> 0
+        |""".stripMargin.preprocessExpression.get.desugar
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+    val consConsNilBranch = ir.branches.head
+    val consANilBranch    = ir.branches(1)
+    val catchAllBranch    = ir.branches(2)
+
+    "desugar nested constructors to simple patterns" in {
+      consANilBranch.expression shouldBe an[IR.Expression.Block]
+      consANilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      NestedPatternMatch
+        .containsNestedPatterns(consANilBranch.pattern) shouldEqual false
+
+      val nestedCase = consANilBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.branches.length shouldEqual 2
+
+      val nilBranch      = nestedCase.branches.head
+      val fallbackBranch = nestedCase.branches(1)
+
+      nilBranch.pattern shouldBe a[Pattern.Constructor]
+      nilBranch.pattern
+        .asInstanceOf[Pattern.Constructor]
+        .constructor
+        .name shouldEqual "Nil"
+      nilBranch.expression shouldBe an[IR.Name.Literal]
+      nilBranch.expression.asInstanceOf[IR.Name].name shouldEqual "a"
+
+      fallbackBranch.pattern shouldBe a[Pattern.Name]
+      fallbackBranch.pattern
+        .asInstanceOf[Pattern.Name]
+        .name shouldBe an[IR.Name.Blank]
+
+      fallbackBranch.expression shouldBe an[IR.Expression.Block]
+      fallbackBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+        .branches
+        .length shouldEqual 1
+    }
+
+    "desugar deeply nested patterns to simple patterns" in {
+      consConsNilBranch.expression shouldBe an[IR.Expression.Block]
+      consConsNilBranch.pattern shouldBe an[IR.Pattern.Constructor]
+      NestedPatternMatch
+        .containsNestedPatterns(consConsNilBranch.pattern) shouldEqual false
+
+      val nestedCase = consConsNilBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+      nestedCase.scrutinee shouldBe an[IR.Name.Literal]
+      nestedCase.branches.length shouldEqual 2
+
+      val consBranch      = nestedCase.branches.head
+      val fallbackBranch1 = nestedCase.branches(1)
+
+      consBranch.expression shouldBe an[IR.Expression.Block]
+      fallbackBranch1.expression shouldBe an[IR.Expression.Block]
+
+      val consBranchBody = consBranch.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+      val fallbackBranch1Body =
+        fallbackBranch1.expression
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .asInstanceOf[IR.Case.Expr]
+
+      consBranchBody.branches.length shouldEqual 2
+      consBranchBody.branches.head.expression shouldBe an[IR.Expression.Block]
+      consBranchBody.branches.head.pattern
+        .asInstanceOf[Pattern.Constructor]
+        .constructor
+        .name shouldEqual "MyAtom"
+      NestedPatternMatch.containsNestedPatterns(
+        consBranchBody.branches.head.pattern
+      ) shouldEqual false
+
+      fallbackBranch1Body.branches.length shouldEqual 2
+      fallbackBranch1Body.branches.head.pattern shouldBe a[Pattern.Constructor]
+      fallbackBranch1Body.branches.head.pattern
+        .asInstanceOf[Pattern.Constructor]
+        .constructor
+        .name shouldEqual "Cons"
+      NestedPatternMatch.containsNestedPatterns(
+        fallbackBranch1Body.branches.head.pattern
+      ) shouldEqual false
+    }
+
+    "work recursively" in {
+      catchAllBranch.expression shouldBe an[IR.Expression.Block]
+      val consANilBranch2 =
+        catchAllBranch.expression
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .asInstanceOf[IR.Case.Expr]
+          .branches
+          .head
+
+      NestedPatternMatch.containsNestedPatterns(
+        consANilBranch2.pattern
+      ) shouldEqual false
+      consANilBranch2.expression shouldBe an[IR.Expression.Block]
+      val consANilBranch2Expr =
+        consANilBranch2.expression
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .asInstanceOf[IR.Case.Expr]
+
+      consANilBranch2Expr.branches.length shouldEqual 2
+      consANilBranch2Expr.branches.head.pattern
+        .asInstanceOf[Pattern.Constructor]
+        .constructor
+        .name shouldEqual "Nil"
+    }
+  }
 
   def showCode(ir: IR, ind: String = ""): String = ir match {
     case Expression.Block(expressions, returnValue, _, suspended, _, _) =>
@@ -259,37 +278,26 @@ class NestedPatternMatchTest extends CompilerTest {
       val x = "\n" + r.map(ind + _).mkString("\n")
       x
     case Expression.Binding(name, expression, _, _, _) =>
-
       s"$ind${showCode(name)} = ${showCode(expression)}"
 
-    case n:IR.Name => n.name
-    case ap: IR.Application.Prefix => (showCode(ap.function) :: ap.arguments.map(v => showCode(v.value))).mkString(" ")
+    case n: IR.Name => n.name
+    case ap: IR.Application.Prefix =>
+      (showCode(ap.function) :: ap.arguments.map(v => showCode(v.value)))
+        .mkString(" ")
     case IR.Case.Expr(scrut, branches, _, _, _) =>
       val indAdd = "    " + ind
-      val s = showCode(scrut)
-      val bs: List[String] = branches.map(showCode(_, indAdd)).map(indAdd + _).toList
+      val s      = showCode(scrut)
+      val bs: List[String] =
+        branches.map(showCode(_, indAdd)).map(indAdd + _).toList
       (s"case $s of" :: bs).mkString("\n")
     case IR.Case.Branch(pat, expr, _, _, _) =>
       val p = showCode(pat)
       val e = showCode(expr, ind)
       s"$p -> $e"
     case IR.Pattern.Name(n, _, _, _) => n.name
-    case IR.Pattern.Constructor(c, fs, _, _, _) => (c.name :: fs.map(showCode(_))).mkString(" ")
+    case IR.Pattern.Constructor(c, fs, _, _, _) =>
+      (c.name :: fs.map(showCode(_))).mkString(" ")
     case IR.Literal.Number(v, _, _, _) => v
-    case _ => ir.pretty
-  }
-
-  "thingy" should {
-    implicit val ctx: InlineContext = mkInlineContext
-
-    "thingy" in {
-      val ir =
-        """
-          |case MyAtom Foo of
-          |    MyAtom Foo -> 30
-          |""".stripMargin.preprocessExpression.get.desugar
-
-      println(showCode(ir))
-    }
+    case _                             => ir.pretty
   }
 }
