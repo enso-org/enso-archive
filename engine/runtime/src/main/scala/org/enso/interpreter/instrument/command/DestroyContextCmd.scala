@@ -44,7 +44,6 @@ class DestroyContextCmd(
 
   private def removeContext(ctx: RuntimeContext): Unit = {
     ctx.jobControlPlane.abortJobs(request.contextId)
-
     ctx.locking.acquireContextLock(request.contextId)
     try {
       ctx.contextManager.destroy(request.contextId)

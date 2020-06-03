@@ -34,7 +34,7 @@ class EditFileCommand(request: Api.EditFileNotification) extends Command {
 
   private def executeAll(
     invalidationRules: Iterable[CacheInvalidation]
-  )(implicit ctx: RuntimeContext) = {
+  )(implicit ctx: RuntimeContext): List[Future[Unit]] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
