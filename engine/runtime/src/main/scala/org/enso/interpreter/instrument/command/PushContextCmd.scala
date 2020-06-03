@@ -1,14 +1,9 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.{
-  EnsureCompiledJob,
-  ExecuteJob,
-  ProgramExecutionSupport
-}
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.{RequestId, StackItem}
+import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -21,8 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class PushContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PushContextRequest
-) extends Command(maybeRequestId)
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

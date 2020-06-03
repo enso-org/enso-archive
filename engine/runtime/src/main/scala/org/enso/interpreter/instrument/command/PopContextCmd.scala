@@ -1,8 +1,7 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.InstrumentFrame
-import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.ProgramExecutionSupport
+import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -17,38 +16,43 @@ import scala.concurrent.{ExecutionContext, Future}
 class PopContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PopContextRequest
-) extends Command(maybeRequestId)
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    Future {
-      if (ctx.contextManager.get(request.contextId).isDefined) {
-        val payload = ctx.contextManager.pop(request.contextId) match {
-          case Some(InstrumentFrame(_: Api.StackItem.ExplicitCall, _)) =>
-            Api.PopContextResponse(request.contextId)
-          case Some(InstrumentFrame(_: Api.StackItem.LocalCall, _)) =>
-            val stack = ctx.contextManager.getStack(request.contextId)
-            withContext(runProgram(request.contextId, stack.toList)) match {
-              case Right(()) => Api.PopContextResponse(request.contextId)
-              case Left(e)   => Api.ExecutionFailed(request.contextId, e)
-            }
-          case None =>
-            Api.EmptyStackError(request.contextId)
+    if (ctx.contextManager.get(request.contextId).isDefined) {
+      Future {
+        ctx.jobControlPlane.abortJobs(request.contextId)
+        val maybeTopItem = ctx.contextManager.pop(request.contextId)
+        if (maybeTopItem.isDefined) {
+          reply(Api.PopContextResponse(request.contextId))
+        } else {
+          reply(Api.EmptyStackError(request.contextId))
         }
-        ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
-      } else {
-        ctx.endpoint.sendToClient(
-          Api
-            .Response(
-              maybeRequestId,
-              Api.ContextNotExistError(request.contextId)
-            )
-        )
+      } flatMap { _ => scheduleExecutionIfNeeded() }
+    } else {
+      Future {
+        reply(Api.ContextNotExistError(request.contextId))
       }
     }
+
+  private def scheduleExecutionIfNeeded()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val stack = ctx.contextManager.getStack(request.contextId)
+    if (stack.nonEmpty) {
+      val executable = Executable(request.contextId, stack)
+      for {
+        _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
+        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+      } yield ()
+    } else {
+      Future.successful(())
+    }
+  }
 
 }

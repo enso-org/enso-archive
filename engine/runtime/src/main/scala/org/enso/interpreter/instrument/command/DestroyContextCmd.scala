@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.ProgramExecutionSupport
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
@@ -25,23 +24,13 @@ class DestroyContextCmd(
   ): Future[Unit] =
     Future {
       if (ctx.contextManager.get(request.contextId).isDefined) {
-        removeContext(ctx)
+        removeContext()
       } else {
-        sendErrorResponse(ctx)
+        reply(Api.ContextNotExistError(request.contextId))
       }
     }
 
-  private def sendErrorResponse(ctx: RuntimeContext): Unit = {
-    ctx.endpoint.sendToClient(
-      Api
-        .Response(
-          maybeRequestId,
-          Api.ContextNotExistError(request.contextId)
-        )
-    )
-  }
-
-  private def removeContext(ctx: RuntimeContext): Unit = {
+  private def removeContext()(implicit ctx: RuntimeContext): Unit = {
     ctx.jobControlPlane.abortJobs(request.contextId)
     ctx.locking.acquireContextLock(request.contextId)
     try {
