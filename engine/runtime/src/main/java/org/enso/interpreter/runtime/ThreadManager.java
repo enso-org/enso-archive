@@ -60,10 +60,11 @@ public class ThreadManager {
   }
 
   /**
-   * Forces all threads managed by this system to halt at the next safepoint (i.e. a {@link #poll()
+   * Forces all threads managed by this system to halt at the next safepoint (i.e. a {@link #poll()}
    * call) and throw an exception if they were interrupted.
    *
-   * <p>This method is blocking, does not return until the last managed thread reports at a safepoint.
+   * <p>This method is blocking, does not return until the last managed thread reports at a
+   * safepoint.
    *
    * <p>This method may not be called from a thread that is itself managed by this system, as doing
    * so may result in a deadlock.
