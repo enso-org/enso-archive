@@ -589,6 +589,7 @@ lazy val `polyglot-api` = project
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
     scalacOptions ++= splainOptions,
+    GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .dependsOn(pkg)
@@ -614,6 +615,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
+    GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .configs(Benchmark)

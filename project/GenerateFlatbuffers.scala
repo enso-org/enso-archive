@@ -1,32 +1,22 @@
+import java.io.IOException
+
 import sbt.Keys._
 import sbt._
 
 import scala.sys.process._
+import sbt.Tracked
 
 object GenerateFlatbuffers {
 
+  val flatcVersion     = settingKey[String]("flatc version used in the project")
+  private val flatcCmd = "flatc"
+
   lazy val task = Def.task {
-    val flatcCmd = "flatc"
-    val root     = baseDirectory.value
+    verifyFlatcVersion(flatcVersion.value)
+
+    val root = baseDirectory.value
     val schemas =
       (file(s"$root/src/main/schema") ** "*.fbs").get
-        .map(_.getAbsolutePath)
-        .toList
-
-    /** Parses the Make rules returned by flatc to get a list of affected files.
-      *
-      * @param makeRules a string representing the rules returned by flatc
-      * @return a sequence of filenames that are mentioned in the provided rules
-      */
-    def extractGeneratedFilenamesFromMakefile(
-      makeRules: String
-    ): Seq[String] = {
-      val cleaned            = makeRules.replaceAllLiterally("\\", "");
-      val Array(javaPart, _) = cleaned.split(':')
-
-      val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
-      filenames
-    }
 
     val out = (sourceManaged in Compile).value
     // Note [flatc Generated Sources Detection]
@@ -63,6 +53,45 @@ object GenerateFlatbuffers {
     uniqueGeneratedFiles
   }
 
+  private def verifyFlatcVersion(expectedVersion: String): Unit = {
+    val cmd = f"$flatcCmd --version"
+    val versionStr =
+      try {
+        cmd.!!.trim
+      } catch {
+        case ex @ (_: RuntimeException | _: IOException) =>
+          println("flatc version check failed. Make sure flatc is in your PATH")
+          throw new RuntimeException("Could not check flatc version", ex)
+      }
+
+    val expectedVersionStr = s"flatc version $expectedVersion"
+    if (expectedVersionStr != versionStr) {
+      println("flatc version mismatch.")
+      println(
+        s"$expectedVersionStr is expected, but it seems $versionStr is installed"
+      )
+      throw new RuntimeException("flatc version mismatch")
+    }
+  }
+
+  /** Parses the Make rules returned by flatc to get a list of affected files.
+    *
+    * @param makeRules a string representing the rules returned by flatc
+    * @return a sequence of filenames that are mentioned in the provided rules
+    */
+  private def extractGeneratedFilenamesFromMakefile(
+    makeRules: String
+  ): Seq[String] = {
+    val cleaned            = makeRules.replaceAllLiterally("\\", "");
+    val Array(javaPart, _) = cleaned.split(':')
+
+    val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
+    filenames
+  }
+
+  private def gatherGeneratedSources(schemas: Seq[File]): Seq[File] = {
+    Nil // FIXME
+  }
 }
 
 /* Note [flatc Generated Sources Detection]
