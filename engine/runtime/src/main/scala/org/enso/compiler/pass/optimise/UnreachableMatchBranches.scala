@@ -104,19 +104,22 @@ case object UnreachableMatchBranches extends IRPass {
     * @param cse the case expression to optimize
     * @return `cse` with unreachable branches removed
     */
+  //noinspection DuplicatedCode
   def optimizeCase(cse: IR.Case): IR.Case = {
     cse match {
-      case expr @ IR.Case.Expr(_, branches, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
         val reachableNonCatchAllBranches = branches.takeWhile(!isCatchAll(_))
         val firstCatchAll                = branches.find(isCatchAll)
-        val unreachableBranches          = branches.dropWhile(!isCatchAll(_)).tail
+        val unreachableBranches =
+          branches.dropWhile(!isCatchAll(_)).drop(1)
         val reachableBranches = firstCatchAll
           .flatMap(b => Some(reachableNonCatchAllBranches :+ b))
-          .get
+          .getOrElse(List())
           .toList
 
         if (unreachableBranches.isEmpty) {
           expr.copy(
+            scrutinee = optimizeExpression(scrutinee),
             branches = branches.map(b =>
               b.copy(expression = optimizeExpression(b.expression))
             )
@@ -146,6 +149,7 @@ case object UnreachableMatchBranches extends IRPass {
 
           expr
             .copy(
+              scrutinee = optimizeExpression(scrutinee),
               branches = reachableBranches
                 .map(b => b.copy(expression = optimizeExpression(b.expression)))
             )

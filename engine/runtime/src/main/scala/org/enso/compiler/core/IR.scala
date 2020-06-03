@@ -3803,9 +3803,9 @@ object IR {
     object Unreachable {
 
       /** A warning for unreachable branches in a case expression.
-       *
-       * @param location the location of the unreachable branches
-       */
+        *
+        * @param location the location of the unreachable branches
+        */
       sealed case class Branches(
         override val location: Option[IdentifiedLocation]
       ) extends Unreachable {
@@ -3830,15 +3830,31 @@ object IR {
         *
         * @param shadowedName the name being shadowed
         * @param shadower the expression shadowing `warnedExpr`
+        * @param location the location at which the shadowing takes place
         */
       sealed case class FunctionParam(
         shadowedName: String,
         override val shadower: IR,
         override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
-
         override def message: String =
           s"The argument $shadowedName is shadowed by $shadower."
+      }
+
+      /** A warning that a later-defined pattern variable shadows an
+        * earlier-defined pattern variable.
+        *
+        * @param shadowedName the name being shadowed
+        * @param shadower the expression shadowing `warnedExpr`
+        * @param location the location at which the shadowing takes place
+        */
+      sealed case class PatternBinding(
+        shadowedName: String,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"The pattern field $shadowedName is shadowed by $shadower."
       }
     }
   }

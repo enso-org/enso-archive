@@ -8,7 +8,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.lint.{ShadowedPatternFields, UnusedBindings}
 import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
   LambdaConsolidate,
@@ -38,6 +38,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
+      ShadowedPatternFields,
       UnreachableMatchBranches,
       NestedPatternMatch,
       IgnoredBindings,

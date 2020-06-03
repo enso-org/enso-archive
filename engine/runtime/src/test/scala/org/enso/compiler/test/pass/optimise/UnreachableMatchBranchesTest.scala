@@ -21,8 +21,18 @@ class UnreachableMatchBranchesTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(precursorPasses, passConfig)
 
+  /** Adds an extension method to optimise an IR by removing unreachable case
+    * branches.
+    *
+    * @param ir the ir to optimise
+    */
   implicit class OptimizeExpression(ir: IR.Expression) {
 
+    /** Optimises [[ir]] by removing unreachable case branches.
+     *
+     * @param inlineContext the context in which optimization is taking place
+     * @return [[ir]] with unreachable case branches removed
+     */
     def optimize(implicit inlineContext: InlineContext): IR.Expression = {
       UnreachableMatchBranches.runExpression(ir, inlineContext)
     }

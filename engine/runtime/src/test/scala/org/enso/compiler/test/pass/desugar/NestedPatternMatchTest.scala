@@ -87,10 +87,8 @@ class NestedPatternMatchTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.asInstanceOf[IR.Case.Expr]
 
       val pattern1 = ir.branches.head.pattern
-      val pattern2 = ir.branches(1).pattern
 
       NestedPatternMatch.containsNestedPatterns(pattern1) shouldEqual false
-      NestedPatternMatch.containsNestedPatterns(pattern2) shouldEqual false
     }
 
     "work properly on non-nested patterns" in {
