@@ -845,8 +845,12 @@ class AliasAnalysisTest extends CompilerTest {
         |    _        -> 0
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
-    val lambda   = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
-    val caseExpr = lambda.body.asInstanceOf[IR.Case.Expr]
+    val lambda    = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
+    val caseBlock = lambda.body.asInstanceOf[IR.Expression.Block]
+    val scrutBinding =
+      caseBlock.expressions.head.asInstanceOf[IR.Expression.Binding]
+    val scrutBindingExpr = scrutBinding.expression.asInstanceOf[IR.Name.Literal]
+    val caseExpr         = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
 
     val graph = methodWithCase
       .getMetadata(AliasAnalysis)
@@ -856,6 +860,12 @@ class AliasAnalysisTest extends CompilerTest {
       .graph
 
     "expose the scrutinee in the parent scope" in {
+      val scrutBindingId = scrutBinding
+        .unsafeGetMetadata(AliasAnalysis, "")
+        .unsafeAs[Info.Occurrence]
+        .id
+      graph.rootScope.getOccurrence(scrutBindingId) shouldBe defined
+
       val scrutineeId = caseExpr.scrutinee
         .getMetadata(AliasAnalysis)
         .get
@@ -864,6 +874,14 @@ class AliasAnalysisTest extends CompilerTest {
         .id
       graph.rootScope.getOccurrence(scrutineeId) shouldBe defined
 
+      graph.links should contain(Link(scrutineeId, 0, scrutBindingId))
+
+      val scrutBindingExprId = scrutBindingExpr
+        .unsafeGetMetadata(AliasAnalysis, "")
+        .unsafeAs[Info.Occurrence]
+        .id
+      graph.rootScope.getOccurrence(scrutBindingExprId) shouldBe defined
+
       val aDefId = lambda
         .arguments(1)
         .getMetadata(AliasAnalysis)
@@ -871,8 +889,9 @@ class AliasAnalysisTest extends CompilerTest {
         .as[Info.Occurrence]
         .get
         .id
+      graph.rootScope.getOccurrence(aDefId) shouldBe defined
 
-      graph.links should contain(Link(scrutineeId, 0, aDefId))
+      graph.links should contain(Link(scrutBindingExprId, 0, aDefId))
     }
 
     "create child scopes for the branch function" in {

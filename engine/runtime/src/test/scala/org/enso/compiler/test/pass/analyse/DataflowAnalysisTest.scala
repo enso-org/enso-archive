@@ -885,8 +885,14 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val caseExpr   = ir.asInstanceOf[IR.Case.Expr]
-      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Application.Prefix]
+      val caseBlock = ir.asInstanceOf[IR.Expression.Block]
+      val caseBinding =
+        caseBlock.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val caseBindingExpr =
+        caseBinding.expression.asInstanceOf[IR.Application.Prefix]
+      val caseBindingName = caseBinding.name.asInstanceOf[IR.Name.Literal]
+      val caseExpr   = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
+      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Name.Literal]
       val consBranch = caseExpr.branches.head
 
       val consBranchPattern =
@@ -910,9 +916,13 @@ class DataflowAnalysisTest extends CompilerTest {
       val bUse = bArg.value.asInstanceOf[IR.Name.Literal]
 
       // The IDs
-      val caseExprId   = mkStaticDep(caseExpr.getId)
-      val scrutineeId  = mkStaticDep(scrutinee.getId)
-      val consBranchId = mkStaticDep(consBranch.getId)
+      val caseBlockId       = mkStaticDep(caseBlock.getId)
+      val caseBindingId     = mkStaticDep(caseBinding.getId)
+      val caseBindingExprId = mkStaticDep(caseBindingExpr.getId)
+      val caseBindingNameId = mkStaticDep(caseBindingName.getId)
+      val caseExprId        = mkStaticDep(caseExpr.getId)
+      val scrutineeId       = mkStaticDep(scrutinee.getId)
+      val consBranchId      = mkStaticDep(consBranch.getId)
 
       val consBranchPatternId     = mkStaticDep(consBranchPattern.getId)
       val consBranchPatternConsId = mkStaticDep(consBranchPatternCons.getId)
@@ -928,8 +938,12 @@ class DataflowAnalysisTest extends CompilerTest {
       val bUseId                 = mkStaticDep(bUse.getId)
 
       // The Test
-      depInfo.getDirect(caseExprId) should not be defined
+      depInfo.getDirect(caseBlockId) should not be defined
+      depInfo.getDirect(caseExprId) shouldEqual Some(Set(caseBlockId))
       depInfo.getDirect(scrutineeId) shouldEqual Some(Set(caseExprId))
+      depInfo.getDirect(caseBindingId) shouldEqual Some(Set(scrutineeId))
+      depInfo.getDirect(caseBindingExprId) shouldEqual Some(Set(caseBindingId))
+      depInfo.getDirect(caseBindingNameId) shouldEqual Some(Set(caseBindingId))
       depInfo.getDirect(consBranchId) shouldEqual Some(Set(caseExprId))
 
       depInfo.getDirect(consBranchPatternId) shouldEqual Some(Set(consBranchId))
