@@ -56,7 +56,8 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   private void initArgumentExecutors(Object[] arguments) {
-    ThunkExecutorNode[] executors = new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
+    ThunkExecutorNode[] executors =
+        new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i] && TypesGen.isThunk(arguments[i])) {
         executors[i] = insert(ThunkExecutorNode.build(false));
@@ -71,10 +72,13 @@ public class ArgumentSorterNode extends BaseNode {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       Lock lock = getLock();
       lock.lock();
-      if (executors == null) {
-        initArgumentExecutors(arguments);
+      try {
+        if (executors == null) {
+          initArgumentExecutors(arguments);
+        }
+      } finally {
+        lock.unlock();
       }
-      lock.unlock();
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {

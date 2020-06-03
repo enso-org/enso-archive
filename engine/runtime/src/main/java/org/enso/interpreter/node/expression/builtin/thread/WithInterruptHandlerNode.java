@@ -26,11 +26,7 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
   private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build(false);
 
   /**
-   * Runs a stateful computation ({@link org.enso.interpreter.runtime.callable.argument.Thunk}) with
-   * a local state value, without modifying the caller state.
-   *
-   * <p>Assumes the local state value is the second argument, while the stateful computation is the
-   * third argument.
+   * Executes the function.
    *
    * @param frame current execution frame
    * @return the result of running the stateful computation with the desired initial state
@@ -38,7 +34,8 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
   @Override
   public Stateful execute(VirtualFrame frame) {
     Thunk act = (Thunk) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
-    Thunk handler = (Thunk) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2];
+    Thunk handler =
+        (Thunk) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
       return actExecutorNode.executeThunk(act, state);
@@ -60,8 +57,7 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
         FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "action", ArgumentDefinition.ExecutionMode.PASS_THUNK),
-        new ArgumentDefinition(
-            2, "handler", ArgumentDefinition.ExecutionMode.PASS_THUNK));
+        new ArgumentDefinition(2, "handler", ArgumentDefinition.ExecutionMode.PASS_THUNK));
   }
 
   @Override

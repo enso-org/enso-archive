@@ -48,10 +48,13 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       if (next == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         getLock().lock();
-        if (next == null) {
-          next = insert(LoopingCallOptimiserNode.build());
+        try {
+          if (next == null) {
+            next = insert(LoopingCallOptimiserNode.build());
+          }
+        } finally {
+          getLock().unlock();
         }
-        getLock().unlock();
       }
       return next.executeDispatch(
           e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());

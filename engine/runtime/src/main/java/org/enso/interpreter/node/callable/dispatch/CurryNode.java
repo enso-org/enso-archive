@@ -116,15 +116,20 @@ public class CurryNode extends BaseNode {
           keepExecutingProfile.enter();
           if (oversaturatedCallableNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            getLock().lock();
-            if (oversaturatedCallableNode == null) {
-              oversaturatedCallableNode =
-                  insert(InvokeCallableNode.build(
-                      new CallArgumentInfo[0],
-                      InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-                      InvokeCallableNode.ArgumentsExecutionMode.EXECUTE));
+            Lock lock = getLock();
+            lock.lock();
+            try {
+              if (oversaturatedCallableNode == null) {
+                oversaturatedCallableNode =
+                    insert(
+                        InvokeCallableNode.build(
+                            new CallArgumentInfo[0],
+                            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+                            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE));
+              }
+            } finally {
+              lock.unlock();
             }
-            getLock().unlock();
           }
 
           return oversaturatedCallableNode.execute(

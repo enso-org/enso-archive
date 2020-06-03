@@ -174,10 +174,13 @@ public abstract class InvokeCallableNode extends BaseNode {
           CompilerDirectives.transferToInterpreterAndInvalidate();
           Lock lock = getLock();
           lock.lock();
-          if (thisExecutor == null) {
-            thisExecutor = insert(ThunkExecutorNode.build(false));
+          try {
+            if (thisExecutor == null) {
+              thisExecutor = insert(ThunkExecutorNode.build(false));
+            }
+          } finally {
+            lock.unlock();
           }
-          lock.unlock();
         }
         Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state);
         selfArgument = selfResult.getValue();
