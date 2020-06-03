@@ -50,7 +50,6 @@ class ExecutionEngine(
       contextManager   = interpreterContext.contextManager,
       endpoint         = interpreterContext.endpoint,
       truffleContext   = interpreterContext.truffleContext,
-      commandProcessor = this,
       jobProcessor     = this,
       jobControlPlane  = this,
       locking          = new ReentrantLocking

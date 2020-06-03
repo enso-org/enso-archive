@@ -13,14 +13,12 @@ import org.enso.interpreter.service.ExecutionService
   * @param contextManager a storage for active execution contexts
   * @param endpoint a message endpoint
   * @param truffleContext a context of a set of Truffle languages
-  * @param commandProcessor a component responsible for executing commands
   */
 case class RuntimeContext(
   executionService: ExecutionService,
   contextManager: ExecutionContextManager,
   endpoint: Endpoint,
   truffleContext: TruffleContext,
-  commandProcessor: CommandProcessor,
   jobProcessor: JobProcessor,
   jobControlPlane: JobControlPlane,
   locking: Locking
