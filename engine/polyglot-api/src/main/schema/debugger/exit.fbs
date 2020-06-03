@@ -1,4 +1,4 @@
-namespace org.enso.polyglot.protocol.debugger;
+namespace org.enso.polyglot.debugger.protocol;
 
 table ReplExitRequest {}
 
