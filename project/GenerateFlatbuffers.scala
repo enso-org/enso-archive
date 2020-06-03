@@ -17,25 +17,48 @@ object GenerateFlatbuffers {
     val schemas =
       (file(s"$root/src/main/schema") ** "*.fbs").get
 
+    val generatedSourcesStore =
+      streams.value.cacheStoreFactory.make("flatc_generated_sources")
+    val schemaSourcesStore =
+      streams.value.cacheStoreFactory.make("flatc_schemas")
     val out              = (sourceManaged in Compile).value
     val generatedSources = gatherGeneratedSources(schemas, out)
 
-    // TODO check if there are files to delete
-    // TODO check caches if running code generation is necessary
-
-    schemas foreach { schema =>
-      val cmdGenerate = s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
-      cmdGenerate.!! // Note [flatc Error Reporting]
+    Tracked.diffOutputs(generatedSourcesStore, FileInfo.exists)(
+      generatedSources
+    ) { generatedDiff: ChangeReport[File] =>
+      generatedDiff.removed foreach { removedFile =>
+        println(
+          s"Deleting obsolete file $removedFile"
+        ) // TODO delete debug comments
+        removedFile.delete()
+      }
+      generatedSources
     }
 
-    if (generatedSources.nonEmpty) {
-      val projectName = name.value
-      println(
-        f"*** Flatbuffers code generation generated ${generatedSources.length} files in project $projectName"
-      )
+    Tracked.diffInputs(schemaSourcesStore, FileInfo.full)(schemas.toSet) {
+      schemasDiff: ChangeReport[File] =>
+        if (schemasDiff.modified.nonEmpty) {
+          println(
+            s"Files ${schemasDiff.modified} were modified - recompiling"
+          ) // TODO delete debug comments
+
+          schemas foreach { schema =>
+            val cmdGenerate =
+              s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
+            cmdGenerate.!! // Note [flatc Error Reporting]
+          }
+
+          if (generatedSources.nonEmpty) {
+            val projectName = name.value
+            println(
+              f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
+            )
+          }
+        }
     }
 
-    generatedSources
+    generatedSources.toSeq
   }
 
   /* Note [flatc Error Reporting]
@@ -103,7 +126,7 @@ object GenerateFlatbuffers {
   private def gatherGeneratedSources(
     schemas: Seq[File],
     out: File
-  ): Seq[File] = {
+  ): Set[File] = {
     val affectedSources =
       schemas.flatMap { schema =>
         val cmdMakeRules =
@@ -120,6 +143,6 @@ object GenerateFlatbuffers {
             throw ex
         }
       }
-    affectedSources.distinct.map(file)
+    affectedSources.toSet.map(file)
   }
 }
