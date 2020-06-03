@@ -1,36 +1,51 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.test.InterpreterTest
+import org.enso.polyglot.{LanguageInfo, MethodNames}
 import org.graalvm.polyglot.Value
 
 import scala.util.{Failure, Try}
 
 class ThreadInterruptionTest extends InterpreterTest {
   "Execution of Enso code" should "be interruptible through Thread#interrupt()" in {
-    var res: Try[Value] = Failure(new RuntimeException)
+    val langCtx = ctx
+      .getBindings(LanguageInfo.ID)
+      .invokeMember(MethodNames.TopScope.LEAK_CONTEXT)
+      .asHostObject[Context]()
+
     val code =
       """
-        |foo x = here.foo x
+        |foo = here.foo
         |
         |main =
-        |    IO.println "pre"
-        |    x = Thread.with_interrupt_handler (here.foo 10) (IO.println "Tell my sister I loved her.")
+        |    Thread.with_interrupt_handler here.foo (IO.println "Interrupted.")
         |""".stripMargin
 
-    println(Thread.currentThread())
-    val t =
-      new Thread({ () =>
-        println(Thread.currentThread())
-        res = Try(eval(code))
-      })
-//    ctx.
-    t.start()
-    println("Thread launched")
-    Thread.sleep(2000)
-    t.interrupt()
-    println("Thread interrupted")
-    t.join()
-    println(res)
-    println(consumeOut)
+    val main = getMain(code)
+
+    val runnable: Runnable = { () =>
+      langCtx.getThreadManager.enter()
+      try {
+        Try(main.execute())
+      } finally {
+        langCtx.getThreadManager.leave()
+      }
+    }
+
+    def runTest(n: Int = 10): Unit = {
+      val expectedOut = List.fill(n)("Interrupted.")
+      val threads = 0.until(n).map(_ => new Thread(runnable))
+      threads.foreach(_.start())
+      Thread.sleep(100)
+      threads.foreach(_.interrupt())
+      langCtx.getThreadManager.checkInterrupts()
+      threads.foreach(_.join())
+      consumeOut shouldEqual expectedOut
+      threads.forall(!_.isAlive) shouldBe true
+    }
+
+    runTest()
+    runTest()
   }
 }

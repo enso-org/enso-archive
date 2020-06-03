@@ -65,11 +65,6 @@ public abstract class ExecuteCallNode extends Node {
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("create(cachedTarget)") DirectCallNode callNode) {
-    if (CompilerDirectives.inInterpreter()) {
-      if (Thread.currentThread().isInterrupted()) {
-        throw new ThreadInterruptedException();
-      }
-    }
     return (Stateful)
         callNode.call(
             Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
@@ -95,11 +90,6 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached IndirectCallNode callNode) {
-    if (CompilerDirectives.inInterpreter()) {
-      if (Thread.interrupted()) {
-        throw new ThreadInterruptedException();
-      }
-    }
     return (Stateful)
         callNode.call(
             function.getCallTarget(),

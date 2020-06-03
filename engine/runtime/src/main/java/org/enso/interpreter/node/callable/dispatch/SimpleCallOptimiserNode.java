@@ -47,7 +47,11 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
     } catch (TailCallException e) {
       if (next == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        next = insert(LoopingCallOptimiserNode.build());
+        getLock().lock();
+        if (next == null) {
+          next = insert(LoopingCallOptimiserNode.build());
+        }
+        getLock().unlock();
       }
       return next.executeDispatch(
           e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());

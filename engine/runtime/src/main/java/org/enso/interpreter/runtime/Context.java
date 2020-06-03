@@ -36,6 +36,7 @@ public class Context {
   private final PrintStream err;
   private final BufferedReader in;
   private final List<Package<TruffleFile>> packages;
+  private final ThreadManager threadManager;
 
   /**
    * Creates a new Enso context.
@@ -49,6 +50,7 @@ public class Context {
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
     this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    this.threadManager = new ThreadManager();
     TruffleFileSystem fs = new TruffleFileSystem();
 
     packages = new ArrayList<>();
@@ -273,4 +275,7 @@ public class Context {
     return environment.createThread(runnable);
   }
 
+  public ThreadManager getThreadManager() {
+    return threadManager;
+  }
 }

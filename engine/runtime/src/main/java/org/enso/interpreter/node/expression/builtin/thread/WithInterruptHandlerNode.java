@@ -41,14 +41,9 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
     Thunk handler = (Thunk) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      System.out.println("Handler here");
       return actExecutorNode.executeThunk(act, state);
     } catch (ThreadInterruptedException e) {
-      System.out.println("Handler reports for duty");
       handlerExecutorNode.executeThunk(handler, state);
-      throw e;
-    } catch (Throwable e) {
-      System.out.println("OTHER EXC: " + e.getMessage());
       throw e;
     }
   }
