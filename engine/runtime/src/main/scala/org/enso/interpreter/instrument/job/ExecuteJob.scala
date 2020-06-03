@@ -3,11 +3,13 @@ package org.enso.interpreter.instrument.job
 import java.util.UUID
 
 import org.enso.interpreter.instrument.InstrumentFrame
-import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 
 class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
     extends Job[Unit](List(contextId), true, true)
     with ProgramExecutionSupport {
+
+  def this(exe: Executable) = this(exe.contextId, exe.stack.toList)
 
   /**
     *
@@ -17,7 +19,9 @@ class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
     ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()
     try {
-      runProgram(contextId, stack)
+      withContext {
+        runProgram(contextId, stack)
+      }
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseContextLock(contextId)
