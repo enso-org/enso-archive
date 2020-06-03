@@ -28,8 +28,8 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
   /**
    * Executes the function.
    *
-   * @param frame current execution frame
-   * @return the result of running the stateful computation with the desired initial state
+   * @param frame current execution frame.
+   * @return the result of running the function.
    */
   @Override
   public Stateful execute(VirtualFrame frame) {
