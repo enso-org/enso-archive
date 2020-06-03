@@ -2,7 +2,6 @@ package org.enso.compiler.core
 
 import java.util.UUID
 
-import org.enso.compiler.core.IR.Module.Scope
 import org.enso.compiler.core.IR.{
   DiagnosticStorage,
   Expression,
@@ -107,6 +106,13 @@ sealed trait IR {
     * @return a deep structural copy of `this`
     */
   def duplicate(keepLocations: Boolean = true): IR
+
+  /** Shows the IR as code.
+    *
+    * @param indent the current indentation level
+    * @return a string representation of `this`
+    */
+  def showCode(indent: Int = 0): String
 }
 object IR {
 
@@ -158,6 +164,18 @@ object IR {
     def apply(location: Location): IdentifiedLocation =
       IdentifiedLocation(location, None)
   }
+
+  /** Generates an indent of `n` spaces.
+    *
+    * @param n the number of spaces
+    * @return a string representing an `n`-space indent
+    */
+  def mkIndent(n: Int): String = {
+    List.fill(n)(" ").mkString("")
+  }
+
+  /** The size of a single indentation level. */
+  val indentLevel: Int = 4
 
   // === Basic Shapes =========================================================
 
@@ -223,6 +241,8 @@ object IR {
 
     override def message: String =
       "Empty IR: Please report this as a compiler bug."
+
+    override def showCode(indent: Int): String = "IR.Empty"
   }
 
   // === Module ===============================================================
@@ -312,6 +332,20 @@ object IR {
       |id = $id
       |)
       |""".toSingleLine
+
+    override def showCode(indent: Int): String = {
+      val importsString = imports.map(_.showCode(indent)).mkString("\n")
+
+      val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
+
+      if (bindings.nonEmpty && imports.nonEmpty) {
+        s"$importsString\n\n$defsString"
+      } else if (bindings.nonEmpty) {
+        s"$defsString"
+      } else {
+        s"$importsString"
+      }
+    }
   }
   object Module {
 
@@ -400,12 +434,18 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List()
+
+          override def showCode(indent: Int): String = s"import $name"
         }
 
         object Polyglot {
 
           /** Represents language-specific polyglot import data. */
-          sealed trait Entity
+          sealed trait Entity {
+            val langName: String
+
+            def showCode(indent: Int = 0): String
+          }
 
           /** Represents an import of a Java class.
             *
@@ -413,7 +453,13 @@ object IR {
             *                    class
             * @param className the class name
             */
-          case class Java(packageName: String, className: String) extends Entity
+          case class Java(packageName: String, className: String)
+              extends Entity {
+            val langName = "java"
+
+            override def showCode(indent: Int): String =
+              s"$packageName.$className"
+          }
         }
 
         /** An import of a polyglot class.
@@ -481,6 +527,10 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List()
+
+          override def showCode(indent: Int): String = {
+            s"polyglot ${entity.langName} import ${entity.showCode(indent)}"
+          }
         }
       }
 
@@ -567,6 +617,12 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = name :: arguments
+
+          override def showCode(indent: Int): String = {
+            val fields = arguments.map(_.showCode(indent)).mkString(" ")
+
+            s"type ${name.showCode(indent)} $fields"
+          }
         }
 
         /** The definition of a complex type definition that may contain
@@ -654,6 +710,17 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = (name :: arguments) ::: body
+
+          override def showCode(indent: Int): String = {
+            val headerArgs = arguments.map(_.showCode(indent)).mkString(" ")
+            val header     = s"type ${name.name} $headerArgs"
+            val newIndent  = indent + indentLevel
+            val bodyStr = body
+              .map(mkIndent(newIndent) + _.showCode(newIndent))
+              .mkString("\n\n")
+
+            s"$header\n$bodyStr"
+          }
         }
 
         /** A trait representing method definitions in Enso. */
@@ -763,6 +830,16 @@ object IR {
               |""".toSingleLine
 
             override def children: List[IR] = List(typeName, methodName, body)
+
+            override def showCode(indent: Int): String = {
+              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
+                s"\n${body.showCode(indent)}"
+              } else {
+                s"${body.showCode(indent)}"
+              }
+
+              s"$typeName.$methodName = $exprStr"
+            }
           }
 
           /** The definition of a method for a given constructor [[typeName]]
@@ -871,6 +948,18 @@ object IR {
 
             override def children: List[IR] =
               (typeName :: methodName :: arguments) :+ body
+
+            override def showCode(indent: Int): String = {
+              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
+                s"\n${body.showCode(indent)}"
+              } else {
+                s"${body.showCode(indent)}"
+              }
+
+              val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
+
+              s"${typeName.name}.${methodName.name} $argsStr = $exprStr"
+            }
           }
         }
       }
@@ -990,6 +1079,16 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = expressions :+ returnValue
+
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val expressionsStr = expressions
+          .map(mkIndent(newIndent) + _.showCode(newIndent))
+          .mkString("\n")
+        val returnStr = mkIndent(newIndent) + returnValue.showCode(newIndent)
+
+        s"$expressionsStr\n$returnStr"
+      }
     }
 
     /** A binding expression of the form `name = expr`
@@ -1066,6 +1165,9 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List(name, expression)
+
+      override def showCode(indent: Int): String =
+        s"${name.showCode(indent)} = ${expression.showCode(indent)}"
     }
   }
 
@@ -1139,6 +1241,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = value
     }
 
     /** A textual Enso literal.
@@ -1202,6 +1306,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = text
     }
   }
 
@@ -1296,6 +1402,8 @@ object IR {
            |""".stripMargin
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "_"
     }
 
     /** The representation of a literal name.
@@ -1359,6 +1467,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = name
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -1418,6 +1528,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "this"
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -1477,6 +1589,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "here"
     }
   }
 
@@ -1566,6 +1680,9 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List(typed, signature)
+
+      override def showCode(indent: Int): String =
+        s"${typed.showCode(indent)} : ${signature.showCode(indent)}"
     }
     object Ascription extends Info {
       override val name: String = ":"
@@ -1643,6 +1760,8 @@ object IR {
 
       override def children: List[IR] = List(typed, context)
 
+      override def showCode(indent: Int): String =
+        s"${typed.showCode(indent)} in ${context.showCode(indent)}"
     }
     object Context extends Info {
       override val name: String = "in"
@@ -1738,6 +1857,11 @@ object IR {
 
         override def children: List[IR] = List(label, memberType, value)
 
+        override def showCode(indent: Int): String = {
+          val typeString  = s" : ${memberType.showCode(indent)}"
+          val valueString = s" = ${value.showCode(indent)}"
+          s"(${label.showCode(indent)}$typeString$valueString)"
+        }
       }
       object Member extends Info {
         override val name: String = "_ : _ = _"
@@ -1817,6 +1941,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} <: ${right.showCode(indent)})"
       }
       object Subsumption extends Info {
         override val name: String = "<:"
@@ -1893,6 +2019,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} ~ ${right.showCode(indent)}"
       }
       object Equality extends Info {
         override val name: String = "~"
@@ -1968,9 +2096,11 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)}; ${right.showCode(indent)})"
       }
       object Concat extends Info {
-        override val name: String = ","
+        override val name: String = ";"
       }
 
       /** The typeset union operator `|`.
@@ -2043,6 +2173,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} | ${right.showCode(indent)})"
       }
       object Union extends Info {
         override val name: String = "|"
@@ -2122,6 +2254,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} & ${right.showCode(indent)})"
       }
       object Intersection extends Info {
         override val name: String = "&"
@@ -2201,6 +2335,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} \\ ${right.showCode(indent)})"
       }
       object Subtraction extends Info {
         override val name: String = "\\"
@@ -2316,6 +2452,17 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = arguments :+ body
+
+      override def showCode(indent: Int): String = {
+        val args = arguments.map(_.showCode(indent)).mkString(" ")
+        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+          s"\n${body.showCode(indent)}"
+        } else {
+          s"${body.showCode(indent)}"
+        }
+
+        s"$args -> $bodyStr"
+      }
     }
 
     /** A representation of the syntactic sugar for defining functions.
@@ -2411,6 +2558,17 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = (name :: arguments) :+ body
+
+      override def showCode(indent: Int): String = {
+        val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
+        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+          s"\n${body.showCode(indent)}"
+        } else {
+          s"${body.showCode(indent)}"
+        }
+
+        s"${name.name} $argsStr = $bodyStr"
+      }
     }
   }
 
@@ -2530,6 +2688,13 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name :: defaultValue.toList
+
+      override def showCode(indent: Int): String =
+        if (defaultValue.isDefined) {
+          s"(${name.showCode(indent)} = ${defaultValue.get.showCode(indent)})"
+        } else {
+          s"${name.showCode(indent)}"
+        }
     }
   }
 
@@ -2629,6 +2794,11 @@ object IR {
 
       override def children: List[IR] = function :: arguments
 
+      override def showCode(indent: Int): String = {
+        val argStr = arguments.map(_.showCode(indent)).mkString(" ")
+
+        s"((${function.showCode(indent)}) $argStr)"
+      }
     }
 
     /** A representation of a term that is explicitly forced.
@@ -2696,6 +2866,8 @@ object IR {
 
       override def children: List[IR] = List(target)
 
+      override def showCode(indent: Int): String =
+        s"(FORCE ${target.showCode(indent)})"
     }
 
     /** Literal applications in Enso. */
@@ -2762,7 +2934,7 @@ object IR {
         override def toString: String =
           s"""
           |IR.Application.Literal.Vector(
-          |text = $items,
+          |items = $items,
           |location = $location,
           |passData = ${this.showPassData},
           |diagnostics = $diagnostics,
@@ -2771,6 +2943,11 @@ object IR {
           |""".toSingleLine
 
         override def children: List[IR] = items
+
+        override def showCode(indent: Int): String = {
+          val itemsStr = items.map(_.showCode(indent)).mkString(", ")
+          s"[$itemsStr]"
+        }
       }
     }
 
@@ -2860,6 +3037,11 @@ object IR {
 
         override def children: List[IR] = List(left, operator, right)
 
+        override def showCode(indent: Int): String = {
+          val opStr = operator.showCode(indent)
+
+          s"(${left.showCode(indent)} $opStr ${right.showCode(indent)})"
+        }
       }
 
       /** Operator sections. */
@@ -2942,6 +3124,9 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List(arg, operator)
+
+          override def showCode(indent: Int): String =
+            s"(${arg.showCode(indent)} ${operator.showCode(indent)})"
         }
 
         /** Represents a sides operator section of the form `(op)`
@@ -3008,6 +3193,9 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List(operator)
+
+          override def showCode(indent: Int): String =
+            s"(${operator.showCode(indent)})"
         }
 
         /** Represents a right operator section of the form `(op arg)`
@@ -3084,6 +3272,9 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List(operator, arg)
+
+          override def showCode(indent: Int): String =
+            s"(${operator.showCode(indent)} ${arg.showCode(indent)})"
         }
       }
     }
@@ -3203,6 +3394,14 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name.toList :+ value
+
+      override def showCode(indent: Int): String = {
+        if (name.isDefined) {
+          s"(${name.get.showCode(indent)} = ${value.showCode(indent)})"
+        } else {
+          s"${value.showCode(indent)}"
+        }
+      }
     }
   }
 
@@ -3218,7 +3417,6 @@ object IR {
 
     /** The main body of the Enso case expression.
       *
-      * @param scrutinee the expression whose value is being matched on
       * @param scrutinee the expression whose value is being matched on
       * @param branches the branches of the case expression
       * @param location the source location that the node corresponds to
@@ -3291,6 +3489,16 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = scrutinee :: branches.toList
+
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val headerStr = s"case ${scrutinee.showCode(indent)} of"
+        val branchesStr = branches
+          .map(mkIndent(newIndent) + _.showCode(newIndent))
+          .mkString("\n")
+
+        s"$headerStr\n$branchesStr"
+      }
     }
 
     /** A branch in a case statement.
@@ -3364,6 +3572,15 @@ object IR {
 
       override def children: List[IR] = List(pattern, expression)
 
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val bodyStr = if (expression.isInstanceOf[IR.Expression.Block]) {
+          s"\n${mkIndent(newIndent)}${expression.showCode(newIndent)}"
+        } else {
+          s"${expression.showCode(indent)}"
+        }
+        s"${pattern.showCode(indent)} -> $bodyStr"
+      }
     }
   }
 
@@ -3444,6 +3661,8 @@ object IR {
         copy(location = location)
 
       override def children: List[IR] = List(name)
+
+      override def showCode(indent: Int): String = name.showCode(indent)
     }
 
     /** A pattern that destructures a constructor application.
@@ -3555,6 +3774,13 @@ object IR {
       ): Constructor = copy(location = location)
 
       override def children: List[IR] = constructor :: fields
+
+      override def showCode(indent: Int): String = {
+        val fieldsStr =
+          fields.map(f => s"(${f.showCode(indent)})").mkString(" ")
+
+        s"${constructor.name} $fieldsStr"
+      }
     }
   }
 
@@ -3634,6 +3860,8 @@ object IR {
 
       override def children: List[IR] = List()
 
+      override def showCode(indent: Int): String =
+        s"## $doc"
     }
   }
 
@@ -3716,6 +3944,7 @@ object IR {
 
       override def children: List[IR] = List()
 
+      override def showCode(indent: Int): String = "FOREIGN DEF"
     }
   }
 
@@ -3937,6 +4166,8 @@ object IR {
       override def children: List[IR] = List()
 
       override def message: String = reason.explanation
+
+      override def showCode(indent: Int): String = "Syntax_Error"
     }
     object Syntax {
 
@@ -4087,6 +4318,7 @@ object IR {
       override def message: String =
         "InvalidIR: Please report this as a compiler bug."
 
+      override def showCode(indent: Int): String = "Invalid_Ir"
     }
 
     /** Errors pertaining to the redefinition of language constructs that are
@@ -4153,6 +4385,8 @@ object IR {
           "it must be the first."
 
         override def children: List[IR] = List()
+
+        override def showCode(indent: Int): String = "(Redefined This_Arg)"
       }
 
       /** An error representing the redefinition of a method in a given module.
@@ -4233,6 +4467,9 @@ object IR {
              |""".stripMargin
 
         override def children: List[IR] = List(atomName, methodName)
+
+        override def showCode(indent: Int): String =
+          s"(Redefined (Method $atomName.$methodName))"
       }
 
       /** An error representing the redefinition of an atom in a given module.
@@ -4307,6 +4544,9 @@ object IR {
              |""".stripMargin
 
         override def children: List[IR] = List(atomName)
+
+        override def showCode(indent: Int): String =
+          s"(Redefined (Atom $atomName))"
       }
 
       /** An error representing the redefinition of a binding in a given scope.
@@ -4379,6 +4619,8 @@ object IR {
         override def message: String =
           s"Variable ${invalidBinding.name.name} is being redefined."
 
+        override def showCode(indent: Int): String =
+          s"(Redefined (Binding $invalidBinding))"
       }
     }
   }
