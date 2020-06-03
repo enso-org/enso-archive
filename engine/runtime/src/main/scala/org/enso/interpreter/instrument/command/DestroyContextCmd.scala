@@ -16,8 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DestroyContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DestroyContextRequest
-) extends Command
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

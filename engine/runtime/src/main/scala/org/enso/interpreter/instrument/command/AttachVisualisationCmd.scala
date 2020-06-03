@@ -20,7 +20,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class AttachVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.AttachVisualisation
-) extends Command {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

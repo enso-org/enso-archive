@@ -20,7 +20,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ModifyVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.ModifyVisualisation
-) extends Command {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

@@ -10,7 +10,7 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param request a request for a service
   */
-class OpenFileCmd(request: Api.OpenFileNotification) extends Command {
+class OpenFileCmd(request: Api.OpenFileNotification) extends Command(None) {
 
   /** @inheritdoc **/
   override def execute(

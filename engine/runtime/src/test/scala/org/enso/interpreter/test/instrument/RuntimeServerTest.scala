@@ -5,12 +5,21 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  IdExecutionInstrument,
+  InstrumentFrame,
+  RuntimeServerInstrument
+}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.{
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions,
+  RuntimeServerInfo
+}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -602,7 +611,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "return error when computing erroneous code" in {
+  it should "emit an error when computing erroneous code" in {
     val mainFile  = context.writeMain(context.MainWithError.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -622,10 +631,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
+    Thread.sleep(1000)
+    Set.fill(3)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(
         Api.Response(
-          requestId,
+          None,
           Api.ExecutionFailed(contextId, "error in function: main")
         )
       ),

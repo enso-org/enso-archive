@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class CreateContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.CreateContextRequest
-) extends Command {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class DetachVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DetachVisualisation
-) extends Command {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
   override def execute(

@@ -11,7 +11,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EditFileCommand(request: Api.EditFileNotification) extends Command {
+class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
 
   /**
     * Executes a request.

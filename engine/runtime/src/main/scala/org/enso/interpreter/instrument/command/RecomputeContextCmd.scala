@@ -17,7 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class RecomputeContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.RecomputeContextRequest
-) extends Command
+) extends Command(maybeRequestId)
     with ProgramExecutionSupport {
 
   /** @inheritdoc **/

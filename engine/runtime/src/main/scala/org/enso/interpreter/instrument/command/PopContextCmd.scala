@@ -17,7 +17,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class PopContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PopContextRequest
-) extends Command
+) extends Command(maybeRequestId)
     with ProgramExecutionSupport {
 
   /** @inheritdoc **/
