@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument;
 
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+
 import java.lang.ref.SoftReference;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,6 +12,8 @@ import java.util.UUID;
 public class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
+  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
+      new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
   /**
@@ -48,6 +52,40 @@ public class RuntimeCache {
   /** Clear the cached values. */
   public void clear() {
     cache.clear();
+  }
+
+  /**
+   * Put a new enterable.
+   *
+   * @param key identifier of an enterable node.
+   * @param enterable the fucntion call
+   */
+  public void putEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall enterable) {
+    enterables.put(key, enterable);
+  }
+
+  /**
+   * Get enterable by id.
+   *
+   * @param key identifier of an enterable node.
+   * @return function call associated with node id.
+   */
+  public FunctionCallInstrumentationNode.FunctionCall getEnterable(UUID key) {
+    return enterables.get(key);
+  }
+
+  /**
+   * Remove enterable.
+   *
+   * @param key identifier of an enterable node.
+   */
+  public void removeEnterable(UUID key) {
+    enterables.remove(key);
+  }
+
+  /** Clear all enterables. */
+  public void clearEnterables() {
+    enterables.clear();
   }
 
   /** @return the weights of this cache. */

@@ -8,7 +8,6 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.compiler.context.Changeset;
 import org.enso.interpreter.instrument.RuntimeCache;
@@ -80,18 +79,14 @@ public class ExecutionService {
    *
    * @param call the call metadata.
    * @param cache the precomputed expression values.
-   * @param stackTop the item from the top of the call stack.
    * @param valueCallback the consumer for expression value events.
    * @param visualisationCallback the consumer of the node visualisation events.
-   * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
-      UUID stackTop,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
 
     SourceSection src = call.getFunction().getSourceSection();
@@ -104,10 +99,8 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
-            stackTop,
             valueCallback,
-            visualisationCallback,
-            funCallCallback);
+            visualisationCallback);
     interopLibrary.execute(call);
     listener.dispose();
   }
@@ -120,20 +113,16 @@ public class ExecutionService {
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
-   * @param stackTop the item from the top of the call stack.
    * @param valueCallback the consumer for expression value events.
    * @param visualisationCallback the consumer of the node visualisation events.
-   * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       File modulePath,
       String consName,
       String methodName,
       RuntimeCache cache,
-      UUID stackTop,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
         context
@@ -142,7 +131,7 @@ public class ExecutionService {
     if (!callMay.isPresent()) {
       return;
     }
-    execute(callMay.get(), cache, stackTop, valueCallback, visualisationCallback, funCallCallback);
+    execute(callMay.get(), cache, valueCallback, visualisationCallback);
   }
 
   /**

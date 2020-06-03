@@ -150,16 +150,19 @@ object CacheInvalidation {
     command match {
       case Command.InvalidateAll =>
         cache.clear()
+        cache.clearEnterables()
         if (indexes.contains(IndexSelector.All)) cache.clearWeights()
       case Command.InvalidateKeys(keys) =>
         keys.foreach { key =>
           cache.remove(key)
+          cache.removeEnterable(key)
           if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
       case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
         staleKeys.foreach { key =>
           cache.remove(key)
+          cache.removeEnterable(key)
           if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
         }
       case Command.SetMetadata(metadata) =>
