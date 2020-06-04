@@ -23,21 +23,38 @@ class PopContextCmd(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    if (ctx.contextManager.get(request.contextId).isDefined) {
-      Future {
-        ctx.jobControlPlane.abortJobs(request.contextId)
-        val maybeTopItem = ctx.contextManager.pop(request.contextId)
-        if (maybeTopItem.isDefined) {
-          reply(Api.PopContextResponse(request.contextId))
-        } else {
-          reply(Api.EmptyStackError(request.contextId))
-        }
-      } flatMap { _ => scheduleExecutionIfNeeded() }
+    if (doesContextExist) {
+      popItemFromStack() flatMap { _ => scheduleExecutionIfNeeded() }
     } else {
-      Future {
-        reply(Api.ContextNotExistError(request.contextId))
+      replyWithContextNotExistError()
+    }
+
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    Future {
+      reply(Api.ContextNotExistError(request.contextId))
+    }
+  }
+
+  private def popItemFromStack()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      ctx.jobControlPlane.abortJobs(request.contextId)
+      val maybeTopItem = ctx.contextManager.pop(request.contextId)
+      if (maybeTopItem.isDefined) {
+        reply(Api.PopContextResponse(request.contextId))
+      } else {
+        reply(Api.EmptyStackError(request.contextId))
       }
     }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
 
   private def scheduleExecutionIfNeeded()(
     implicit ctx: RuntimeContext,

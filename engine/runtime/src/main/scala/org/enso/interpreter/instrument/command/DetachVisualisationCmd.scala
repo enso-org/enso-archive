@@ -23,26 +23,20 @@ class DetachVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      if (ctx.contextManager.contains(request.contextId)) {
+      if (doesContextExist) {
         ctx.contextManager.removeVisualisation(
           request.contextId,
           request.expressionId,
           request.visualisationId
         )
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            maybeRequestId,
-            Api.VisualisationDetached()
-          )
-        )
+        reply(Api.VisualisationDetached())
       } else {
-        ctx.endpoint.sendToClient(
-          Api.Response(
-            maybeRequestId,
-            Api.ContextNotExistError(request.contextId)
-          )
-        )
+        reply(Api.ContextNotExistError(request.contextId))
       }
     }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
 
 }

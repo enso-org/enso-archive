@@ -23,12 +23,16 @@ class DestroyContextCmd(
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      if (ctx.contextManager.get(request.contextId).isDefined) {
+      if (doesContextExist) {
         removeContext()
       } else {
         reply(Api.ContextNotExistError(request.contextId))
       }
     }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
 
   private def removeContext()(implicit ctx: RuntimeContext): Unit = {
     ctx.jobControlPlane.abortJobs(request.contextId)

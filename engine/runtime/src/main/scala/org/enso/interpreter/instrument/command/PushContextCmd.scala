@@ -23,45 +23,65 @@ class PushContextCmd(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
-    if (ctx.contextManager.get(request.contextId).isDefined) {
-      Future {
-        ctx.jobControlPlane.abortJobs(request.contextId)
-        val pushed = pushItemOntoStack()
-        if (pushed) {
-          reply(Api.PushContextResponse(request.contextId))
-        } else {
-          reply(Api.InvalidStackItemError(request.contextId))
-        }
-        pushed
-      } flatMap {
-        case false => Future.successful(())
-        case true =>
-          val stack      = ctx.contextManager.getStack(request.contextId)
-          val executable = Executable(request.contextId, stack)
-          for {
-            _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
-            _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
-          } yield ()
-      }
+    if (doesContextExist) {
+      pushItemOntoStack() flatMap (scheduleExecutionIfNeeded(_))
     } else {
-      Future {
-        reply(Api.ContextNotExistError(request.contextId))
-      }
+      replyWithContextNotExistError()
     }
 
-  private def pushItemOntoStack()(implicit ctx: RuntimeContext): Boolean = {
-    val stack = ctx.contextManager.getStack(request.contextId)
-    request.stackItem match {
-      case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
-        ctx.contextManager.push(request.contextId, request.stackItem)
-        true
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
 
-      case _: Api.StackItem.LocalCall if stack.nonEmpty =>
-        ctx.contextManager.push(request.contextId, request.stackItem)
-        true
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    Future {
+      reply(Api.ContextNotExistError(request.contextId))
+    }
+  }
 
-      case _ =>
-        false
+  private def pushItemOntoStack()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Boolean] =
+    Future {
+      ctx.jobControlPlane.abortJobs(request.contextId)
+      val stack = ctx.contextManager.getStack(request.contextId)
+      val pushed = request.stackItem match {
+        case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
+          ctx.contextManager.push(request.contextId, request.stackItem)
+          true
+
+        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+          ctx.contextManager.push(request.contextId, request.stackItem)
+          true
+
+        case _ =>
+          false
+      }
+      if (pushed) {
+        reply(Api.PushContextResponse(request.contextId))
+      } else {
+        reply(Api.InvalidStackItemError(request.contextId))
+      }
+      pushed
+    }
+
+  private def scheduleExecutionIfNeeded(pushed: Boolean)(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    if (pushed) {
+      val stack      = ctx.contextManager.getStack(request.contextId)
+      val executable = Executable(request.contextId, stack)
+      for {
+        _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
+        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+      } yield ()
+    } else {
+      Future.successful(())
     }
   }
 

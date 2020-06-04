@@ -27,35 +27,44 @@ class AttachVisualisationCmd(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    if (ctx.contextManager.contains(
-          request.visualisationConfig.executionContextId
-        )) {
-      val maybeFutureExecutable =
-        ctx.jobProcessor.run(
-          new UpsertVisualisationJob(
-            maybeRequestId,
-            request.visualisationId,
-            request.expressionId,
-            request.visualisationConfig,
-            Api.VisualisationAttached()
-          )
-        )
-
-      maybeFutureExecutable flatMap {
-        case None =>
-          Future.successful(())
-
-        case Some(executable) =>
-          for {
-            _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
-            _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
-          } yield ()
-      }
-
+    if (doesContextExist) {
+      attachVisualisation()
     } else {
       replyWithContextNotExistError()
     }
+  }
 
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(
+      request.visualisationConfig.executionContextId
+    )
+  }
+
+  private def attachVisualisation()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val maybeFutureExecutable =
+      ctx.jobProcessor.run(
+        new UpsertVisualisationJob(
+          maybeRequestId,
+          request.visualisationId,
+          request.expressionId,
+          request.visualisationConfig,
+          Api.VisualisationAttached()
+        )
+      )
+
+    maybeFutureExecutable flatMap {
+      case None =>
+        Future.successful(())
+
+      case Some(executable) =>
+        for {
+          _ <- ctx.jobProcessor.run(new EnsureCompiledJob(executable.stack))
+          _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+        } yield ()
+    }
   }
 
   private def replyWithContextNotExistError()(
@@ -63,13 +72,8 @@ class AttachVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.ContextNotExistError(
-            request.visualisationConfig.executionContextId
-          )
-        )
+      reply(
+        Api.ContextNotExistError(request.visualisationConfig.executionContextId)
       )
     }
   }

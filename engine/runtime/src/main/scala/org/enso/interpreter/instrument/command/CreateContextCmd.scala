@@ -23,14 +23,8 @@ class CreateContextCmd(
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
-      ctx.jobControlPlane.abortJobs(request.contextId)
       ctx.contextManager.create(request.contextId)
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.CreateContextResponse(request.contextId)
-        )
-      )
+      reply(Api.CreateContextResponse(request.contextId))
     }
 
 }

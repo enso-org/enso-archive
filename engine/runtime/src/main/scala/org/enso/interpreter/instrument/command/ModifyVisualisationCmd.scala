@@ -27,47 +27,57 @@ class ModifyVisualisationCmd(
     implicit ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
-    if (ctx.contextManager.contains(
-          request.visualisationConfig.executionContextId
-        )) {
-      val maybeVisualisation = ctx.contextManager.getVisualisationById(
-        request.visualisationConfig.executionContextId,
-        request.visualisationId
-      )
-      maybeVisualisation match {
-        case None =>
-          Future {
-            ctx.endpoint.sendToClient(
-              Api.Response(maybeRequestId, Api.VisualisationNotFound())
-            )
-          }
-
-        case Some(visualisation) =>
-          val maybeFutureExecutable =
-            ctx.jobProcessor.run(
-              new UpsertVisualisationJob(
-                maybeRequestId,
-                request.visualisationId,
-                visualisation.expressionId,
-                request.visualisationConfig,
-                Api.VisualisationModified()
-              )
-            )
-          maybeFutureExecutable flatMap {
-            case None =>
-              Future.successful(())
-
-            case Some(exec) =>
-              for {
-                _ <- ctx.jobProcessor.run(new EnsureCompiledJob(exec.stack))
-                _ <- ctx.jobProcessor.run(new ExecuteJob(exec))
-              } yield ()
-          }
-      }
-
+    if (doesContextExist) {
+      modifyVisualisation()
     } else {
       replyWithContextNotExistError()
     }
+  }
+
+  private def modifyVisualisation()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val maybeVisualisation = ctx.contextManager.getVisualisationById(
+      request.visualisationConfig.executionContextId,
+      request.visualisationId
+    )
+    maybeVisualisation match {
+      case None =>
+        Future {
+          ctx.endpoint.sendToClient(
+            Api.Response(maybeRequestId, Api.VisualisationNotFound())
+          )
+        }
+
+      case Some(visualisation) =>
+        val maybeFutureExecutable =
+          ctx.jobProcessor.run(
+            new UpsertVisualisationJob(
+              maybeRequestId,
+              request.visualisationId,
+              visualisation.expressionId,
+              request.visualisationConfig,
+              Api.VisualisationModified()
+            )
+          )
+        maybeFutureExecutable flatMap {
+          case None =>
+            Future.successful(())
+
+          case Some(exec) =>
+            for {
+              _ <- ctx.jobProcessor.run(new EnsureCompiledJob(exec.stack))
+              _ <- ctx.jobProcessor.run(new ExecuteJob(exec))
+            } yield ()
+        }
+    }
+  }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(
+      request.visualisationConfig.executionContextId
+    )
   }
 
   private def replyWithContextNotExistError()(
@@ -75,13 +85,8 @@ class ModifyVisualisationCmd(
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.ContextNotExistError(
-            request.visualisationConfig.executionContextId
-          )
-        )
+      reply(
+        Api.ContextNotExistError(request.visualisationConfig.executionContextId)
       )
     }
   }
