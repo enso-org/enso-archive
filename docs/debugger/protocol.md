@@ -13,7 +13,15 @@ implement a simple REPL or add debugging capabilities to the editor.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-TODO - TOC
+- [Types](#types)
+  - [`ObjectRepr`](#objectrepr)
+  - [`StackTraceElement`](#stacktraceelement)
+  - [`Exception`](#exception)
+  - [`Binding`](#binding)
+- [Messages](#messages)
+  - [`repl/evaluate`](#replevaluate)
+  - [`repl/listBindings`](#repllistbindings)
+  - [`repl/exit`](#replexit) 
 
 <!-- /MarkdownTOC -->
 

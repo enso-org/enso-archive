@@ -112,11 +112,18 @@ object GenerateFlatbuffers {
   private def extractGeneratedFilenamesFromMakefile(
     makeRules: String
   ): Seq[String] = {
-    val cleaned            = makeRules.replaceAllLiterally("\\", "");
-    val Array(javaPart, _) = cleaned.split(':')
+    try {
+      val cleaned            = makeRules.replaceAllLiterally("\\", "");
+      val Array(javaPart, _) = cleaned.split(':')
 
-    val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
-    filenames
+      val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
+      filenames
+    } catch {
+      case ex: MatchError =>
+        println("Unexpected format of Make rules returned by flatc")
+        println(makeRules)
+        throw new RuntimeException("Cannot parse flatc Make rules", ex)
+    }
   }
 
   /**
