@@ -341,6 +341,8 @@ object Shape extends ShapeImplicit {
       extends SpacelessAST[T]
   final case class Import[T](path: List1[AST.Cons])      extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
+  final case class ContextAscription[T](typed: AST, context: AST)
+      extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
   final case class Group[T](body: Option[T])          extends SpacelessAST[T]
@@ -974,6 +976,16 @@ object Shape extends ShapeImplicit {
     implicit def span[T]: HasSpan[JavaImport[T]]   = _ => 0
   }
 
+  object ContextAscription {
+    implicit def ftor: Functor[ContextAscription]    = semi.functor
+    implicit def fold: Foldable[ContextAscription]   = semi.foldable
+    implicit def repr[T]: Repr[ContextAscription[T]] = ???
+
+    implicit def ozip[T]: OffsetZip[ContextAscription, T] =
+      _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[ContextAscription[T]] = _ => 0
+  }
+
   object Mixfix {
     implicit def ftor: Functor[Mixfix]  = semi.functor
     implicit def fold: Foldable[Mixfix] = semi.foldable
@@ -1096,15 +1108,16 @@ sealed trait ShapeImplicit {
     case s: Ambiguous[T]     => s.repr
     case s: Match[T]         => s.repr
     // spaceless
-    case s: Comment[T]         => s.repr
-    case s: Documented[T]      => s.repr
-    case s: Import[T]          => s.repr
-    case s: JavaImport[T]      => s.repr
-    case s: Mixfix[T]          => s.repr
-    case s: Group[T]           => s.repr
-    case s: SequenceLiteral[T] => s.repr
-    case s: Def[T]             => s.repr
-    case s: Foreign[T]         => s.repr
+    case s: Comment[T]           => s.repr
+    case s: Documented[T]        => s.repr
+    case s: Import[T]            => s.repr
+    case s: JavaImport[T]        => s.repr
+    case s: ContextAscription[T] => s.repr
+    case s: Mixfix[T]            => s.repr
+    case s: Group[T]             => s.repr
+    case s: SequenceLiteral[T]   => s.repr
+    case s: Def[T]               => s.repr
+    case s: Foreign[T]           => s.repr
   }
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
     case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
@@ -1134,10 +1147,12 @@ sealed trait ShapeImplicit {
     case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
     case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
     // spaceless
-    case s: Comment[T]         => OffsetZip[Comment, T].zipWithOffset(s)
-    case s: Documented[T]      => OffsetZip[Documented, T].zipWithOffset(s)
-    case s: Import[T]          => OffsetZip[Import, T].zipWithOffset(s)
-    case s: JavaImport[T]      => OffsetZip[JavaImport, T].zipWithOffset(s)
+    case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
+    case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
+    case s: Import[T]     => OffsetZip[Import, T].zipWithOffset(s)
+    case s: JavaImport[T] => OffsetZip[JavaImport, T].zipWithOffset(s)
+    case s: ContextAscription[T] =>
+      OffsetZip[ContextAscription, T].zipWithOffset(s)
     case s: Mixfix[T]          => OffsetZip[Mixfix, T].zipWithOffset(s)
     case s: Group[T]           => OffsetZip[Group, T].zipWithOffset(s)
     case s: SequenceLiteral[T] => OffsetZip[SequenceLiteral, T].zipWithOffset(s)
@@ -1173,15 +1188,16 @@ sealed trait ShapeImplicit {
     case s: Ambiguous[T]     => s.span()
     case s: Match[T]         => s.span()
     // spaceless
-    case s: Comment[T]         => s.span()
-    case s: Documented[T]      => s.span()
-    case s: Import[T]          => s.span()
-    case s: JavaImport[T]      => s.span()
-    case s: Mixfix[T]          => s.span()
-    case s: Group[T]           => s.span()
-    case s: SequenceLiteral[T] => s.span()
-    case s: Def[T]             => s.span()
-    case s: Foreign[T]         => s.span()
+    case s: Comment[T]           => s.span()
+    case s: Documented[T]        => s.span()
+    case s: Import[T]            => s.span()
+    case s: JavaImport[T]        => s.span()
+    case s: ContextAscription[T] => s.span()
+    case s: Mixfix[T]            => s.span()
+    case s: Group[T]             => s.span()
+    case s: SequenceLiteral[T]   => s.span()
+    case s: Def[T]               => s.span()
+    case s: Foreign[T]           => s.span()
   }
 }
 
@@ -2303,6 +2319,21 @@ object AST {
     def unapply(t: AST): Option[List1[Ident]] =
       Unapply[JavaImport].run(t => t.path)(t)
     val any = UnapplyByType[JavaImport]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Context Ascription //////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type ContextAscription = ASTOf[Shape.ContextAscription]
+  object ContextAscription {
+    def apply(typed: AST, context: AST): ContextAscription =
+      Shape.ContextAscription[AST](typed, context)
+
+    def unapply(t: AST): Option[(AST, AST)] =
+      Unapply[ContextAscription].run(t => (t.typed, t.context))(t)
+
+    val any = UnapplyByType[ContextAscription]
   }
 
   //////////////////////////////////////////////////////////////////////////////

@@ -100,6 +100,23 @@ object Builtin {
       }
     }
 
+    val contextAscription = {
+      val ctxAscriptionName = "in"
+
+      Definition(
+        Some(Pattern.ExprUntilVar(ctxAscriptionName)),
+        Var(ctxAscriptionName) -> Pattern.Expr()
+      ) { ctx =>
+        (ctx.prefix, ctx.body) match {
+          case _ =>
+            println(ctx.prefix)
+            println(ctx.body)
+            ???
+//          case _ => internalError
+        }
+      }
+    }
+
     val imp = Definition(
       Var("import") -> Pattern
         .SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
@@ -291,6 +308,7 @@ object Builtin {
       if_then,
       if_then_else,
       polyglotJavaImport,
+      contextAscription,
       imp,
       defn,
       arrow,

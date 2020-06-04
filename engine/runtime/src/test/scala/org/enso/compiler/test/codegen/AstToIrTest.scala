@@ -2,6 +2,7 @@ package org.enso.compiler.test.codegen
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.test.CompilerTest
+import org.enso.syntax.text.Debug
 
 import scala.annotation.unused
 
@@ -513,7 +514,7 @@ class AstToIrTest extends CompilerTest {
     }
   }
 
-  "Documentation comments" should {
+  "AST translation for documentation comments" should {
     "work at the top level" in {
       val ir =
         """
@@ -543,6 +544,26 @@ class AstToIrTest extends CompilerTest {
       comment
         .asInstanceOf[IR.Comment.Documentation]
         .doc shouldEqual " Some docs for b"
+    }
+  }
+
+  "AST translation for type signatures" should {
+    "work at the top level" in {
+      @unused val ir =
+        """
+          |x : a
+          |T in b
+          |""".stripMargin.toAst
+
+//      println(Debug.pretty(ir.toString))
+    }
+
+    "work in block contexts" in {
+      pending
+    }
+
+    "work in expression contexts" in {
+      pending
     }
   }
 }
