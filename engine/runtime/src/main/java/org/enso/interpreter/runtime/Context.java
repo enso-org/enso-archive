@@ -37,6 +37,7 @@ public class Context {
   private final BufferedReader in;
   private final List<Package<TruffleFile>> packages;
   private final TopLevelScope topScope;
+  private final ThreadManager threadManager;
 
   /**
    * Creates a new Enso context.
@@ -50,6 +51,7 @@ public class Context {
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
     this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    this.threadManager = new ThreadManager();
     TruffleFileSystem fs = new TruffleFileSystem();
 
     packages = new ArrayList<>();
@@ -279,5 +281,10 @@ public class Context {
   /** Creates a new thread that has access to the current language context. */
   public Thread createThread(Runnable runnable) {
     return environment.createThread(runnable);
+  }
+
+  /** @return the thread manager for this context. */
+  public ThreadManager getThreadManager() {
+    return threadManager;
   }
 }
