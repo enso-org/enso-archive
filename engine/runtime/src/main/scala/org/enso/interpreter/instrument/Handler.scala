@@ -89,12 +89,11 @@ final class Handler {
   /**
     * Handles a message received from the client.
     *
-    * @param msg the message to handle.
+    * @param request the message to handle.
     */
-  def onMessage(msg: Api.Request): Unit = {
-    val cmd    = CommandFactory.createCommand(msg)
-    val future = commandProcessor.invoke(cmd)
-    Await.result(future, 1.minute)
+  def onMessage(request: Api.Request): Unit = {
+    val cmd = CommandFactory.createCommand(request)
+    commandProcessor.invoke(cmd)
   }
 
 }

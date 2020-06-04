@@ -11,6 +11,7 @@ import org.enso.interpreter.instrument.{
   RuntimeServerInstrument
 }
 import org.enso.interpreter.test.Metadata
+import org.enso.interpreter.test.instrument.RuntimeServerTest.WaitTime
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
@@ -317,6 +318,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -327,6 +329,7 @@ class RuntimeServerTest
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
     )
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.InvalidStackItemError(contextId))),
       None
@@ -341,6 +344,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -354,6 +358,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
+    Thread.sleep(WaitTime)
     Set.fill(4)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.fooY(contextId)),
@@ -373,6 +378,7 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, invalidExplicitCall)
       )
     )
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.InvalidStackItemError(contextId))),
       None
@@ -380,6 +386,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -390,6 +397,7 @@ class RuntimeServerTest
 
     // pop main
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
       None
@@ -397,6 +405,7 @@ class RuntimeServerTest
 
     // pop empty stack
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.EmptyStackError(contextId))),
       None
@@ -408,6 +417,7 @@ class RuntimeServerTest
     val contextId = UUID.randomUUID()
 
     send(Api.CreateContextRequest(contextId))
+    Thread.sleep(WaitTime)
     context.receive
 
     // Create a new file
@@ -434,6 +444,7 @@ class RuntimeServerTest
           )
       )
     )
+    Thread.sleep(WaitTime)
     context.consumeOut shouldEqual List("I'm a file!")
 
     // Open the file with contents changed
@@ -443,6 +454,7 @@ class RuntimeServerTest
         "main = IO.println \"I'm an open file!\""
       )
     )
+    Thread.sleep(WaitTime)
     context.consumeOut shouldEqual List()
 
     // Modify the file
@@ -457,10 +469,12 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.consumeOut shouldEqual List("I'm a modified file!")
 
     // Close the file
     send(Api.CloseFileNotification(fooFile))
+    Thread.sleep(WaitTime)
     context.consumeOut shouldEqual List()
   }
 
@@ -471,6 +485,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -484,6 +499,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -501,6 +517,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       None
@@ -514,6 +531,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -527,6 +545,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -550,6 +569,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -566,6 +586,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -579,6 +600,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -604,6 +626,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     Set.fill(3)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainZ(contextId)),
@@ -618,6 +641,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -632,6 +656,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     Thread.sleep(1000)
+    Thread.sleep(WaitTime)
     Set.fill(3)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(
@@ -647,7 +672,8 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Thread.sleep(1000)
+    Thread.sleep(WaitTime)
+    Thread.sleep(WaitTime)
     Set.fill(3)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(
@@ -667,6 +693,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -680,6 +707,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -695,7 +723,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-
+    Thread.sleep(WaitTime)
     Set.fill(4)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainY(contextId, value = "20")),
@@ -711,6 +739,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -724,6 +753,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     Set.fill(4)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main2.Update.mainY(contextId)),
@@ -742,6 +772,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
 
+    Thread.sleep(WaitTime)
     Set.fill(2)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       None
@@ -767,6 +798,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -781,6 +813,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
+    Thread.sleep(WaitTime)
     context.drain()
 
     context.send(
@@ -797,6 +830,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -821,6 +855,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
+    Thread.sleep(WaitTime)
     val data2 = context.drainAndCollectFirstMatching {
       case Api.Response(
           None,
@@ -857,6 +892,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -870,7 +906,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-
+    Thread.sleep(WaitTime)
     context.drain()
 
     context.send(
@@ -887,6 +923,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -920,6 +957,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationModified())
     )
@@ -958,6 +996,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    Thread.sleep(WaitTime)
     context.receive shouldEqual Some(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
@@ -976,6 +1015,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -988,6 +1028,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
+    Thread.sleep(WaitTime)
     context.drain()
 
     context.send(
@@ -1000,6 +1041,7 @@ class RuntimeServerTest
         )
       )
     )
+    Thread.sleep(WaitTime)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationDetached())
     )
@@ -1007,6 +1049,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
+    Thread.sleep(WaitTime)
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
@@ -1023,4 +1066,10 @@ class RuntimeServerTest
     val stack = context.instrument.getHandler.contextManager.getStack(contextId)
     stack.headOption.foreach(_.cache.put(key, value))
   }
+}
+
+object RuntimeServerTest {
+
+  val WaitTime = 3000L
+
 }
