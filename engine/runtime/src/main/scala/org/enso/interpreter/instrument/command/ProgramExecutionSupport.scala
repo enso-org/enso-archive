@@ -6,7 +6,10 @@ import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
-import org.enso.interpreter.instrument.IdExecutionInstrument.ExpressionValue
+import org.enso.interpreter.instrument.IdExecutionInstrument.{
+  ExpressionCall,
+  ExpressionValue
+}
 import org.enso.interpreter.instrument.command.ProgramExecutionSupport.{
   ExecutionFrame,
   ExecutionItem,
@@ -62,8 +65,11 @@ trait ProgramExecutionSupport {
     valueCallback: Consumer[ExpressionValue],
     visualisationCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
+    var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
       if (callStack.isEmpty) valueCallback else _ => ()
+    val callablesCallback: Consumer[ExpressionCall] = fun =>
+      enterables += fun.getExpressionId -> fun.getCall
     executionFrame match {
       case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
         ctx.executionService.execute(
@@ -71,22 +77,26 @@ trait ProgramExecutionSupport {
           cons,
           function,
           cache,
+          callStack.headOption.map(_.expressionId).orNull,
           valsCallback,
-          visualisationCallback
+          visualisationCallback,
+          callablesCallback
         )
       case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
         ctx.executionService.execute(
           callData,
           cache,
+          callStack.headOption.map(_.expressionId).orNull,
           valsCallback,
-          visualisationCallback
+          visualisationCallback,
+          callablesCallback
         )
     }
 
     callStack match {
       case Nil => ()
       case item :: tail =>
-        Option(executionFrame.cache.getEnterable(item.expressionId)) match {
+        enterables.get(item.expressionId) match {
           case Some(call) =>
             runProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),

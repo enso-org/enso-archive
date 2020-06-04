@@ -13,6 +13,8 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -35,6 +37,33 @@ public class IdExecutionInstrument extends TruffleInstrument {
   protected void onCreate(Env env) {
     env.registerService(this);
     this.env = env;
+  }
+
+  /** A class for notifications about functions being called in the course of execution. */
+  public static class ExpressionCall {
+    private final UUID expressionId;
+    private final FunctionCallInstrumentationNode.FunctionCall call;
+
+    /**
+     * Creates an instance of this class.
+     *
+     * @param expressionId the expression id where function call was performed.
+     * @param call the actual function call data.
+     */
+    public ExpressionCall(UUID expressionId, FunctionCallInstrumentationNode.FunctionCall call) {
+      this.expressionId = expressionId;
+      this.call = call;
+    }
+
+    /** @return the id of the node performing the function call. */
+    public UUID getExpressionId() {
+      return expressionId;
+    }
+
+    /** @return the function call metadata. */
+    public FunctionCallInstrumentationNode.FunctionCall getCall() {
+      return call;
+    }
   }
 
   /** A class for notifications about identified expressions' values being computed. */
@@ -99,25 +128,34 @@ public class IdExecutionInstrument extends TruffleInstrument {
   /** The listener class used by this instrument. */
   private static class IdExecutionEventListener implements ExecutionEventListener {
     private final CallTarget entryCallTarget;
+    private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
     private final Consumer<ExpressionValue> visualisationCallback;
     private final RuntimeCache cache;
+    private final UUID stackTop;
+    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
      * Creates a new listener.
      *
      * @param entryCallTarget the call target being observed.
      * @param cache the precomputed expression values.
+     * @param stackTop the item from the top of the call stack.
+     * @param functionCallCallback the consumer of function call events.
      * @param valueCallback the consumer of the node value events.
      * @param visualisationCallback the consumer of the node visualisation events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
         RuntimeCache cache,
+        UUID stackTop,
+        Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> valueCallback,
         Consumer<ExpressionValue> visualisationCallback) {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
+      this.stackTop = stackTop;
+      this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
       this.visualisationCallback = visualisationCallback;
     }
@@ -143,13 +181,16 @@ public class IdExecutionInstrument extends TruffleInstrument {
       }
 
       Object result = cache.get(nodeId);
-      if (result != null) {
+      // When executing the call stack we need to capture the FunctionCall of the next (top) stack
+      // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
+      // able to continue the stack execution.
+      if (result != null && !nodeId.equals(stackTop)) {
         visualisationCallback.accept(
             new ExpressionValue(
                 nodeId,
                 Types.getName(result).orElse(null),
                 result,
-                cache.getEnterable(nodeId)));
+                calls.get(nodeId)));
         throw context.createUnwind(result);
       }
     }
@@ -171,14 +212,18 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
-        UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-        cache.putEnterable(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result);
+        ExpressionCall expressionCall =
+            new ExpressionCall(
+                ((FunctionCallInstrumentationNode) node).getId(),
+                (FunctionCallInstrumentationNode.FunctionCall) result);
+        calls.put(expressionCall.getExpressionId(), expressionCall.getCall());
+        functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
         cache.offer(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, cache.getEnterable(nodeId)));
+                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
       }
     }
 
@@ -224,8 +269,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param funSourceStart the source start of the observed range of ids.
    * @param funSourceLength the length of the observed source range.
    * @param cache the precomputed expression values.
+   * @param stackTop the item from the top of the call stack.
    * @param valueCallback the consumer of the node value events.
    * @param visualisationCallback the consumer of the node visualisation events.
+   * @param functionCallCallback the consumer of function call events.
    * @return a reference to the attached event listener.
    */
   public EventBinding<ExecutionEventListener> bind(
@@ -233,8 +280,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
       int funSourceStart,
       int funSourceLength,
       RuntimeCache cache,
+      UUID stackTop,
       Consumer<ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback) {
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
@@ -249,6 +298,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 new IdExecutionEventListener(
                     entryCallTarget,
                     cache,
+                    stackTop,
+                    functionCallCallback,
                     valueCallback,
                     visualisationCallback));
     return binding;
