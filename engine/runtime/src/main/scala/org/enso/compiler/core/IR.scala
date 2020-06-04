@@ -171,7 +171,7 @@ object IR {
     * @return a string representing an `n`-space indent
     */
   def mkIndent(n: Int): String = {
-    List.fill(n)(" ").mkString("")
+    " " * n
   }
 
   /** The size of a single indentation level. */

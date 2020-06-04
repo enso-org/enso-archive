@@ -22,6 +22,15 @@ import scala.annotation.unused
   * It removes these unreachable expressions from the IR, and attaches a
   * [[IR.Warning]] diagnostic to the case expression itself.
   *
+  * Currently, a branch is considered 'unreachable' by this pass if:
+  *
+  * - It occurs after a catch-all branch.
+  *
+  * In the future, this pass should be expanded to consider patterns that are
+  * entirely subsumed by previous patterns in its definition of uncreachable,
+  * but this requires doing sophisticated coverage analysis, and hence should
+  * happen as part of the broader refactor of nested patterns desugaring.
+  *
   * This pass requires no configuration.
   *
   * This pass requires the context to provide:

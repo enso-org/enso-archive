@@ -434,10 +434,7 @@ class IrToTruffle(
         val scrutineeNode = this.run(scrutinee)
 
         val maybeCases = branches.map(processCaseBranch)
-        val allCasesValid = maybeCases.forall {
-          case Left(_)  => false
-          case Right(_) => true
-        }
+        val allCasesValid = maybeCases.forall(_.isRight)
 
         // TODO [AA] This is until we can resolve this statically in the
         //  compiler. Doing so requires fixing issues around cyclical imports.

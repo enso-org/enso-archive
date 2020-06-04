@@ -71,7 +71,7 @@ public abstract class CaseNode extends ExpressionNode {
    */
   @Specialization
   @ExplodeLoop
-  public Object doAtom(
+  public Object doMatch(
       VirtualFrame frame,
       Object object,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
