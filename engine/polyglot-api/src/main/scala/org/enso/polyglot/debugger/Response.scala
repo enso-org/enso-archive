@@ -5,7 +5,8 @@ import org.enso.polyglot.debugger.protocol.{ExceptionRepr, ObjectRepr}
 /**
   * Represents a deserialized response returned from the debugger.
   *
-  * It is a separate class from BinaryResponse to encapsulate Flatbuffers union handling logic in a type-safe way.
+  * It is a separate class from BinaryResponse to encapsulate Flatbuffers union
+  * handling logic in a type-safe way.
   */
 sealed trait Response
 
@@ -19,7 +20,8 @@ case class EvaluationSuccess(result: ObjectRepr) extends Response
 /**
   * Represents an evaluation failure.
   *
-  * @param exception over-the-wire representation of the exception that caused the failure
+  * @param exception over-the-wire representation of the exception that caused
+  *                  the failure
   */
 case class EvaluationFailure(exception: ExceptionRepr) extends Response
 

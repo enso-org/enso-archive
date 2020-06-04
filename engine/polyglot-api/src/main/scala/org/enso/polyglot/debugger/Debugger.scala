@@ -83,7 +83,8 @@ object Debugger {
     }
 
   /**
-    * Creates an EvaluationRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    * Creates an EvaluationRequest message in the form of a ByteBuffer that can
+    * be sent to the debugger.
     *
     * @param expression expression to evaluate
     * @return the serialized message
@@ -101,7 +102,8 @@ object Debugger {
   }
 
   /**
-    * Creates a ListBindingsRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    * Creates a ListBindingsRequest message in the form of a ByteBuffer that can
+    * be sent to the debugger.
     *
     * @return the serialized message
     */
@@ -118,7 +120,8 @@ object Debugger {
   }
 
   /**
-    * Creates a ExitRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    * Creates a ExitRequest message in the form of a ByteBuffer that can be sent
+    * to the debugger.
     *
     * @return the serialized message
     */
@@ -135,7 +138,8 @@ object Debugger {
   }
 
   /**
-    * Creates an EvaluationSuccess message in the form of a ByteBuffer that can be sent from the debugger.
+    * Creates an EvaluationSuccess message in the form of a ByteBuffer that can
+    * be sent from the debugger.
     *
     * @param result evaluation result
     * @return the serialized message
@@ -153,7 +157,8 @@ object Debugger {
   }
 
   /**
-    * Creates an EvaluationFailure message in the form of a ByteBuffer that can be sent from the debugger.
+    * Creates an EvaluationFailure message in the form of a ByteBuffer that can
+    * be sent from the debugger.
     *
     * @param exception the exception that caused the failure
     * @return the serialized message
@@ -171,7 +176,8 @@ object Debugger {
   }
 
   /**
-    * Creates a ListBindingsResult message in the form of a ByteBuffer that can be sent from the debugger.
+    * Creates a ListBindingsResult message in the form of a ByteBuffer that can
+    * be sent from the debugger.
     *
     * @param bindings mapping from names to bound values
     * @return the serialized message
@@ -189,7 +195,8 @@ object Debugger {
   }
 
   /**
-    * Creates a ListBindingsResult message in the form of a ByteBuffer that can be sent from the debugger.
+    * Creates a ListBindingsResult message in the form of a ByteBuffer that can
+    * be sent from the debugger.
     * Alternative version that is more friendly to Java code.
     *
     * @param bindings mapping from names to bound values (a Java Map)
@@ -201,7 +208,8 @@ object Debugger {
     createListBindingsResult(bindings.asScala.toMap)
 
   /**
-    * Creates an ExitSuccess message in the form of a ByteBuffer that can be sent from the debugger.
+    * Creates an ExitSuccess message in the form of a ByteBuffer that can be
+    * sent from the debugger.
     *
     * @return the serialized message
     */

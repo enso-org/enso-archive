@@ -3,7 +3,8 @@ package org.enso.polyglot.debugger
 /**
   * Represents a deserialized request that is received at the debugger.
   *
-  * It is a separate class from BinaryRequest to encapsulate Flatbuffers union handling logic in a type-safe way.
+  * It is a separate class from BinaryRequest to encapsulate Flatbuffers union
+  * handling logic in a type-safe way.
   */
 sealed trait Request
 
