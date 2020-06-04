@@ -100,4 +100,55 @@ object Debugger {
     builder.finish(outMsg)
     builder.dataBuffer()
   }
+
+  def createEvaluationSuccess(result: Object): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
+    println(result) // FIXME
+//    val requestOffset                       = RequestFactory.createExitRequest()
+//    val outMsg = BinaryRequest.createBinaryRequest(
+//      builder,
+//      RequestPayload.exit,
+//      requestOffset
+//    )
+//    builder.finish(outMsg)
+    builder.dataBuffer()
+  }
+
+  def createEvaluationFailure(exception: Exception): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
+    //    val requestOffset                       = RequestFactory.createExitRequest()
+    //    val outMsg = BinaryRequest.createBinaryRequest(
+    //      builder,
+    //      RequestPayload.exit,
+    //      requestOffset
+    //    )
+    //    builder.finish(outMsg)
+    println(exception) // FIXME
+    builder.dataBuffer()
+  }
+
+  def createListBindingsResult(bindings: Map[String, Object]): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
+    //    val requestOffset                       = RequestFactory.createExitRequest()
+    //    val outMsg = BinaryRequest.createBinaryRequest(
+    //      builder,
+    //      RequestPayload.exit,
+    //      requestOffset
+    //    )
+    //    builder.finish(outMsg)
+    println(bindings) // FIXME
+    builder.dataBuffer()
+  }
+
+  def createExitSuccess(): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
+    //    val requestOffset                       = RequestFactory.createExitRequest()
+    //    val outMsg = BinaryRequest.createBinaryRequest(
+    //      builder,
+    //      RequestPayload.exit,
+    //      requestOffset
+    //    )
+    //    builder.finish(outMsg)
+    builder.dataBuffer() // FIXME
+  }
 }
