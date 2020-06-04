@@ -1,6 +1,9 @@
 package org.enso.interpreter.instrument.job
 
+import cats.implicits._
+import org.enso.interpreter.instrument.Visualisation
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.job.TruffleUtils.withContext
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvalFailure,
   EvaluationFailed,
@@ -12,8 +15,6 @@ import org.enso.polyglot.runtime.Runtime.Api.{
   VisualisationId
 }
 import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
-import cats.implicits._
-import org.enso.interpreter.instrument.Visualisation
 
 import scala.util.control.NonFatal
 
@@ -27,8 +28,7 @@ class UpsertVisualisationJob(
       List(config.executionContextId),
       true,
       false
-    )
-    with ProgramExecutionSupport {
+    ) {
 
   /**
     *
@@ -132,7 +132,7 @@ object UpsertVisualisationJob {
   sealed trait EvalFailure
 
   /**
-    * Signals that a module cannto be found.
+    * Signals that a module cannot be found.
     */
   case object ModuleNotFound extends EvalFailure
 

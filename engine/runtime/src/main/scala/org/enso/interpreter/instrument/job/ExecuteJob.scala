@@ -4,6 +4,7 @@ import java.util.UUID
 
 import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.job.TruffleUtils.withContext
 import org.enso.polyglot.runtime.Runtime.Api
 
 class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
@@ -21,7 +22,7 @@ class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
     ctx.locking.acquireReadCompilationLock()
     try {
       withContext {
-        val errorOrOk = runProgram(contextId, stack) //todo log errors, send error to a client
+        val errorOrOk = runProgram(contextId, stack)
         errorOrOk match {
           case Left(e) =>
             ctx.endpoint.sendToClient(
@@ -30,7 +31,6 @@ class ExecuteJob(contextId: UUID, stack: List[InstrumentFrame])
 
           case Right(()) => //nop
         }
-        //case Left(e)   => Api.ExecutionFailed(request.contextId, e)
       }
     } finally {
       ctx.locking.releaseReadCompilationLock()

@@ -31,22 +31,6 @@ import scala.jdk.javaapi.OptionConverters
 trait ProgramExecutionSupport {
 
   /**
-    * Executes action in a newly created Truffle context.
-    *
-    * @param action an action
-    * @param ctx a runtime context
-    * @return a result of executing the action
-    */
-  def withContext[A](action: => A)(implicit ctx: RuntimeContext): A = {
-    val token = ctx.truffleContext.enter()
-    try {
-      action
-    } finally {
-      ctx.truffleContext.leave(token)
-    }
-  }
-
-  /**
     * Runs an Enso program.
     *
     * @param executionItem an execution item
