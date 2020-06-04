@@ -9,6 +9,7 @@ import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.command.Command
 import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.instrument.job.Job
+import org.enso.interpreter.runtime.control.ThreadInterruptedException
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -65,7 +66,9 @@ class ExecutionEngine(
           case Success(()) =>
             Future.successful(Done)
 
-          case Failure(_: InterruptedException) =>
+          case Failure(
+              _: InterruptedException | _: ThreadInterruptedException
+              ) =>
             Future.successful[Completion](Interrupted)
 
           case Failure(NonFatal(ex)) =>
@@ -92,6 +95,7 @@ class ExecutionEngine(
       override def call(): Unit = {
         val logger = runtimeContext.executionService.getLogger
         logger.log(Level.FINE, s"Executing job: $job...")
+        runtimeContext.executionService.getContext.getThreadManager.enter()
         try {
           val result = job.run(runtimeContext)
           logger.log(Level.FINE, s"Job $job finished.")
@@ -99,6 +103,7 @@ class ExecutionEngine(
         } catch {
           case NonFatal(ex) => promise.failure(ex)
         } finally {
+          runtimeContext.executionService.getContext.getThreadManager.leave()
           runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
         }
       }
@@ -116,6 +121,8 @@ class ExecutionEngine(
     cancellableJobs.foreach { runningJob =>
       runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
     }
+    runtimeContext.executionService.getContext.getThreadManager
+      .checkInterrupts()
   }
 
   override def abortJobs(contextId: UUID): Unit = {
@@ -126,6 +133,8 @@ class ExecutionEngine(
         runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
       }
     }
+    runtimeContext.executionService.getContext.getThreadManager
+      .checkInterrupts()
   }
 
 }
