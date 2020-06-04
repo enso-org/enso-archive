@@ -3,8 +3,8 @@ package org.enso.polyglot.debugger.protocol.factory
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.polyglot.debugger.protocol.{
   EvaluationRequest,
-  ExitRequest,
-  ListBindingsRequest
+  ListBindingsRequest,
+  SessionExitRequest
 }
 
 object RequestFactory {
@@ -46,8 +46,8 @@ object RequestFactory {
     * @return an offset pointing to the FlatBuffer representation of the
     *         created object
     */
-  def createExitRequest()(implicit builder: FlatBufferBuilder): Int = {
-    ExitRequest.startExitRequest(builder)
-    ExitRequest.endExitRequest(builder)
+  def createSessionExitRequest()(implicit builder: FlatBufferBuilder): Int = {
+    SessionExitRequest.startSessionExitRequest(builder)
+    SessionExitRequest.endSessionExitRequest(builder)
   }
 }

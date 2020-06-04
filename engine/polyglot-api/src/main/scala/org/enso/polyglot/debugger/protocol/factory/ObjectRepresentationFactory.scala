@@ -1,9 +1,9 @@
 package org.enso.polyglot.debugger.protocol.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.polyglot.debugger.protocol.ObjectRepr
+import org.enso.polyglot.debugger.protocol.ObjectRepresentation
 
-object ObjectReprFactory {
+object ObjectRepresentationFactory {
 
   /**
     * Creates ObjectRepr inside a [[FlatBufferBuilder]].
@@ -18,7 +18,7 @@ object ObjectReprFactory {
     val representation: String = representObject(obj)
     val reprOffset             = builder.createString(representation)
 
-    ObjectRepr.createObjectRepr(builder, reprOffset)
+    ObjectRepresentation.createObjectRepresentation(builder, reprOffset)
   }
 
   private def representObject(obj: Object): String = obj.toString

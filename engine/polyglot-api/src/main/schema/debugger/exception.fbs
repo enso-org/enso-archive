@@ -1,6 +1,7 @@
 namespace org.enso.polyglot.debugger.protocol;
 
-// corresponds to java.lang.StackTraceElement
+// A single element of the stack trace.
+// Corresponds to java.lang.StackTraceElement
 table StackTraceElement {
   declaringClass: string;
   methodName: string;
@@ -8,8 +9,9 @@ table StackTraceElement {
   lineNumber: int;
 }
 
-table ExceptionRepr {
+// Representation of Exceptions reported on evaluation failure.
+table ExceptionRepresentation {
   message: string;
   stackTrace: [StackTraceElement];
-  cause: ExceptionRepr;
+  cause: ExceptionRepresentation;
 }

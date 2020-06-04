@@ -1,6 +1,0 @@
-namespace org.enso.polyglot.debugger.protocol;
-
-table ExitRequest {}
-
-//Indicates the operation has succeeded.
-table ExitSuccess {}

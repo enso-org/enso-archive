@@ -23,4 +23,4 @@ object ListBindingsRequest extends Request
 /**
   * Represents a request to end debugger session.
   */
-object ExitRequest extends Request
+object SessionExitRequest extends Request

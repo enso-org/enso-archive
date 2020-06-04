@@ -1,6 +1,9 @@
 package org.enso.polyglot.debugger
 
-import org.enso.polyglot.debugger.protocol.{ExceptionRepr, ObjectRepr}
+import org.enso.polyglot.debugger.protocol.{
+  ExceptionRepresentation,
+  ObjectRepresentation
+}
 
 /**
   * Represents a deserialized response returned from the debugger.
@@ -15,7 +18,7 @@ sealed trait Response
   *
   * @param result over-the-wire representation of evaluation result
   */
-case class EvaluationSuccess(result: ObjectRepr) extends Response
+case class EvaluationSuccess(result: ObjectRepresentation) extends Response
 
 /**
   * Represents an evaluation failure.
@@ -23,17 +26,24 @@ case class EvaluationSuccess(result: ObjectRepr) extends Response
   * @param exception over-the-wire representation of the exception that caused
   *                  the failure
   */
-case class EvaluationFailure(exception: ExceptionRepr) extends Response
+case class EvaluationFailure(exception: ExceptionRepresentation)
+    extends Response
 
 /**
   * Represents the returned list of bindings.
   *
   * @param bindings mapping from names to bound values
   */
-case class ListBindingsResult(bindings: Map[String, ObjectRepr])
+case class ListBindingsResult(bindings: Map[String, ObjectRepresentation])
     extends Response
+
+/**
+  * Notification that is sent from the debugger that a REPL session should be
+  * started.
+  */
+object SessionStartNotification extends Response
 
 /**
   * Represents a successful termination of the debugging session.
   */
-object ExitSuccess extends Response
+object SessionExitSuccess extends Response

@@ -5,8 +5,9 @@ import org.enso.polyglot.debugger.protocol.{
   Binding,
   EvaluationFailure,
   EvaluationSuccess,
-  ExitSuccess,
-  ListBindingsResult
+  ListBindingsResult,
+  SessionExitSuccess,
+  SessionStartNotification
 }
 
 object ResponseFactory {
@@ -23,7 +24,7 @@ object ResponseFactory {
   def createEvaluationSuccess(
     result: Object
   )(implicit builder: FlatBufferBuilder): Int = {
-    val resultOffset = ObjectReprFactory.create(result)
+    val resultOffset = ObjectRepresentationFactory.create(result)
     EvaluationSuccess.createEvaluationSuccess(builder, resultOffset)
   }
 
@@ -39,7 +40,7 @@ object ResponseFactory {
   def createEvaluationFailure(
     exception: Exception
   )(implicit builder: FlatBufferBuilder): Int = {
-    val excpetionOffset = ExceptionReprFactory.create(exception)
+    val excpetionOffset = ExceptionRepresentationFactory.create(exception)
     EvaluationFailure.createEvaluationFailure(builder, excpetionOffset)
   }
 
@@ -62,23 +63,39 @@ object ResponseFactory {
   }
 
   /**
-    * Creates ExitSuccess inside a [[FlatBufferBuilder]].
+    * Creates SessionStartNotification inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects
     * @return an offset pointing to the FlatBuffer representation of the
     *         created object
     */
-  def createExitSuccess()(implicit builder: FlatBufferBuilder): Int = {
-    ExitSuccess.startExitSuccess(builder)
-    ExitSuccess.endExitSuccess(builder)
+  def createSessionStartNotification()(
+    implicit builder: FlatBufferBuilder
+  ): Int = {
+    SessionStartNotification.startSessionStartNotification(builder)
+    SessionStartNotification.endSessionStartNotification(builder)
+  }
+
+  /**
+    * Creates SessionExitSuccess inside a [[FlatBufferBuilder]].
+    *
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
+    */
+  def createSessionExitSuccess()(implicit builder: FlatBufferBuilder): Int = {
+    SessionExitSuccess.startSessionExitSuccess(builder)
+    SessionExitSuccess.endSessionExitSuccess(builder)
   }
 
   private def createBinding(name: String, value: Object)(
     implicit builder: FlatBufferBuilder
   ): Int = {
     val nameOffset  = builder.createString(name)
-    val valueOffset = ObjectReprFactory.create(value)
+    val valueOffset = ObjectRepresentationFactory.create(value)
     Binding.createBinding(builder, nameOffset, valueOffset)
   }
+
 }

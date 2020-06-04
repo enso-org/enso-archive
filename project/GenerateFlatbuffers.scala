@@ -117,22 +117,21 @@ object GenerateFlatbuffers {
     * generated sources.
     *
     * @param makeRules a string representing the rules returned by flatc
-    * @return a sequence of filenames that are mentioned in the provided rules
+    * @return either a parse error message or a sequence of filenames that are
+    *         mentioned in the provided rules
     */
-  private def extractGeneratedFilenamesFromMakefile(
+  private def parseMakeRules(
     makeRules: String
-  ): Seq[String] = {
-    try {
-      val cleaned            = makeRules.replaceAllLiterally("\\", "");
-      val Array(javaPart, _) = cleaned.split(": ")
-
-      val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
-      filenames
-    } catch {
-      case ex: MatchError =>
-        println("Unexpected format of Make rules returned by flatc")
-        println(makeRules)
-        throw new RuntimeException("Cannot parse flatc Make rules", ex)
+  ): Either[String, Seq[String]] = {
+    val cleaned = makeRules.replaceAllLiterally("\\", "")
+    cleaned.split(": ") match {
+      case Array(javaPart, _) =>
+        val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
+        Right(filenames)
+      case _ =>
+        val errorMessage =
+          "Unexpected format of Make rules returned by flatc:\n" + makeRules
+        Left(errorMessage)
     }
   }
 
@@ -155,16 +154,26 @@ object GenerateFlatbuffers {
       schemas.flatMap { schema =>
         val cmdMakeRules =
           s"$flatcCmd -M --java -o ${out.getAbsolutePath} ${schema.getAbsolutePath}"
-        try {
-          val makeRules = cmdMakeRules.!!
-          extractGeneratedFilenamesFromMakefile(makeRules)
-        } catch {
-          case ex: RuntimeException =>
-            val exitCode = cmdMakeRules.! // Note [flatc Error Reporting]
-            println(
-              s"flatc on ${schema.getAbsolutePath} failed with exit code $exitCode"
-            )
-            throw ex
+        val makeRules =
+          try {
+            cmdMakeRules.!!
+          } catch {
+            case ex: RuntimeException =>
+              val exitCode = cmdMakeRules.! // Note [flatc Error Reporting]
+              println(
+                s"flatc on ${schema.getAbsolutePath} failed with exit code $exitCode"
+              )
+              throw ex
+          }
+
+        parseMakeRules(makeRules) match {
+          case Left(errorMessage) =>
+            val exceptionMessage =
+              s"Cannot parse flatc Make rules, flatc command: $cmdMakeRules"
+            println(exceptionMessage)
+            println(errorMessage)
+            throw new RuntimeException(exceptionMessage)
+          case Right(affectedSources) => affectedSources
         }
       }
     affectedSources.toSet.map(file)

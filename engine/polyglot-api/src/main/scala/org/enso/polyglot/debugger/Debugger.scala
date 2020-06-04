@@ -9,8 +9,8 @@ import org.enso.polyglot.debugger.protocol.factory.{
   ResponseFactory
 }
 import org.enso.polyglot.debugger.protocol.{
-  BinaryRequest,
-  BinaryResponse,
+  Request => BinaryRequest,
+  Response => BinaryResponse,
   RequestPayload,
   ResponsePayload
 }
@@ -25,18 +25,18 @@ object Debugger {
     */
   def deserializeRequest(bytes: ByteBuffer): Option[Request] =
     try {
-      val inMsg = BinaryRequest.getRootAsBinaryRequest(bytes)
+      val inMsg = BinaryRequest.getRootAsRequest(bytes)
 
       inMsg.payloadType() match {
-        case RequestPayload.evaluate =>
+        case RequestPayload.EVALUATE =>
           val evaluationRequest = inMsg
             .payload(new protocol.EvaluationRequest())
             .asInstanceOf[protocol.EvaluationRequest]
           Some(EvaluationRequest(evaluationRequest.expression()))
-        case RequestPayload.listBindings =>
+        case RequestPayload.LIST_BINDINGS =>
           Some(ListBindingsRequest)
-        case RequestPayload.exit =>
-          Some(ExitRequest)
+        case RequestPayload.SESSION_EXIT =>
+          Some(SessionExitRequest)
         case _ => None
       }
     } catch {
@@ -51,20 +51,20 @@ object Debugger {
     */
   def deserializeResponse(bytes: ByteBuffer): Option[Response] =
     try {
-      val inMsg = BinaryResponse.getRootAsBinaryResponse(bytes)
+      val inMsg = BinaryResponse.getRootAsResponse(bytes)
 
       inMsg.payloadType() match {
-        case ResponsePayload.evaluationSuccess =>
+        case ResponsePayload.EVALUATION_SUCCESS =>
           val evaluationResult = inMsg
             .payload(new protocol.EvaluationSuccess())
             .asInstanceOf[protocol.EvaluationSuccess]
           Some(EvaluationSuccess(evaluationResult.result()))
-        case ResponsePayload.evaluationFailure =>
+        case ResponsePayload.EVALUATION_FAILURE =>
           val evaluationResult = inMsg
             .payload(new protocol.EvaluationFailure())
             .asInstanceOf[protocol.EvaluationFailure]
           Some(EvaluationFailure(evaluationResult.exception()))
-        case ResponsePayload.listBindings =>
+        case ResponsePayload.LIST_BINDINGS =>
           val bindingsResult = inMsg
             .payload(new protocol.ListBindingsResult())
             .asInstanceOf[protocol.ListBindingsResult]
@@ -74,8 +74,10 @@ object Debugger {
               (binding.name(), binding.value())
             }
           Some(ListBindingsResult(bindings.toMap))
-        case ResponsePayload.exit =>
-          Some(ExitSuccess)
+        case ResponsePayload.SESSION_START =>
+          Some(SessionStartNotification)
+        case ResponsePayload.SESSION_EXIT =>
+          Some(SessionExitSuccess)
         case _ => None
       }
     } catch {
@@ -92,9 +94,9 @@ object Debugger {
   def createEvaluationRequest(expression: String): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val requestOffset                       = RequestFactory.createEvaluationRequest(expression)
-    val outMsg = BinaryRequest.createBinaryRequest(
+    val outMsg = BinaryRequest.createRequest(
       builder,
-      RequestPayload.evaluate,
+      RequestPayload.EVALUATE,
       requestOffset
     )
     builder.finish(outMsg)
@@ -108,11 +110,11 @@ object Debugger {
     * @return the serialized message
     */
   def createListBindingsRequest(): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
     val requestOffset                       = RequestFactory.createListBindingsRequest()
-    val outMsg = BinaryRequest.createBinaryRequest(
+    val outMsg = BinaryRequest.createRequest(
       builder,
-      RequestPayload.listBindings,
+      RequestPayload.LIST_BINDINGS,
       requestOffset
     )
     builder.finish(outMsg)
@@ -125,12 +127,12 @@ object Debugger {
     *
     * @return the serialized message
     */
-  def createExitRequest(): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    val requestOffset                       = RequestFactory.createExitRequest()
-    val outMsg = BinaryRequest.createBinaryRequest(
+  def createSessionExitRequest(): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
+    val requestOffset                       = RequestFactory.createSessionExitRequest()
+    val outMsg = BinaryRequest.createRequest(
       builder,
-      RequestPayload.exit,
+      RequestPayload.SESSION_EXIT,
       requestOffset
     )
     builder.finish(outMsg)
@@ -147,9 +149,9 @@ object Debugger {
   def createEvaluationSuccess(result: Object): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createEvaluationSuccess(result)
-    val outMsg = BinaryRequest.createBinaryRequest(
+    val outMsg = BinaryResponse.createResponse(
       builder,
-      ResponsePayload.evaluationSuccess,
+      ResponsePayload.EVALUATION_SUCCESS,
       replyOffset
     )
     builder.finish(outMsg)
@@ -166,9 +168,9 @@ object Debugger {
   def createEvaluationFailure(exception: Exception): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createEvaluationFailure(exception)
-    val outMsg = BinaryRequest.createBinaryRequest(
+    val outMsg = BinaryResponse.createResponse(
       builder,
-      ResponsePayload.evaluationFailure,
+      ResponsePayload.EVALUATION_FAILURE,
       replyOffset
     )
     builder.finish(outMsg)
@@ -185,9 +187,9 @@ object Debugger {
   def createListBindingsResult(bindings: Map[String, Object]): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createListBindingsResult(bindings)
-    val outMsg = BinaryRequest.createBinaryRequest(
+    val outMsg = BinaryResponse.createResponse(
       builder,
-      ResponsePayload.listBindings,
+      ResponsePayload.LIST_BINDINGS,
       replyOffset
     )
     builder.finish(outMsg)
@@ -213,12 +215,30 @@ object Debugger {
     *
     * @return the serialized message
     */
-  def createExitSuccess(): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    val replyOffset                         = ResponseFactory.createExitSuccess()
-    val outMsg = BinaryRequest.createBinaryRequest(
+  def createSessionExitSuccess(): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
+    val replyOffset                         = ResponseFactory.createSessionExitSuccess()
+    val outMsg = BinaryResponse.createResponse(
       builder,
-      ResponsePayload.exit,
+      ResponsePayload.SESSION_EXIT,
+      replyOffset
+    )
+    builder.finish(outMsg)
+    builder.dataBuffer()
+  }
+
+  /**
+    * Creates an SessionStartNotification message in the form of a ByteBuffer
+    * that can be sent from the debugger.
+    *
+    * @return the serialized message
+    */
+  def createSessionStartNotification(): ByteBuffer = {
+    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
+    val replyOffset                         = ResponseFactory.createSessionStartNotification()
+    val outMsg = BinaryResponse.createResponse(
+      builder,
+      ResponsePayload.SESSION_START,
       replyOffset
     )
     builder.finish(outMsg)

@@ -19,9 +19,10 @@ implement a simple REPL or add debugging capabilities to the editor.
   - [`Exception`](#exception)
   - [`Binding`](#binding)
 - [Messages](#messages)
+  - [Session start](#session-start)
   - [Evaluation](#evaluation)
   - [List bindings](#list-bindings)
-  - [Exit](#exit)
+  - [Session exit](#session-exit)
 
 <!-- /MarkdownTOC -->
 
@@ -78,33 +79,46 @@ interface Binding {
 
 ## Messages
 
-All endpoints accept messages of type `BinaryRequest` and return
-a `BinaryResponse`. These messages contain unions that contain the actual
-payload specified for each endpoint.
+All endpoints accept messages of type `Request` and return a `Response`. 
+These messages contain unions that contain the actual payload specified for each
+type of message.
 
 ```idl
 namespace org.enso.polyglot.debugger.protocol;
 
 union RequestPayload {
-    evaluate: EvaluationRequest,
-    listBindings: ListBindingsRequest,
-    exit: ExitRequest
+    EVALUATE: EvaluationRequest,
+    LIST_BINDINGS: ListBindingsRequest,
+    SESSION_EXIT: SessionExitRequest
 }
 
-table BinaryRequest {
+table Request {
     payload: RequestPayload (required);
 }
 
 union ResponsePayload {
-    evaluationSuccess: EvaluationSuccess,
-    evaluationFailure: EvaluationFailure,
-    listBindings: ListBindingsResult,
-    exit: ExitSuccess
+    EVALUATION_SUCCESS: EvaluationSuccess,
+    EVALUATION_FAILURE: EvaluationFailure,
+    LIST_BINDINGS: ListBindingsResult,
+    SESSION_EXIT: SessionExitSuccess,
+    SESSION_START: SessionStartNotification
 }
 
-table BinaryResponse {
+table Response {
     payload: ResponsePayload (required);
 }
+```
+
+### Session start
+
+When a breakpoint is reached, the debugger sends a notification to the client
+indicating that a REPL session should be started.
+
+#### Notification
+```idl
+namespace org.enso.polyglot.protocol.debugger;
+
+table SessionStartNotification {}
 ```
 
 ### Evaluation
@@ -156,7 +170,7 @@ table ReplListBindingsResult {
 }
 ```
 
-### Exit
+### Session exit
 Terminates this REPL session (and resumes normal program execution).
 
 The last result of Evaluation will be returned from the instrumented node or if

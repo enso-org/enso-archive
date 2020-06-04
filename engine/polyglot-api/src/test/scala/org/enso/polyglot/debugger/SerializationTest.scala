@@ -1,6 +1,9 @@
 package org.enso.polyglot.debugger
 
-import org.enso.polyglot.debugger.protocol.{ExceptionRepr, ObjectRepr}
+import org.enso.polyglot.debugger.protocol.{
+  ExceptionRepresentation,
+  ObjectRepresentation
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -27,16 +30,16 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "ExitRequest" should {
     "preserve all information when being serialized and deserialized" in {
-      val bytes   = Debugger.createExitRequest()
+      val bytes   = Debugger.createSessionExitRequest()
       val request = Debugger.deserializeRequest(bytes).get
 
-      request shouldEqual ExitRequest
+      request shouldEqual SessionExitRequest
     }
   }
 
   private def objectRepresentationIsConsistent(
     obj: Object,
-    repr: ObjectRepr
+    repr: ObjectRepresentation
   ): Boolean =
     obj.toString == repr.representation()
 
@@ -63,7 +66,7 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   private def exceptionRepresentationIsConsistent(
     ex: Throwable,
-    repr: ExceptionRepr
+    repr: ExceptionRepresentation
   ): Boolean = {
     val causeIsConsistent =
       (repr.cause() == null && ex.getCause == null) || (exceptionRepresentationIsConsistent(
@@ -121,12 +124,21 @@ class SerializationTest extends AnyWordSpec with Matchers {
     }
   }
 
-  "ExitSuccess" should {
+  "SessionExitSuccess" should {
     "preserve all information when being serialized and deserialized" in {
-      val bytes   = Debugger.createExitSuccess()
+      val bytes   = Debugger.createSessionExitSuccess()
       val request = Debugger.deserializeResponse(bytes).get
 
-      request shouldEqual ExitSuccess
+      request shouldEqual SessionExitSuccess
+    }
+  }
+
+  "SessionExitNotification" should {
+    "preserve all information when being serialized and deserialized" in {
+      val bytes   = Debugger.createSessionStartNotification()
+      val request = Debugger.deserializeResponse(bytes).get
+
+      request shouldEqual SessionStartNotification
     }
   }
 }

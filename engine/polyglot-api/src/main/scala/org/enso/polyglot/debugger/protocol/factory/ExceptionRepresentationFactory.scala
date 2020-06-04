@@ -1,11 +1,13 @@
 package org.enso.polyglot.debugger.protocol.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.polyglot.debugger.protocol.ExceptionRepr
-import org.enso.polyglot.debugger.protocol.StackTraceElement
+import org.enso.polyglot.debugger.protocol.{
+  ExceptionRepresentation,
+  StackTraceElement
+}
 import java.lang.{StackTraceElement => JStackTraceElement}
 
-object ExceptionReprFactory {
+object ExceptionRepresentationFactory {
 
   /**
     * Creates ExceptionRepr inside a [[FlatBufferBuilder]].
@@ -21,8 +23,8 @@ object ExceptionReprFactory {
     val causeOffset               = if (ex.getCause != null) create(ex.getCause) else 0
     val traceElements: Array[Int] = ex.getStackTrace.map(createStackTrace)
     val traceVectorOffset =
-      ExceptionRepr.createStackTraceVector(builder, traceElements)
-    ExceptionRepr.createExceptionRepr(
+      ExceptionRepresentation.createStackTraceVector(builder, traceElements)
+    ExceptionRepresentation.createExceptionRepresentation(
       builder,
       messageOffset,
       traceVectorOffset,
