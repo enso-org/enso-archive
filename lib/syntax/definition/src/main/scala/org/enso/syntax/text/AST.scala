@@ -2,33 +2,19 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.Foldable
-import cats.Functor
-import cats.Monoid
+import cats.{Foldable, Functor, Monoid}
 import cats.derived._
 import cats.implicits._
-import io.circe.Encoder
-import io.circe.Json
-import org.enso.syntax.text.ast.text.Escape
-import org.enso.syntax.text.ast.text.RawEscape
+import io.circe.{Encoder, Json}
 import org.enso.data.List1._
-import org.enso.data.List1
-import org.enso.data.Index
-import org.enso.data.Shifted
-import org.enso.data.Size
-import org.enso.data.Span
-import org.enso.data.Tree
-import org.enso.syntax.text.ast.Repr.R
-import org.enso.syntax.text.ast.Repr._
+import org.enso.data._
 import org.enso.syntax.text.HasSpan.implicits._
-import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.ast.Repr
-import org.enso.syntax.text.ast.opr
+import org.enso.syntax.text.ast.Repr.{R, _}
 import org.enso.syntax.text.ast.meta.Pattern
+import org.enso.syntax.text.ast.{opr, Doc, Repr}
+import org.enso.syntax.text.ast.text.{Escape, RawEscape}
 
-import scala.annotation.nowarn
-import scala.annotation.tailrec
-import scala.annotation.unused
+import scala.annotation.{nowarn, tailrec, unused}
 import scala.reflect.ClassTag
 
 /* Note [JSON Serialization]
@@ -172,8 +158,8 @@ object Phantom {
 sealed trait Shape[T]
 
 object Shape extends ShapeImplicit {
-  import HasSpan.implicits._
   import AST.StreamOf
+  import HasSpan.implicits._
 
   /// Utils ///
   val newline = R + '\n'
@@ -1540,8 +1526,8 @@ object AST {
 
     // Note [JSON Serialization]
     def toJson(): Json = {
-      import io.circe.syntax._
       import io.circe.generic.auto._
+      import io.circe.syntax._
 
       // Note [JSON Format Customizations]
       @unused implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
