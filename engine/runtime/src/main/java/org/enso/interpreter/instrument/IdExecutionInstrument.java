@@ -146,7 +146,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<ExpressionValue> visualisationCallback;
     private final RuntimeCache cache;
     private final UUID stackTop;
-    private final Map<UUID, FunctionCallInfo> enterables = new HashMap<>();
+    private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
 
     /**
      * Creates a new listener.
@@ -200,7 +200,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       if (result != null && !nodeId.equals(stackTop)) {
         visualisationCallback.accept(
             new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, enterables.get(nodeId)));
+                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
         throw context.createUnwind(result);
       }
     }
@@ -223,7 +223,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
         UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
-        enterables.put(
+        calls.put(
             nodeId, new FunctionCallInfo((FunctionCallInstrumentationNode.FunctionCall) result));
         functionCallCallback.accept(
             new ExpressionCall(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result));
@@ -237,7 +237,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         cache.offer(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, enterables.get(nodeId)));
+                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
       }
     }
 
