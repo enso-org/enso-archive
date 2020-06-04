@@ -5,14 +5,9 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.File;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.function.Consumer;
 import org.enso.compiler.context.Changeset;
-import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -24,6 +19,12 @@ import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -80,7 +81,7 @@ public class ExecutionService {
    *
    * @param call the call metadata.
    * @param cache the precomputed expression values.
-   * @param stackTop the item from the top of the call stack.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param valueCallback the consumer for expression value events.
    * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
@@ -88,7 +89,7 @@ public class ExecutionService {
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
-      UUID stackTop,
+      UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
@@ -104,7 +105,7 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
-            stackTop,
+            nextExecutionItem,
             valueCallback,
             visualisationCallback,
             funCallCallback);
@@ -120,7 +121,7 @@ public class ExecutionService {
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
-   * @param stackTop the item from the top of the call stack.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param valueCallback the consumer for expression value events.
    * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
@@ -130,7 +131,7 @@ public class ExecutionService {
       String consName,
       String methodName,
       RuntimeCache cache,
-      UUID stackTop,
+      UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
@@ -142,7 +143,13 @@ public class ExecutionService {
     if (!callMay.isPresent()) {
       return;
     }
-    execute(callMay.get(), cache, stackTop, valueCallback, visualisationCallback, funCallCallback);
+    execute(
+        callMay.get(),
+        cache,
+        nextExecutionItem,
+        valueCallback,
+        visualisationCallback,
+        funCallCallback);
   }
 
   /**
