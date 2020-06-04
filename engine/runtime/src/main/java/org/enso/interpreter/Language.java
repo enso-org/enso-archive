@@ -63,17 +63,6 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Checks if a given object is native to Enso.
-   *
-   * @param object the object to check
-   * @return {@code true} if {@code object} belongs to Enso, {@code false} otherwise
-   */
-  @Override
-  protected boolean isObjectOfLanguage(Object object) {
-    return false;
-  }
-
-  /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
    * @param thread the thread to check access for
@@ -98,7 +87,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the supported options descriptors, for use by Graal's engine. `
+   * Returns the supported options descriptors, for use by Graal's engine.
    *
    * @return The supported options descriptors
    */
@@ -115,6 +104,6 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Iterable<Scope> findTopScopes(Context context) {
-    return Collections.singleton(context.getCompiler().topScope().getScope());
+    return Collections.singleton(context.getTopScope().getScope());
   }
 }

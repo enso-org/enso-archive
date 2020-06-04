@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
-import org.enso.interpreter.node.controlflow.CaseNode
+import org.enso.interpreter.node.controlflow.{BranchNode, CaseNode}
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
@@ -238,5 +238,44 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
     instrumenter.assertNodeExists(20, 5, classOf[ApplicationNode])
     eval(code)
+  }
+
+  "Comments" should "not break code locations" in
+  withLocationsInstrumenter { instrumenter =>
+    val code =
+      """
+        |# this is a comment
+        |#this too
+        |## But this is a doc.
+        |main = # define main
+        |    y = 1 # assign one to `y`
+        |    x = 2 # assign two to #x
+        |    # perform the addition
+        |    x + y # the addition is performed here
+        |""".stripMargin.linesIterator.mkString("\n")
+    instrumenter.assertNodeExists(82, 1, classOf[IntegerLiteralNode])
+    instrumenter.assertNodeExists(164, 5, classOf[ApplicationNode])
+    eval(code) shouldEqual 3
+  }
+
+  "Desugaring nested patterns" should "not break code locations" in withLocationsInstrumenter {
+    instrumenter =>
+      val code =
+        """
+          |type MyAtom
+          |
+          |main =
+          |    f = case _ of
+          |        Cons (Cons MyAtom Nil) Nil -> 100
+          |        _ -> 50
+          |    f (Cons (Cons MyAtom Nil) Nil)
+          |""".stripMargin
+
+      instrumenter.assertNodeExists(29, 67, classOf[CaseNode])
+      instrumenter.assertNodeExists(34, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(77, 3, classOf[IntegerLiteralNode])
+      instrumenter.assertNodeExists(47, 33, classOf[CreateFunctionNode])
+
+      eval(code) shouldEqual 100
   }
 }

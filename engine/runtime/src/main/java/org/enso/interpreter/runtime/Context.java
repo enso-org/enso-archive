@@ -36,6 +36,8 @@ public class Context {
   private final PrintStream err;
   private final BufferedReader in;
   private final List<Package<TruffleFile>> packages;
+  private final TopLevelScope topScope;
+  private final ThreadManager threadManager;
 
   /**
    * Creates a new Enso context.
@@ -49,6 +51,7 @@ public class Context {
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
     this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    this.threadManager = new ThreadManager();
     TruffleFileSystem fs = new TruffleFileSystem();
 
     packages = new ArrayList<>();
@@ -84,9 +87,9 @@ public class Context {
                 Collectors.toMap(
                     srcFile -> srcFile.qualifiedName().toString(),
                     srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
-    TopLevelScope topLevelScope = new TopLevelScope(new Builtins(this), knownFiles);
+    topScope = new TopLevelScope(new Builtins(this), knownFiles);
 
-    this.compiler = new Compiler(this.language, topLevelScope, this);
+    this.compiler = new Compiler(this);
   }
 
   public TruffleFile getTruffleFile(File file) {
@@ -210,7 +213,7 @@ public class Context {
    */
   public Optional<Module> getModuleForFile(File path) {
     return getModuleNameForFile(path)
-        .flatMap(n -> getCompiler().topScope().getModule(n.toString()));
+        .flatMap(n -> getTopScope().getModule(n.toString()));
   }
 
   /**
@@ -220,7 +223,7 @@ public class Context {
    * @return the relevant module, if exists.
    */
   public Optional<Module> findModule(String moduleName) {
-    return getCompiler().topScope().getModule(moduleName);
+    return getTopScope().getModule(moduleName);
   }
 
   /**
@@ -231,7 +234,7 @@ public class Context {
    */
   public Optional<Module> createModuleForFile(File path) {
     return getModuleNameForFile(path)
-        .map(name -> getCompiler().topScope().createModule(name, getTruffleFile(path)));
+        .map(name -> getTopScope().createModule(name, getTruffleFile(path)));
   }
 
   private void initializeScope(ModuleScope scope) {
@@ -244,7 +247,16 @@ public class Context {
    * @return an object containing the builtin functions
    */
   public Builtins getBuiltins() {
-    return this.compiler.topScope().getBuiltins();
+    return getTopScope().getBuiltins();
+  }
+
+  /**
+   * Gets the top-level language scope.
+   *
+   * @return an object containing the top level language scope
+   */
+  public TopLevelScope getTopScope() {
+    return this.topScope;
   }
 
   /**
@@ -266,11 +278,13 @@ public class Context {
     return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
   }
 
-  /**
-   * Creates a new thread that has access to the current language context.
-   */
+  /** Creates a new thread that has access to the current language context. */
   public Thread createThread(Runnable runnable) {
     return environment.createThread(runnable);
   }
 
+  /** @return the thread manager for this context. */
+  public ThreadManager getThreadManager() {
+    return threadManager;
+  }
 }
