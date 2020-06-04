@@ -16,6 +16,13 @@ import org.enso.polyglot.debugger.protocol.{
 }
 
 object Debugger {
+
+  /**
+    * Deserializes a byte buffer into a Request message.
+    *
+    * @param bytes the buffer to deserialize
+    * @return the deserialized message, if the byte buffer can be deserialized.
+    */
   def deserializeRequest(bytes: ByteBuffer): Option[Request] =
     try {
       val inMsg = BinaryRequest.getRootAsBinaryRequest(bytes)
@@ -36,6 +43,12 @@ object Debugger {
       case _: Exception => None
     }
 
+  /**
+    * Deserializes a byte buffer into a Response message.
+    *
+    * @param bytes the buffer to deserialize
+    * @return the deserialized message, if the byte buffer can be deserialized.
+    */
   def deserializeResponse(bytes: ByteBuffer): Option[Response] =
     try {
       val inMsg = BinaryResponse.getRootAsBinaryResponse(bytes)
@@ -69,6 +82,12 @@ object Debugger {
       case _: Exception => None
     }
 
+  /**
+    * Creates an EvaluationRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    *
+    * @param expression expression to evaluate
+    * @return the serialized message
+    */
   def createEvaluationRequest(expression: String): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val requestOffset                       = RequestFactory.createEvaluationRequest(expression)
@@ -81,6 +100,11 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates a ListBindingsRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    *
+    * @return the serialized message
+    */
   def createListBindingsRequest(): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val requestOffset                       = RequestFactory.createListBindingsRequest()
@@ -93,6 +117,11 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates a ExitRequest message in the form of a ByteBuffer that can be sent to the debugger.
+    *
+    * @return the serialized message
+    */
   def createExitRequest(): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val requestOffset                       = RequestFactory.createExitRequest()
@@ -105,6 +134,12 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates an EvaluationSuccess message in the form of a ByteBuffer that can be sent from the debugger.
+    *
+    * @param result evaluation result
+    * @return the serialized message
+    */
   def createEvaluationSuccess(result: Object): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createEvaluationSuccess(result)
@@ -117,6 +152,12 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates an EvaluationFailure message in the form of a ByteBuffer that can be sent from the debugger.
+    *
+    * @param exception the exception that caused the failure
+    * @return the serialized message
+    */
   def createEvaluationFailure(exception: Exception): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createEvaluationFailure(exception)
@@ -129,6 +170,12 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates a ListBindingsResult message in the form of a ByteBuffer that can be sent from the debugger.
+    *
+    * @param bindings mapping from names to bound values
+    * @return the serialized message
+    */
   def createListBindingsResult(bindings: Map[String, Object]): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createListBindingsResult(bindings)
@@ -141,11 +188,23 @@ object Debugger {
     builder.dataBuffer()
   }
 
+  /**
+    * Creates a ListBindingsResult message in the form of a ByteBuffer that can be sent from the debugger.
+    * Alternative version that is more friendly to Java code.
+    *
+    * @param bindings mapping from names to bound values (a Java Map)
+    * @return the serialized message
+    */
   def createListBindingsResult(
     bindings: java.util.Map[String, Object]
   ): ByteBuffer =
     createListBindingsResult(bindings.asScala.toMap)
 
+  /**
+    * Creates an ExitSuccess message in the form of a ByteBuffer that can be sent from the debugger.
+    *
+    * @return the serialized message
+    */
   def createExitSuccess(): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
     val replyOffset                         = ResponseFactory.createExitSuccess()
