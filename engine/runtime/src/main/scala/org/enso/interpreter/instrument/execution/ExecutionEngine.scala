@@ -113,13 +113,19 @@ class ExecutionEngine(
   override def abortAllJobs(): Unit = {
     val allJobs         = runningJobsRef.get()
     val cancellableJobs = allJobs.filter(_.job.isCancellable)
-    cancellableJobs.foreach(_.future.cancel(true))
+    cancellableJobs.foreach { runningJob =>
+      runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+    }
   }
 
   override def abortJobs(contextId: UUID): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
-    contextJobs.foreach(_.future.cancel(true))
+    contextJobs.foreach { runningJob =>
+      if (runningJob.job.isCancellable) {
+        runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+      }
+    }
   }
 
 }
