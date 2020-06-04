@@ -1,9 +1,13 @@
 package org.enso.polyglot.debugger
 
 import java.nio.ByteBuffer
+import scala.jdk.CollectionConverters._
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.polyglot.debugger.protocol.factory.RequestFactory
+import org.enso.polyglot.debugger.protocol.factory.{
+  RequestFactory,
+  ResponseFactory
+}
 import org.enso.polyglot.debugger.protocol.{
   BinaryRequest,
   BinaryResponse,
@@ -103,52 +107,54 @@ object Debugger {
 
   def createEvaluationSuccess(result: Object): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    println(result) // FIXME
-//    val requestOffset                       = RequestFactory.createExitRequest()
-//    val outMsg = BinaryRequest.createBinaryRequest(
-//      builder,
-//      RequestPayload.exit,
-//      requestOffset
-//    )
-//    builder.finish(outMsg)
+    val replyOffset                         = ResponseFactory.createEvaluationSuccess(result)
+    val outMsg = BinaryRequest.createBinaryRequest(
+      builder,
+      ResponsePayload.evaluationSuccess,
+      replyOffset
+    )
+    builder.finish(outMsg)
     builder.dataBuffer()
   }
 
   def createEvaluationFailure(exception: Exception): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    //    val requestOffset                       = RequestFactory.createExitRequest()
-    //    val outMsg = BinaryRequest.createBinaryRequest(
-    //      builder,
-    //      RequestPayload.exit,
-    //      requestOffset
-    //    )
-    //    builder.finish(outMsg)
-    println(exception) // FIXME
+    val replyOffset                         = ResponseFactory.createEvaluationFailure(exception)
+    val outMsg = BinaryRequest.createBinaryRequest(
+      builder,
+      ResponsePayload.evaluationFailure,
+      replyOffset
+    )
+    builder.finish(outMsg)
     builder.dataBuffer()
   }
 
   def createListBindingsResult(bindings: Map[String, Object]): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    //    val requestOffset                       = RequestFactory.createExitRequest()
-    //    val outMsg = BinaryRequest.createBinaryRequest(
-    //      builder,
-    //      RequestPayload.exit,
-    //      requestOffset
-    //    )
-    //    builder.finish(outMsg)
-    println(bindings) // FIXME
+    val replyOffset                         = ResponseFactory.createListBindingsResult(bindings)
+    val outMsg = BinaryRequest.createBinaryRequest(
+      builder,
+      ResponsePayload.listBindings,
+      replyOffset
+    )
+    builder.finish(outMsg)
     builder.dataBuffer()
   }
 
+  def createListBindingsResult(
+    bindings: java.util.Map[String, Object]
+  ): ByteBuffer =
+    createListBindingsResult(bindings.asScala.toMap)
+
   def createExitSuccess(): ByteBuffer = {
     implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(256)
-    //    val requestOffset                       = RequestFactory.createExitRequest()
-    //    val outMsg = BinaryRequest.createBinaryRequest(
-    //      builder,
-    //      RequestPayload.exit,
-    //      requestOffset
-    //    )
-    //    builder.finish(outMsg)
-    builder.dataBuffer() // FIXME
+    val replyOffset                         = ResponseFactory.createExitSuccess()
+    val outMsg = BinaryRequest.createBinaryRequest(
+      builder,
+      ResponsePayload.exit,
+      replyOffset
+    )
+    builder.finish(outMsg)
+    builder.dataBuffer()
   }
 }
