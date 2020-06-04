@@ -276,7 +276,7 @@ trait ProgramExecutionSupport {
       functionName  <- QualifiedName.fromString(call.getFunctionName)
       typeName      <- functionName.getParent
       module <- OptionConverters.toScala(
-        ctx.executionService.getContext.getCompiler.topScope
+        ctx.executionService.getContext.getTopScope
           .getModule(moduleName.toString)
       )
       modulePath <- Option(module.getPath)
