@@ -6,7 +6,7 @@ import org.enso.polyglot.debugger.protocol.ObjectRepresentation
 object ObjectRepresentationFactory {
 
   /**
-    * Creates ObjectRepr inside a [[FlatBufferBuilder]].
+    * Creates ObjectRepresentation inside a [[FlatBufferBuilder]].
     *
     * @param obj an object to serialize
     * @param builder a class that helps build a FlatBuffer representation of

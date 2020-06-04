@@ -39,7 +39,7 @@ object RequestFactory {
   }
 
   /**
-    * Creates ExitRequest inside a [[FlatBufferBuilder]].
+    * Creates SessionExitRequest inside a [[FlatBufferBuilder]].
     *
     * @param builder a class that helps build a FlatBuffer representation of
     *                complex objects
