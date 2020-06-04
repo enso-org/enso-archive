@@ -124,7 +124,7 @@ object GenerateFlatbuffers {
   ): Seq[String] = {
     try {
       val cleaned            = makeRules.replaceAllLiterally("\\", "");
-      val Array(javaPart, _) = cleaned.split(':')
+      val Array(javaPart, _) = cleaned.split(": ")
 
       val filenames = javaPart.split('\n').map(_.trim).filter(_.length > 0)
       filenames
