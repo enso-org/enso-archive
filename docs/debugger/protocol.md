@@ -19,9 +19,9 @@ implement a simple REPL or add debugging capabilities to the editor.
   - [`Exception`](#exception)
   - [`Binding`](#binding)
 - [Messages](#messages)
-  - [`repl/evaluate`](#replevaluate)
-  - [`repl/listBindings`](#repllistbindings)
-  - [`repl/exit`](#replexit) 
+  - [Evaluation](#evaluation)
+  - [List bindings](#list-bindings)
+  - [Exit](#exit)
 
 <!-- /MarkdownTOC -->
 
@@ -78,13 +78,43 @@ interface Binding {
 
 ## Messages
 
-### `repl/evaluate`
+All endpoints accept messages of type `BinaryRequest` and return
+a `BinaryResponse`. These messages contain unions that contain the actual
+payload specified for each endpoint.
+
+```idl
+namespace org.enso.polyglot.debugger.protocol;
+
+union RequestPayload {
+    evaluate: EvaluationRequest,
+    listBindings: ListBindingsRequest,
+    exit: ExitRequest
+}
+
+table BinaryRequest {
+    payload: RequestPayload (required);
+}
+
+union ResponsePayload {
+    evaluationSuccess: EvaluationSuccess,
+    evaluationFailure: EvaluationFailure,
+    listBindings: ListBindingsResult,
+    exit: ExitSuccess
+}
+
+table BinaryResponse {
+    payload: ResponsePayload (required);
+}
+```
+
+### Evaluation
 Evaluates an arbitrary expression in the current execution context.
 
-Returns an union-type that contains either the value of successfully evaluated
-expression or an exception that has been raised during evaluation.
+Responds with either a message with the value of successfully evaluated 
+expression or a message with an exception that has been raised during
+evaluation.
 
-#### Parameters
+#### Request
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -93,7 +123,7 @@ table ReplEvaluationRequest {
 }
 ```
 
-#### Result
+#### Response
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -104,24 +134,20 @@ table ReplEvaluationSuccess {
 table ReplEvaluationFailure {
   exception: Exception (required);
 }
-
-union ReplEvaluationResult {
-  success: ReplEvaluationSuccess,
-  failure: ReplEvaluationFailure
-}
 ```
 
-### `repl/listBindings`
-Lists all the bindings available in the current execution scope.
+### List bindings
+Lists all the bindings available in the current execution scope and sends them 
+back.
 
-#### Parameters
+#### Request
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
 table ReplListBindingsRequest {}
 ```
 
-#### Result
+#### Response
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -130,24 +156,23 @@ table ReplListBindingsResult {
 }
 ```
 
-### `repl/exit`
+### Exit
 Terminates this REPL session (and resumes normal program execution).
 
-The last result of #evaluate(String) (or Builtins#unit() if evaluate(String) was
-not called before) will be returned from the instrumented node.
+The last result of Evaluation will be returned from the instrumented node or if
+no expressions have been evaluated, unit is returned.
 
 This function must always be called at the end of REPL session, as otherwise the
-program will never resume. It's forbidden to use this object after exit has been
-called.
+program will never resume.
 
-#### Parameters
+#### Request
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
 table ReplExitRequest {}
 ```
 
-#### Result
+#### Response
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
