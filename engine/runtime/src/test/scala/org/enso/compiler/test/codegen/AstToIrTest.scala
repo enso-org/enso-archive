@@ -549,21 +549,82 @@ class AstToIrTest extends CompilerTest {
 
   "AST translation for type signatures" should {
     "work at the top level" in {
-      @unused val ir =
+      pending
+      val ir =
         """
-          |x : a
-          |T in b
-          |""".stripMargin.toAst
+          |MyAtom.foo : Number -> Number -> Number
+          |MyAtom.foo a b = a + b
+          |""".toIrExpression.get
 
-//      println(Debug.pretty(ir.toString))
+      ir shouldBe an[IR.Type.Ascription]
     }
 
     "work in block contexts" in {
       pending
+      @unused val ir =
+        """
+          |x : Number
+          |x = 10
+          |""".stripMargin
     }
 
     "work in expression contexts" in {
       pending
+      @unused val ir =
+        """
+          |(a + b) : Number
+          |""".stripMargin
+    }
+
+    "work properly when used in assignments" in {
+      // x = ... : T should be x = (... : T)
+      pending
+      @unused val ir =
+        """
+          |x = a : Number
+          |""".stripMargin
+    }
+
+    "properly support nested ascriptions" in {
+      pending
+      @unused val ir =
+        """
+          |x : (a: Type) -> (b : Type -> Type) -> (c: Type)
+          |""".stripMargin
+    }
+
+    "properly support the `in` context ascription operator" in {
+      // TODO [AA] How should this parse?
+      pending
+      @unused val ir =
+        """
+          |x : Number in (Maybe | IO) -> Number in IO
+          |""".stripMargin
+    }
+
+    "properly support the `!` error ascription operator" in {
+      // Should parse as (Number in IO) ! OverflowError
+      pending
+      @unused val ir =
+        """
+          |x : Number in IO ! OverflowError
+          |""".stripMargin
+    }
+
+    "properly support the `{}` typeset literal syntax" in {
+      pending
+      @unused val ir =
+        """
+          |x : { x : A ; y : B } -> B
+          |""".stripMargin
+    }
+
+    "support arbitrarily complex expressions" in {
+      pending
+      @unused val ir =
+        """
+          |x : X | Y -> X & Z -> X in IO | Maybe ! Error
+          |""".stripMargin
     }
   }
 }

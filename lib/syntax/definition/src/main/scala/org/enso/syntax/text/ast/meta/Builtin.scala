@@ -100,29 +100,6 @@ object Builtin {
       }
     }
 
-    val contextAscription = {
-      val ctxAscriptionName = "in"
-
-      Definition(
-        Some(Pattern.ExprUntilVar(ctxAscriptionName)),
-        Var(ctxAscriptionName) -> Pattern.Expr()
-      ) { ctx =>
-        (ctx.prefix, ctx.body) match {
-          case (Some(typed), List(inContext)) =>
-            println(typed.toStream.map(_.wrapped))
-            println(inContext.body.toStream.map(_.wrapped))
-            AST.ContextAscription(
-              typed.toStream.map(_.wrapped).headOption.getOrElse(internalError),
-              inContext.body.toStream
-                .map(_.wrapped)
-                .headOption
-                .getOrElse(internalError)
-            )
-          case _ => internalError
-        }
-      }
-    }
-
     val imp = Definition(
       Var("import") -> Pattern
         .SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
@@ -314,7 +291,6 @@ object Builtin {
       if_then,
       if_then_else,
       polyglotJavaImport,
-      contextAscription,
       imp,
       defn,
       arrow,
