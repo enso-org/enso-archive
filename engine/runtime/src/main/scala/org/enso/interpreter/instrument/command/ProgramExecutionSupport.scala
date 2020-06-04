@@ -69,7 +69,9 @@ trait ProgramExecutionSupport {
     val valsCallback: Consumer[ExpressionValue] =
       if (callStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
-      enterables += fun.getExpressionId -> fun.getCall
+      if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
+        enterables += fun.getExpressionId -> fun.getCall
+      }
     executionFrame match {
       case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
         ctx.executionService.execute(
@@ -268,13 +270,11 @@ trait ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
     for {
-      call <- Option(value.getCall)
-      qualifiedName <- QualifiedName.fromString(
-        call.getFunction.getCallTarget.getRootNode.getQualifiedName
-      )
-      moduleName   <- qualifiedName.getParent
-      functionName <- QualifiedName.fromString(call.getFunction.getName)
-      typeName     <- functionName.getParent
+      call          <- Option(value.getCallInfo)
+      qualifiedName <- QualifiedName.fromString(call.getCallTargetName)
+      moduleName    <- qualifiedName.getParent
+      functionName  <- QualifiedName.fromString(call.getFunctionName)
+      typeName      <- functionName.getParent
       module <- OptionConverters.toScala(
         ctx.executionService.getContext.getCompiler.topScope
           .getModule(moduleName.toString)

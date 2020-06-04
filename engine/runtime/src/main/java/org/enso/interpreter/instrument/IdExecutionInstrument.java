@@ -71,7 +71,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final UUID expressionId;
     private final String type;
     private final Object value;
-    private final FunctionCallInstrumentationNode.FunctionCall call;
+    private final FunctionCallInfo callInfo;
 
     /**
      * Creates a new instance of this class.
@@ -79,28 +79,14 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param expressionId the id of the expression being computed.
      * @param type of the computed expression.
      * @param value the value returned by computing the expression.
-     * @param call the function call data.
+     * @param callInfo the function call data.
      */
     public ExpressionValue(
-        UUID expressionId,
-        String type,
-        Object value,
-        FunctionCallInstrumentationNode.FunctionCall call) {
+        UUID expressionId, String type, Object value, FunctionCallInfo callInfo) {
       this.expressionId = expressionId;
       this.type = type;
       this.value = value;
-      this.call = call;
-    }
-
-    /**
-     * Creates a new instance of this class.
-     *
-     * @param expressionId the id of the expression being computed.
-     * @param type of the computed expression.
-     * @param value the value returned by computing the expression.
-     */
-    public ExpressionValue(UUID expressionId, String type, Object value) {
-      this(expressionId, type, value, null);
+      this.callInfo = callInfo;
     }
 
     /** @return the id of the expression computed. */
@@ -120,8 +106,35 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
 
     /** @return the function call data. */
-    public FunctionCallInstrumentationNode.FunctionCall getCall() {
-      return call;
+    public FunctionCallInfo getCallInfo() {
+      return callInfo;
+    }
+  }
+
+  /** Information about the function call. */
+  public static class FunctionCallInfo {
+
+    private final String callTargetName;
+    private final String functionName;
+
+    /**
+     * Creates a new instance of this class.
+     *
+     * @param call the function call.
+     */
+    public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
+      this.callTargetName = call.getFunction().getCallTarget().getRootNode().getQualifiedName();
+      this.functionName = call.getFunction().getName();
+    }
+
+    /** @return call target name. */
+    public String getCallTargetName() {
+      return callTargetName;
+    }
+
+    /** @return function name. */
+    public String getFunctionName() {
+      return functionName;
     }
   }
 
@@ -133,7 +146,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<ExpressionValue> visualisationCallback;
     private final RuntimeCache cache;
     private final UUID stackTop;
-    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
+    private final Map<UUID, FunctionCallInfo> enterables = new HashMap<>();
 
     /**
      * Creates a new listener.
@@ -183,14 +196,11 @@ public class IdExecutionInstrument extends TruffleInstrument {
       Object result = cache.get(nodeId);
       // When executing the call stack we need to capture the FunctionCall of the next (top) stack
       // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
-      // able to continue the stack execution.
+      // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
       if (result != null && !nodeId.equals(stackTop)) {
         visualisationCallback.accept(
             new ExpressionValue(
-                nodeId,
-                Types.getName(result).orElse(null),
-                result,
-                calls.get(nodeId)));
+                nodeId, Types.getName(result).orElse(null), result, enterables.get(nodeId)));
         throw context.createUnwind(result);
       }
     }
@@ -212,18 +222,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
-        ExpressionCall expressionCall =
-            new ExpressionCall(
-                ((FunctionCallInstrumentationNode) node).getId(),
-                (FunctionCallInstrumentationNode.FunctionCall) result);
-        calls.put(expressionCall.getExpressionId(), expressionCall.getCall());
-        functionCallCallback.accept(expressionCall);
+        UUID nodeId = ((FunctionCallInstrumentationNode) node).getId();
+        enterables.put(
+            nodeId, new FunctionCallInfo((FunctionCallInstrumentationNode.FunctionCall) result));
+        functionCallCallback.accept(
+            new ExpressionCall(nodeId, (FunctionCallInstrumentationNode.FunctionCall) result));
+        // Return cached value after capturing the enterable function call in `functionCallCallback`
+        Object cachedResult = cache.get(nodeId);
+        if (cachedResult != null) {
+          throw context.createUnwind(cachedResult);
+        }
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
         cache.offer(nodeId, result);
         valueCallback.accept(
             new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
+                nodeId, Types.getName(result).orElse(null), result, enterables.get(nodeId)));
       }
     }
 
