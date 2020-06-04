@@ -1,0 +1,26 @@
+include "evaluation.fbs";
+include "listbindings.fbs";
+include "exit.fbs";
+
+namespace org.enso.polyglot.debugger.protocol;
+
+union RequestPayload {
+    evaluate: EvaluationRequest,
+    listBindings: ListBindingsRequest,
+    exit: ExitRequest
+}
+
+table BinaryRequest {
+    payload: RequestPayload (required);
+}
+
+union ResponsePayload {
+    evaluationSuccess: EvaluationSuccess,
+    evaluationFailure: EvaluationFailure,
+    listBindings: ListBindingsResult,
+    exit: ExitSuccess
+}
+
+table BinaryResponse {
+    payload: ResponsePayload (required);
+}

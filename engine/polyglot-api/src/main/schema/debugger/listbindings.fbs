@@ -6,8 +6,8 @@ table Binding {
   value: ObjectRepr;
 }
 
-table ReplListBindingsRequest {}
+table ListBindingsRequest {}
 
-table ReplListBindingsResult {
+table ListBindingsResult {
   bindings: [Binding];
 }

@@ -1,6 +1,6 @@
 namespace org.enso.polyglot.debugger.protocol;
 
-table ReplExitRequest {}
+table ExitRequest {}
 
 //Indicates the operation has succeeded.
-table ReplExitSuccess {}
+table ExitSuccess {}
