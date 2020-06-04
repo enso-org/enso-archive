@@ -35,14 +35,10 @@ class DestroyContextCmd(
     ctx.locking.acquireContextLock(request.contextId)
     try {
       ctx.contextManager.destroy(request.contextId)
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.DestroyContextResponse(request.contextId)
-        )
-      )
+      reply(Api.DestroyContextResponse(request.contextId))
     } finally {
       ctx.locking.releaseContextLock(request.contextId)
+      ctx.locking.removeContextLock(request.contextId)
     }
   }
 
