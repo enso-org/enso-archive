@@ -24,18 +24,14 @@ object IndexedSource {
   def apply[A](implicit is: IndexedSource[A]): IndexedSource[A] = is
 
   implicit val CharSequenceIndexedSource: IndexedSource[CharSequence] =
-    new IndexedSource[CharSequence] {
-      override def toIndex(pos: Position, source: CharSequence): Int = {
-        val prefix = source.toString.linesIterator.take(pos.line)
-        prefix.mkString("\n").length + pos.character
-      }
+    (pos: Position, source: CharSequence) => {
+      val prefix = source.toString.linesIterator.take(pos.line)
+      prefix.mkString("\n").length + pos.character
     }
 
   implicit val RopeIndexedSource: IndexedSource[Rope] =
-    new IndexedSource[Rope] {
-      override def toIndex(pos: Position, source: Rope): Int = {
-        val prefix = source.lines.take(pos.line)
-        prefix.characters.length + pos.character
-      }
+    (pos: Position, source: Rope) => {
+      val prefix = source.lines.take(pos.line)
+      prefix.characters.length + pos.character
     }
 }

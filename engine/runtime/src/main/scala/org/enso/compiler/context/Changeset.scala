@@ -91,14 +91,12 @@ object Changeset {
     def apply(ir: IR): NodeId =
       new NodeId(ir.getId, ir.getExternalId)
 
-    implicit val ordering: Ordering[NodeId] = new Ordering[NodeId] {
-      override def compare(x: NodeId, y: NodeId): Int = {
-        val cmpInternal = Ordering[UUID].compare(x.internalId, y.internalId)
-        if (cmpInternal == 0) {
-          Ordering[Option[UUID]].compare(x.externalId, y.externalId)
-        } else {
-          cmpInternal
-        }
+    implicit val ordering: Ordering[NodeId] = (x: NodeId, y: NodeId) => {
+      val cmpInternal = Ordering[UUID].compare(x.internalId, y.internalId)
+      if (cmpInternal == 0) {
+        Ordering[Option[UUID]].compare(x.externalId, y.externalId)
+      } else {
+        cmpInternal
       }
     }
   }
@@ -165,16 +163,14 @@ object Changeset {
     def select(location: Location): Node =
       new Node(NodeId(UUID.nameUUIDFromBytes(Array()), None), location)
 
-    implicit val ordering: Ordering[Node] = new Ordering[Node] {
-      override def compare(x: Node, y: Node): Int = {
-        val compareStart =
-          Ordering[Int].compare(x.location.start, y.location.start)
-        if (compareStart == 0) {
-          val compareEnd = Ordering[Int].compare(y.location.end, x.location.end)
-          if (compareEnd == 0) Ordering[NodeId].compare(x.id, y.id)
-          else compareEnd
-        } else compareStart
-      }
+    implicit val ordering: Ordering[Node] = (x: Node, y: Node) => {
+      val compareStart =
+        Ordering[Int].compare(x.location.start, y.location.start)
+      if (compareStart == 0) {
+        val compareEnd = Ordering[Int].compare(y.location.end, x.location.end)
+        if (compareEnd == 0) Ordering[NodeId].compare(x.id, y.id)
+        else compareEnd
+      } else compareStart
     }
   }
 
