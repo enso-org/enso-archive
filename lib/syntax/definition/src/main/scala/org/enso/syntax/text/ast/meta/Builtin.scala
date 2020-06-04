@@ -108,11 +108,17 @@ object Builtin {
         Var(ctxAscriptionName) -> Pattern.Expr()
       ) { ctx =>
         (ctx.prefix, ctx.body) match {
-          case _ =>
-            println(ctx.prefix)
-            println(ctx.body)
-            ???
-//          case _ => internalError
+          case (Some(typed), List(inContext)) =>
+            println(typed.toStream.map(_.wrapped))
+            println(inContext.body.toStream.map(_.wrapped))
+            AST.ContextAscription(
+              typed.toStream.map(_.wrapped).headOption.getOrElse(internalError),
+              inContext.body.toStream
+                .map(_.wrapped)
+                .headOption
+                .getOrElse(internalError)
+            )
+          case _ => internalError
         }
       }
     }
