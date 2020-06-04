@@ -28,7 +28,7 @@ class SerializationTest extends AnyWordSpec with Matchers {
     }
   }
 
-  "ExitRequest" should {
+  "SessionExitRequest" should {
     "preserve all information when being serialized and deserialized" in {
       val bytes   = Debugger.createSessionExitRequest()
       val request = Debugger.deserializeRequest(bytes).get
