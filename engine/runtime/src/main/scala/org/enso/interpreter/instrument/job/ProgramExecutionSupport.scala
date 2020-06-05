@@ -200,7 +200,7 @@ trait ProgramExecutionSupport {
     errorMsgOrVisualisationData match {
       case Left(msg) =>
         ctx.endpoint.sendToClient(
-          Api.Response(Api.VisualisationEvaluationFailed(msg))
+          Api.Response(Api.VisualisationEvaluationFailed(contextId, msg))
         )
 
       case Right(data) =>

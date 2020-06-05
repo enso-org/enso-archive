@@ -673,7 +673,6 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
     Thread.sleep(WaitTime)
-    Thread.sleep(WaitTime)
     Set.fill(3)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(
