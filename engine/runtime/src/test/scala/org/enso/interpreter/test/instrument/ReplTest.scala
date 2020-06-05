@@ -1,121 +1,69 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.interpreter.test.InterpreterTest
+import java.nio.ByteBuffer
 
-import scala.jdk.CollectionConverters._
+import org.enso.interpreter.test.InterpreterRunner
+import org.enso.polyglot.debugger.{
+  DebugServerInfo,
+  Debugger,
+  SessionStartNotification
+}
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.io.MessageEndpoint
+import org.enso.polyglot.{debugger, LanguageInfo, PolyglotContext}
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ReplTest extends InterpreterTest {
-  "Repl" should "be able to list local variables in its scope" in {
-    val code =
-      """
-        |main =
-        |    x = 10
-        |    y = 20
-        |    z = x + y
-        |
-        |    Debug.breakpoint
-        |""".stripMargin
-    var scopeResult: Map[String, AnyRef] = Map()
-    getReplInstrument.setSessionManager { executor =>
-      scopeResult = executor.listBindings.asScala.toMap
-      executor.exit()
-    }
-    eval(code)
-    scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-      "this" -> "Test",
-      "x"    -> "10",
-      "y"    -> "20",
-      "z"    -> "30"
+trait ReplRunner extends InterpreterRunner {
+  var endPoint: MessageEndpoint = _
+  var messageQueue
+    : List[debugger.Response] = List() // TODO probably need a better message handler
+  /*
+  override val ctx = Context
+    .newBuilder(LanguageInfo.ID)
+    .allowExperimentalOptions(true)
+    .allowAllAccess(true)
+    .out(output)
+    .err(err)
+    .in(in)
+    .serverTransport((uri, peer) =>
+      if (uri.toString == DebugServerInfo.INSTRUMENT_NAME) {
+        endPoint = peer
+        new MessageEndpoint {
+          override def sendText(text: String): Unit = {}
+
+          override def sendBinary(data: ByteBuffer): Unit =
+            Debugger.deserializeResponse(data) match {
+              case Some(response) =>
+                messageQueue ++= Seq(response)
+              case None =>
+                throw new RuntimeException(
+                  "Failed to deserialize response from the debugger"
+                )
+            }
+
+          override def sendPing(data: ByteBuffer): Unit = {}
+
+          override def sendPong(data: ByteBuffer): Unit = {}
+
+          override def sendClose(): Unit = {}
+        }
+      } else null
     )
-  }
+    .build()
 
-  "Repl" should "be able to list bindings it has created" in {
-    val code =
-      """
-        |main =
-        |    x = 10
-        |    y = 20
-        |    z = x + y
-        |
-        |    Debug.breakpoint
-        |""".stripMargin
-    var scopeResult: Map[String, AnyRef] = Map()
-    getReplInstrument.setSessionManager { executor =>
-      executor.evaluate("x = y + z")
-      scopeResult = executor.listBindings.asScala.toMap
-      executor.exit()
-    }
-    eval(code)
-    scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
-      "this" -> "Test",
-      "x"    -> "50",
-      "y"    -> "20",
-      "z"    -> "30"
-    )
-  }
+  override lazy val executionContext = new PolyglotContext(ctx)*/
+}
 
-  "Repl" should "be able to execute arbitrary code in the caller scope" in {
-    val code =
-      """
-        |main =
-        |    x = 1
-        |    y = 2
-        |    Debug.breakpoint
-        |""".stripMargin
-    var evalResult: AnyRef = null
-    getReplInstrument.setSessionManager { executor =>
-      evalResult = executor.evaluate("x + y")
-      executor.exit()
+class ReplTest extends AnyWordSpec with Matchers with ReplRunner {
+  "Repl" should {
+    "send start notification" in {
+      val code =
+        """
+          |main = Debug.breakpoint
+          |""".stripMargin
+      eval(code)
+      // messageQueue contains SessionStartNotification
     }
-    eval(code)
-    evalResult shouldEqual 3
-  }
-
-  "Repl" should "return the last evaluated value back to normal execution flow" in {
-    val code =
-      """
-        |main =
-        |    a = 5
-        |    b = 6
-        |    c = Debug.breakpoint
-        |    c * a
-        |""".stripMargin
-    getReplInstrument.setSessionManager { executor =>
-      executor.evaluate("a + b")
-      executor.exit()
-    }
-    eval(code) shouldEqual 55
-  }
-
-  "Repl" should "be able to define its local variables" in {
-    val code =
-      """
-        |main =
-        |    x = 10
-        |    Debug.breakpoint
-        |""".stripMargin
-    getReplInstrument.setSessionManager { executor =>
-      executor.evaluate("y = x + 1")
-      executor.evaluate("z = y * x")
-      executor.evaluate("z")
-      executor.exit()
-    }
-    eval(code) shouldEqual 110
-  }
-
-  "Repl" should "access and modify monadic state" in {
-    val code =
-      """
-        |main =
-        |    State.put 10
-        |    Debug.breakpoint
-        |    State.get
-        |""".stripMargin
-    getReplInstrument.setSessionManager { executor =>
-      executor.evaluate("x = State.get")
-      executor.evaluate("State.put (x + 1)")
-      executor.exit()
-    }
-    eval(code) shouldEqual 11
   }
 }

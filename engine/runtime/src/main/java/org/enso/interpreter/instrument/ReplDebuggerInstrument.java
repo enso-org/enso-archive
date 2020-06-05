@@ -9,6 +9,9 @@ import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.Language;
@@ -19,14 +22,18 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.polyglot.debugger.DebugServerInfo;
+import org.enso.polyglot.debugger.Debugger;
+import org.graalvm.polyglot.io.MessageEndpoint;
+import org.graalvm.polyglot.io.MessageTransport;
 
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(
-    id = ReplDebuggerInstrument.INSTRUMENT_ID,
+    id = DebugServerInfo.INSTRUMENT_NAME,
     services = ReplDebuggerInstrument.class)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-  /** This instrument's registration id. */
-  public static final String INSTRUMENT_ID = "enso-repl";
+  // private Env env; // TODO make sure if these are needed
+  // private DebuggerHandler handler;
 
   /**
    * Internal reference type to store session manager and get the current version on each execution
@@ -87,8 +94,24 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
     Instrumenter instrumenter = env.getInstrumenter();
     env.registerService(this);
+
+    DebuggerHandler handler = new DebuggerHandler();
+    // this.handler = handler;
+    /*try {
+      MessageEndpoint client =
+          env.startServer(URI.create(DebugServerInfo.URI), handler.endpoint());
+      if (client != null) {
+        handler.endpoint().setClient(client);
+      }
+    } catch (MessageTransport.VetoException e) {
+      // TODO we just ignore this exception ?
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }*/
+
     instrumenter.attachExecutionEventFactory(
-        filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference));
+        filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
+
   }
 
   /**
@@ -110,11 +133,14 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
 
     private EventContext eventContext;
     private SessionManagerReference sessionManagerReference;
+    private DebuggerHandler handler;
 
+    // TODO figure out how to handle responding to requests in the handler - register current execution node ?, probably
     private ReplExecutionEventNode(
-        EventContext eventContext, SessionManagerReference sessionManagerReference) {
+        EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerHandler handler) {
       this.eventContext = eventContext;
       this.sessionManagerReference = sessionManagerReference;
+      this.handler = handler;
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
@@ -187,7 +213,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
       // Note [Safe Access to State in the Debugger Instrument]
       lastState = Function.ArgumentsHelper.getState(frame.getArguments());
-      sessionManagerReference.get().startSession(this);
+      sendSessionStartNotification();
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -209,6 +235,14 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     protected Object onUnwind(VirtualFrame frame, Object info) {
       return new Stateful(lastState, lastReturn);
+    }
+
+    private void sendSessionStartNotification() {
+      if (sessionManagerReference.get() == null) {
+        handler.sendToClient(Debugger.createSessionStartNotification());
+      } else {
+        sessionManagerReference.get().startSession(this);
+      }
     }
   }
 }
