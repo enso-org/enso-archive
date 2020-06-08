@@ -599,8 +599,11 @@ class AstToIrTest extends CompilerTest {
     "properly support the `in` context ascription operator" in {
       @unused val ir =
         """
-          |x : Number in (Maybe | IO) -> Number in IO
+          |#x : Number in (Maybe | IO) -> Number in IO
+          |x in IO
           |""".stripMargin.toAst
+
+      println(Debug.pretty(ir.toString))
     }
 
     "properly support the `!` error ascription operator" in {

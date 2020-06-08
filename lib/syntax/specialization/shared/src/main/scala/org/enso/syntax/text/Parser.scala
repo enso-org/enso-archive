@@ -228,7 +228,7 @@ class Parser {
 
   /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
-    val tokenStream = InHoisting.run(engine.run(input))
+    val tokenStream = engine.run(input).map(InHoisting.run)
 
     // TODO [AA] Map over the token stream to replace Var("in") by Opr("in")
     // It has blocks, and blocks have nested token streams
