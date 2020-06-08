@@ -10,16 +10,18 @@ import org.enso.polyglot.runtime.Runtime.Api.StackItem.ExplicitCall
 import scala.collection.mutable
 import scala.jdk.OptionConverters._
 
+/**
+  * A job that ensures that specified files are compiled.
+  *
+  * @param files a files to compile
+  */
 class EnsureCompiledJob(files: List[File])
     extends Job[Unit](List.empty, true, false) {
 
   def this(stack: mutable.Stack[InstrumentFrame]) =
     this(extractFilesFromStack(stack))
 
-  /**
-    *
-    * @param ctx contains suppliers of services to perform a request
-    */
+  /** @inheritdoc **/
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireWriteCompilationLock()
     try {

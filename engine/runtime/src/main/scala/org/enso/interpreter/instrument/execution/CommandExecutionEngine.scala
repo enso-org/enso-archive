@@ -14,7 +14,10 @@ import scala.util.{Failure, Success}
 
 /**
   * This component schedules the execution of commands. It keep a queue of
-  * pending commands. It activates command execution in FIFO order.
+  * pending commands and activates command execution in FIFO order.
+  *
+  * @param interpreterContext suppliers of services that provide interpreter
+  *                           specific functionality
   */
 class CommandExecutionEngine(
   interpreterContext: InterpreterContext

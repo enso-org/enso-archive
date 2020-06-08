@@ -18,6 +18,15 @@ import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 
 import scala.util.control.NonFatal
 
+/**
+  * A job that upserts a visualisation.
+  *
+  * @param requestId maybe a request id
+  * @param visualisationId an identifier of visualisation
+  * @param expressionId an identifier of expression
+  * @param config a visualisation config
+  * @param response a response used to reply to a client
+  */
 class UpsertVisualisationJob(
   requestId: Option[RequestId],
   visualisationId: VisualisationId,
@@ -30,10 +39,7 @@ class UpsertVisualisationJob(
       false
     ) {
 
-  /**
-    *
-    * @param ctx contains suppliers of services to perform a request
-    */
+  /** @inheritdoc **/
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
     ctx.locking.acquireContextLock(config.executionContextId)
     ctx.locking.acquireWriteCompilationLock()
