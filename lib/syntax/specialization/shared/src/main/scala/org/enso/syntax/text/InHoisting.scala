@@ -16,9 +16,9 @@ case object InHoisting {
     */
   def run(tokenStream: Result[AST.Module]): Result[AST.Module] = {
     tokenStream.value match {
-      case Result.Failure(result) => ???
-      case Result.Partial(result) => ???
-      case Result.Success(result) => ???
+      case Result.Failure(_) => ???
+      case Result.Partial(_) => ???
+      case Result.Success(_) => ???
     }
   }
 }
