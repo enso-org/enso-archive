@@ -24,6 +24,12 @@ transport formats, please look [here](./protocol-architecture).
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
+  - [`SuggestionEntryId`](#suggestionentryid)
+  - [`SuggestionEntryArgument`](#suggestionentryargument)
+  - [`SuggestionEntry`](#suggestionentry)
+  - [`SuggestionEntryType`](#suggestionentrytype)
+  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
+  - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
   - [`FileAttributes`](#fileattributes)
@@ -50,6 +56,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
+  - [`search/receivesSuggestionsDatabaseUpdates`](#receivessuggestionsdatabaseupdates)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -80,7 +87,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Monitoring](#monitoring)
   - [`heartbeat/ping`](#heartbeatping)
 - [Execution Management Operations](#execution-management-operations)
-  - [Example](#example)
+  - [Execution Management Example](#execution-management-example)
   - [Create Execution Context](#create-execution-context)
   - [Push Item](#push-item)
   - [Pop Item](#pop-item)
@@ -95,15 +102,22 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
+- [Search Operations](#search-operations)
+  - [Suggestions Database Example](#suggestionsdatabaseexample)
+  - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
+  - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
+  - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
+  - [`search/completion`](#searchcompletion)
+  - [`search/documentation`](#searchdocumentation)
 - [Input/Output Operations](#input-output-operations)
-  - [`io/redirectStandardOutput`](#ioredirectstdardoutput)  
-  - [`io/suppressStandardOutput`](#iosuppressstdardoutput)  
-  - [`io/standardOutputAppended`](#iostandardoutputappended)  
-  - [`io/redirectStandardError`](#ioredirectstdarderror)  
-  - [`io/suppressStandardError`](#iosuppressstdarderror)  
-  - [`io/standardErrorAppended`](#iostandarderrorappended)  
-  - [`io/feedStandardInput`](#iofeedstandardinput)  
-  - [`io/waitingForStandardInput`](#iowaitingforstandardinput)  
+  - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
+  - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
+  - [`io/standardOutputAppended`](#iostandardoutputappended)
+  - [`io/redirectStandardError`](#ioredirectstdarderror)
+  - [`io/suppressStandardError`](#iosuppressstdarderror)
+  - [`io/standardErrorAppended`](#iostandarderrorappended)
+  - [`io/feedStandardInput`](#iofeedstandardinput)
+  - [`io/waitingForStandardInput`](#iowaitingforstandardinput)
 - [Errors](#errors)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
@@ -215,6 +229,135 @@ interface VisualisationConfiguration {
    * The expression that creates a visualisation.
    */
   expression: String;
+}
+```
+
+### `SuggestionEntryId`
+The entry id in the suggestions database.
+
+#### Format
+
+``` typescript
+type SuggestionEntryId = UUID;
+```
+
+### `SuggestionEntryArgument`
+The argument of a [`SuggestionEntry`](#suggestionentry).
+
+#### Format
+
+``` typescript
+/**
+ * The argument of an atom, method or function suggestion.
+ */
+interface SuggestionEntryArgument {
+  /** The argument name */
+  name: String;
+  /** The arguement type. String 'Any' is used to specify genric types */
+  type: String;
+  /** Indicates whether the argument is lazy */
+  isSuspended: Boolean;
+  /** Indicates whether the argument has default value */
+  hasDefault: Boolean;
+}
+```
+
+### `SuggestionEntry`
+The language construct that can be returned as a suggestion.
+
+#### Format
+
+``` typescript
+/**
+ * A type of suggestion entries.
+ */
+type SuggestionEntry
+    /** A value constructor. */
+  = SuggestionEntryAtom
+    /** A method defined on a type. */
+  | SuggestionEntryMethod
+    /** A function. */
+  | SuggestionEntryFunction
+    /** A local value. */
+  | SuggestionEntryLocal;
+
+interface SuggestionEntryAtom {
+  name: String;
+  arguments: SuggestionEntryArgument[];
+  returnType: String;
+  documentation?: String;
+}
+
+interface SuggestionEntryMethod {
+  name: String;
+  arguments: SuggestionEntryArgument[];
+  selfType: String
+  returnType: String;
+  documentation?: String;
+}
+
+interface SuggestionEntryFunction {
+  name: String;
+  arguments: SuggestionEntryArgument[];
+  returnType: String;
+  documentation?: String;
+}
+
+interface SuggestionEntryLocal {
+  name: String;
+  returnType: String;
+}
+```
+
+### `SuggestionEntryType`
+The suggestion entry type that is used as a filter in search requests.
+
+#### Format
+
+``` typescript
+/**
+ * The kind of a suggestion.
+ */
+type SuggestionEntryType = 'Atom' | 'Method' | 'Function' | 'Local';
+```
+
+### `SuggestionsDatabaseEntry`
+The entry in the suggestions database.
+
+#### Format
+
+``` typescript
+/**
+ * The suggestions database entry.
+ */
+interface SuggestionsDatabaseEntry {
+  id: SuggestionEntryId;
+  suggestion: Suggestion;
+}
+```
+
+### `SuggestionsDatabaseUpdate`
+The update of the suggestions database.
+
+#### Format
+
+``` typescript
+/**
+ * The kind of the suggestions database update.
+ */
+type SuggestionsDatabaseUpdate
+    /** Create or replace the database entry. */
+  = SuggestionsDatabaseUpdatePut
+    /** Remove the database Entry. */
+  | SuggestionsDatabaseUpdateRemove;
+
+interface SuggestionsDatabaseUpdatePut {
+  id: SuggestionEntryId;
+  suggestion: SuggestionEntry;
+}
+
+interface SuggestionsDatabaseUpdateRemove {
+  id: SuggestionEntryId;
 }
 ```
 
@@ -714,12 +857,25 @@ This capability states that the client receives expression value updates from
 a given execution context.
 
 - **method:** `executionContext/receivesUpdates`
-- **registerOptions:** `{  contextId: ContextId; }`
+- **registerOptions:** `{ contextId: ContextId; }`
 
 #### Enables
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
 
 #### Disables
+None
+
+### `search/receivesSuggestionsDatabaseUpdates`
+This capability states that the client receives the search database updates for
+a given execution context.
+
+- **method:** `search/receivesSuggestionsDatabaseUpdates`
+- **registerOptions:** `{ contextId: ContextId; }`
+
+### Enables
+- [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
+
+### Disables
 None
 
 ## File Management Operations
@@ -1549,7 +1705,7 @@ fine-grained control over program and expression execution to the clients of
 the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
-### Example
+### Execution Management Example
 
 Given the default project structure.
 
@@ -2109,15 +2265,305 @@ root_type VisualisationUpdate;
 #### Errors
 N/A
 
+## Search Operations
+
+Search operations allow requesting for the autocomplete suggestions and search
+for the documentation. Search operations return links to the items in the
+Suggestions Database instead of returning full entries. Suggestions Database is
+a key-value storage with [`SuggestionEntryId`](#suggestionentryid) keys and
+[`SuggestionEntry`](#suggestionentry) values.
+
+### Suggestions Database Example
+
+The following code snippet shows examples of the database entries.
+
+``` ruby
+type MyType a b
+
+type Maybe
+    Nothing
+    Just a
+
+    is_just = case this of
+        Just _  -> true
+        Nothing -> false
+
+foo x =
+    10 - x
+
+Number.baz x =
+    this + x * 10
+
+main =
+    x = foo 42
+    y = x.baz x
+    IO.println y
+```
+
+#### MyType
+
+``` typescript
+<SuggestionEntryAtom> {
+  name: 'MyType',
+  arguments: [],
+  returnType: 'MyType',
+};
+```
+
+#### Maybe.Nothing
+
+``` typescript
+<SuggestionEntryAtom> {
+  name: 'Nothing',
+  arguments: [],
+  returnType: 'Maybe',
+};
+```
+
+#### Maybe.Just
+
+``` typescript
+<SuggestionEntryAtom> {
+  name: 'Just',
+  arguments: [
+    {
+      name: 'a',
+n      type: 'Any',
+      isSuspended: false,
+      hasDefault: false,
+    }
+  ],
+  returnType: 'Maybe',
+};
+```
+
+#### Maybe.is_just
+
+``` typescript
+<SuggestionEntryMethod> {
+  name: 'is_just',
+  arguments: [],
+  selfType: 'Maybe',
+  returnType: 'Bool',
+};
+```
+
+#### foo
+
+``` typescript
+<SuggestionEntryFunction> {
+  name: 'foo',
+  arguments: [
+    {
+      name: 'x',
+      type: 'Number',
+      isSuspended: false,
+      hasDefault: false,
+    }
+  ],
+  returnType: 'Bool',
+};
+```
+
+#### Number.baz
+
+``` typescript
+<SuggestionEntryMethod> {
+  name: 'baz',
+  arguments: [
+    {
+      name: 'x',
+      type: 'Number',
+      isSuspended: false,
+      hasDefault: false,
+    }
+  ],
+  selfType: 'Number',
+  returnType: 'Number',
+};
+```
+
+#### Local x
+
+``` typescript
+<SuggestionEntryLocal> {
+  name: 'x',
+  returnType: 'Number',
+};
+```
+
+#### Local y
+
+``` typescript
+<SuggestionEntryLocal> {
+  name: 'y',
+  returnType: 'Number',
+};
+```
+
+### `search/getSuggestionsDatabase`
+Sent from client to the server to receive the full suggestions database.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+```typescript
+{
+  /** The list of suggestions database entries */
+  entries: [SuggestionsDatabaseEntry];
+  /** The version of received suggestions database */
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+TBC
+
+### `search/getSuggestionsDatabaseVersion`
+Sent from client to the server to receive the current version of the suggestions
+database.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+{
+  contextId: ContextId;
+}
+```
+
+#### Result
+```typescript
+{
+  /** The version of the suggestions database */
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+TBC
+
+### `search/suggestionsDatabaseUpdate`
+Sent from server to the client to inform abouth the change in the suggestions
+database.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+``` typescript
+{
+  /** The context id */
+  contextId: ContextId;
+  /** The list of database updates to apply */
+  updates: SuggestionsDatabaseUpdate[];
+  /** The version of suggestions database after applying the updates */
+  currentVersion: SHA3-224
+}
+```
+
+#### Errors
+TBC
+
+### `search/completion`
+Sent from client to the server to receive the autocomplete suggestion.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /** The context id */
+  contextId: ContextId;
+  /** The edited file */
+  file: Path;
+  /** The cursor position */
+  position: Position;
+  /** Filter by methods with the provided self type */
+  selfType?: String;
+  /** Filter by the return type */
+  returnType?: String;
+  /** Filter by the suggestion types */
+  tags?: SuggestionEntryType[];
+}
+```
+
+#### Result
+```typescript
+{
+  results: SuggestionEntryId[];
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+TBC
+
+### `search/documentation`
+Sent from client to the server to search suggestion entries by the documentation.
+
+- **Type:** Request
+- **direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  /** The context id */
+  contextId: ContextId;
+  /** The string to search for */
+  searchString: String;
+  /** Filter by methods with the provided self type */
+  selfType?: String;
+  /** Filter by tye return type */
+  returnType?: String;
+  /** Filter by the suggestion types */
+  tags?: SuggestionEntryType[];
+}
+```
+
+#### Result
+```typescript
+{
+  results: SuggestionEntryId[];
+  currentVersion: SHA3-224;
+}
+```
+
+#### Errors
+TBC
+
 ## Input/Output Operations
 The input/output portion of the language server API deals with redirecting
-stdin/stdout/stderr of Enso programs to the clients of the language server. 
-This is incredibly important for enabling the high levels of interactivity 
+stdin/stdout/stderr of Enso programs to the clients of the language server.
+This is incredibly important for enabling the high levels of interactivity
 required by Enso Studio.
 
 ### `io/redirectStandardOutput`
-This message allows a client to redirect the standard output of Enso programs. 
-Once the standard output is redirected, the Language server will notify the 
+This message allows a client to redirect the standard output of Enso programs.
+Once the standard output is redirected, the Language server will notify the
 client about new output data by emitting `io/standardOutputAppended` messages.
 
 - **Type:** Request
@@ -2140,7 +2586,7 @@ null
 N/A
 
 ### `io/suppressStandardOutput`
-This message allows a client to suppress the redirection of the standard output. 
+This message allows a client to suppress the redirection of the standard output.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2162,7 +2608,7 @@ null
 N/A
 
 ### `io/standardOutputAppended`
-Sent from the server to the client to inform that new output data are available 
+Sent from the server to the client to inform that new output data are available
 for the standard output.
 
 - **Type:** Notification
@@ -2178,8 +2624,8 @@ for the standard output.
 ```
 
 ### `io/redirectStandardError`
-This message allows a client to redirect the standard error of Enso programs. 
-Once the standard error is redirected, the Language server will notify the 
+This message allows a client to redirect the standard error of Enso programs.
+Once the standard error is redirected, the Language server will notify the
 client about new output data by emitting `io/standardErrorAppended` messages.
 
 - **Type:** Request
@@ -2202,7 +2648,7 @@ null
 N/A
 
 ### `io/suppressStandardError`
-This message allows a client to suppress the redirection of the standard error. 
+This message allows a client to suppress the redirection of the standard error.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2224,7 +2670,7 @@ null
 N/A
 
 ### `io/standardErrorAppended`
-Sent from the server to the client to inform that new output data are available 
+Sent from the server to the client to inform that new output data are available
 for the standard error.
 
 - **Type:** Notification
@@ -2240,7 +2686,7 @@ for the standard error.
 ```
 
 ### `io/feedStandardInput`
-This message allows a client to feed the standard input of Enso programs. 
+This message allows a client to feed the standard input of Enso programs.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2265,9 +2711,9 @@ null
 N/A
 
 ### `io/waitingForStandardInput`
-Sent from the server to the client to inform that an Enso program is suspended 
+Sent from the server to the client to inform that an Enso program is suspended
 by `IO.readln`. This message is used to notify a client that she should feed the
-standard input. 
+standard input.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
