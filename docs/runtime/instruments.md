@@ -23,8 +23,8 @@ Every Instrument must be implemented in Java and have name that ends with
 described below works.
 
 ## Fixing Compilation
-Annotations are used to register the implemented instruments with Graal.
-The annotation processor is triggered when recompiling the Java files.
+Annotations are used to register the implemented instruments with Graal. The
+annotation processor is triggered when recompiling the Java files.
 Unfortunately, when doing an incremental compilation, only the changed files are
 recompiled and the annotation processor 'forgets' about other instruments that
 haven't been recompiled, leading to runtime errors about missing instruments.
