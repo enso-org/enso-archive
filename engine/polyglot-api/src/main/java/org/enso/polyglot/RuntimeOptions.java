@@ -24,9 +24,15 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String JOB_PARALLELISM = "jobParallelism";
+  public static final OptionKey<Integer> JOB_PARALLELISM_KEY = new OptionKey<>(1);
+  public static final OptionDescriptor JOB_PARALLELISM_DESCRIPTOR =
+      OptionDescriptor.newBuilder(JOB_PARALLELISM_KEY, JOB_PARALLELISM).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
-          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR, LOG_LEVEL_DESCRIPTOR));
+          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR,
+                  LOG_LEVEL_DESCRIPTOR, JOB_PARALLELISM_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

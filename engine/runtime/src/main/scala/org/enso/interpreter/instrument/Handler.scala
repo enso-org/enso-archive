@@ -83,7 +83,7 @@ final class Handler {
         endpoint,
         truffleContext
       )
-    commandProcessor = new ExecutionEngine(1, interpreterCtx)
+    commandProcessor = new ExecutionEngine(interpreterCtx)
   }
 
   /**

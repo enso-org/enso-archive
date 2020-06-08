@@ -113,6 +113,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .option(
+      RuntimeOptions.JOB_PARALLELISM,
+      Runtime.getRuntime.availableProcessors().toString
+    )
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)

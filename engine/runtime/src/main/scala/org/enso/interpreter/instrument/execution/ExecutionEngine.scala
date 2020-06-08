@@ -10,6 +10,7 @@ import org.enso.interpreter.instrument.command.Command
 import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.instrument.job.Job
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
+import org.enso.polyglot.RuntimeOptions
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -22,7 +23,6 @@ import scala.util.control.NonFatal
   * @param parallelism the size of the underlying compute thread pool
   */
 class ExecutionEngine(
-  parallelism: Int,
   interpreterContext: InterpreterContext
 ) extends CommandProcessor
     with JobProcessor
@@ -33,12 +33,17 @@ class ExecutionEngine(
 
   private val context = interpreterContext.executionService.getContext
 
+  private val jobParallelism =
+    interpreterContext.executionService.getContext.getEnvironment.getOptions
+      .get(RuntimeOptions.JOB_PARALLELISM_KEY)
+      .intValue()
+
   private val commandExecutor = Executors.newCachedThreadPool(
     new TruffleThreadFactory(context, "command-pool")
   )
 
   private val jobExecutor = Executors.newFixedThreadPool(
-    parallelism,
+    jobParallelism,
     new TruffleThreadFactory(context, "job-pool")
   )
 
