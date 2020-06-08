@@ -91,6 +91,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/pop`](#executioncontextpop)
   - [`executionContext/recompute`](#executioncontextrecompute)
   - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+  - [`executionContext/executionFailed`](#executioncontextexecutionFailed)
   - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
@@ -1872,8 +1873,6 @@ null
   item could not be found.
 - [`InvalidStackItemError`](#invalidstackitemerror) when pushing `LocalCall` on
   top of the empty stack, or pushing `ExplicitCall` on top of non-empty stack.
-- [`ExecutionFailedError`](#executionfailederror) when the runtime fails to
-  execute the stack item.
 
 ### `executionContext/pop`
 Sent from the client to the server move the execution context up the stack,
@@ -1901,8 +1900,6 @@ null
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to pop an empty
   stack.
-- [`ExecutionFailedError`](#executionfailederror) when the runtime fails to
-  execute the stack after popping an item.
 
 ### `executionContext/recompute`
 Sent from the client to the server to force recomputation of current position.
@@ -1931,8 +1928,6 @@ null
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
-- [`ExecutionFailedError`](#executionfailederror) when the runtime fails to
-  re-execute the current position on the stack.
 
 ### `executionContext/expressionValuesComputed`
 Sent from the server to the client to inform about new information for certain
@@ -1948,6 +1943,26 @@ expressions becoming available.
 {
   contextId: ContextId;
   updates: [ExpressionValueUpdate]
+}
+```
+
+#### Errors
+None
+
+### `executionContext/executionFailed`
+Sent from the server to the client to inform about a failure during execution of
+an execution context. 
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+{
+  contextId: ContextId;
+  message: String;
 }
 ```
 
@@ -2433,16 +2448,6 @@ generating visualisation data failed.
 "error" : {
   "code" : 2008,
   "message" : "Evaluation of the visualisation failed [cannot execute foo]"
-}
-```
-
-### `ExecutionFailedError`
-Signals that execution of a context failed.
-
-```typescript
-"error" : {
-  "code" : 2009,
-  "message" : "Execution failed [error in function: main]"
 }
 ```
 
