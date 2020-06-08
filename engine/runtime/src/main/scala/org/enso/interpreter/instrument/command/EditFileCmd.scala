@@ -11,6 +11,11 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+  * A command that performs edition of a file.
+  *
+  * @param request a request for editing
+  */
 class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
 
   /**

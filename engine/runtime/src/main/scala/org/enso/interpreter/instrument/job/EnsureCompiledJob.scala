@@ -18,6 +18,11 @@ import scala.jdk.OptionConverters._
 class EnsureCompiledJob(files: List[File])
     extends Job[Unit](List.empty, true, false) {
 
+  /**
+    * Ensures that all files on the provided stack are compiled.
+    *
+    * @param stack a call stack
+    */
   def this(stack: mutable.Stack[InstrumentFrame]) =
     this(extractFilesFromStack(stack))
 
@@ -41,6 +46,12 @@ class EnsureCompiledJob(files: List[File])
 
 object EnsureCompiledJob {
 
+  /**
+    * Extracts files to compile from a call stack.
+    *
+    * @param stack a call stack
+    * @return a list of files to compile
+    */
   def extractFilesFromStack(stack: mutable.Stack[InstrumentFrame]): List[File] =
     stack
       .map(_.item)
