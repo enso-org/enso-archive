@@ -1,31 +1,21 @@
 package org.enso.interpreter.instrument.execution
 
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.{Callable, Executors}
+import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
 
 import org.enso.interpreter.instrument.InterpreterContext
-import org.enso.interpreter.instrument.command.Command
-import org.enso.interpreter.instrument.execution.Completion.{Done, Interrupted}
 import org.enso.interpreter.instrument.job.Job
-import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.polyglot.RuntimeOptions
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
 
-/**
-  * This component schedules the execution of commands. It keep a queue of
-  * pending commands. It activates command execution in FIFO order.
-  *
-  * @param parallelism the size of the underlying compute thread pool
-  */
-class ExecutionEngine(
-  interpreterContext: InterpreterContext
-) extends CommandProcessor
-    with JobProcessor
+class JobExecutionEngine(
+  interpreterContext: InterpreterContext,
+  locking: Locking
+) extends JobProcessor
     with JobControlPlane {
 
   private val runningJobsRef =
@@ -38,17 +28,10 @@ class ExecutionEngine(
       .get(RuntimeOptions.JOB_PARALLELISM_KEY)
       .intValue()
 
-  private val commandExecutor = Executors.newCachedThreadPool(
-    new TruffleThreadFactory(context, "command-pool")
-  )
-
   private val jobExecutor = Executors.newFixedThreadPool(
     jobParallelism,
     new TruffleThreadFactory(context, "job-pool")
   )
-
-  implicit private val commandExecutionContext =
-    ExecutionContext.fromExecutor(commandExecutor)
 
   private val runtimeContext =
     RuntimeContext(
@@ -58,40 +41,8 @@ class ExecutionEngine(
       truffleContext   = interpreterContext.truffleContext,
       jobProcessor     = this,
       jobControlPlane  = this,
-      locking          = new ReentrantLocking
+      locking          = locking
     )
-
-  /** @inheritdoc **/
-  def invoke(cmd: Command): Future[Completion] = {
-    val logger = runtimeContext.executionService.getLogger
-    val doIt = () =>
-      cmd
-        .execute(runtimeContext, commandExecutionContext)
-        .transformWith[Completion] {
-          case Success(()) =>
-            Future.successful(Done)
-
-          case Failure(
-              _: InterruptedException | _: ThreadInterruptedException
-              ) =>
-            Future.successful[Completion](Interrupted)
-
-          case Failure(NonFatal(ex)) =>
-            logger.log(
-              Level.SEVERE,
-              s"An error occurred during execution of $cmd command",
-              ex
-            )
-            Future.failed[Completion](ex)
-        }
-
-    for {
-      _ <- Future { logger.log(Level.FINE, s"Executing command: $cmd...") }
-      _ <- doIt()
-      _ <- Future { logger.log(Level.FINE, s"Command $cmd finished.") }
-    } yield Done
-
-  }
 
   override def run[A](job: Job[A]): Future[A] = {
     val jobId   = UUID.randomUUID()

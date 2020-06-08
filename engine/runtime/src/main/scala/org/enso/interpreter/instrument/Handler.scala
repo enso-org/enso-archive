@@ -5,8 +5,8 @@ import java.nio.ByteBuffer
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.CommandFactory
 import org.enso.interpreter.instrument.execution.{
-  CommandProcessor,
-  ExecutionEngine
+  CommandExecutionEngine,
+  CommandProcessor
 }
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
@@ -83,7 +83,7 @@ final class Handler {
         endpoint,
         truffleContext
       )
-    commandProcessor = new ExecutionEngine(interpreterCtx)
+    commandProcessor = new CommandExecutionEngine(interpreterCtx)
   }
 
   /**
