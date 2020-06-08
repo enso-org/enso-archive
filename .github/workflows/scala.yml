@@ -159,6 +159,8 @@ jobs:
           mv enso.jar $DIST_DIR/component
           cp -r distribution/std-lib $DIST_DIR/std-lib
           cp -r distribution/bin $DIST_DIR/bin
+          chmod +x $DIST_DIR/bin/enso
+          chmod +x $DIST_DIR/bin/project-manager
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
