@@ -26,76 +26,76 @@ env:
 
 jobs:
   # This job is responsible for testing the codebase
-  test:
-    name: Test
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
-        with:
-          update-conda: false
-          conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: |
-          conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
-        if: runner.os == 'Windows'
-        run: conda activate enso
-      - name: Install FlatBuffers Compiler
-        run: conda install --freeze-installed flatbuffers=1.12.0
-      - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
-        with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up SBT
-        run: |
-          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-
-      # Caches
-      - name: Cache Ivy
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ${{ runner.os }}-ivy-
-      - name: Cache SBT
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
-          restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Coursier and Mill
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.cache
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
-
-      # Build
-      - name: Build Enso
-        run: sbt --no-colors compile
-
-      # Tests
-      - name: Test Enso
-        run: sbt --no-colors test
-      - name: Benchmark the Parser
-        run: sbt -no-colors syntax/bench
-      - name: Check Runtime Benchmark Compilation
-        run: sbt -no-colors runtime/Benchmark/compile
-      - name: Build the Uberjar
-        run: sbt -no-colors runner/assembly
-      - name: Test the Uberjar
-        run: ./enso.jar --run tools/ci/Test.enso
+#  test:
+#    name: Test
+#    runs-on: ${{ matrix.os }}
+#    timeout-minutes: 30
+#    strategy:
+#      matrix:
+#        os: [windows-latest, macOS-latest, ubuntu-latest]
+#      fail-fast: false
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Setup conda
+#        uses: s-weigand/setup-conda@v1
+#        with:
+#          update-conda: false
+#          conda-channels: anaconda, conda-forge
+#      - name: Setup Conda Environment on Windows
+#        if: runner.os == 'Windows'
+#        run: |
+#          conda create --name enso
+#          conda init powershell
+#      - name: Activate Conda Environment on Windows
+#        if: runner.os == 'Windows'
+#        run: conda activate enso
+#      - name: Install FlatBuffers Compiler
+#        run: conda install --freeze-installed flatbuffers=1.12.0
+#      - name: Setup GraalVM Environment
+#        uses: DeLaGuardo/setup-graalvm@2.0
+#        with:
+#          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#      - name: Set Up SBT
+#        run: |
+#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#          tar -xzf sbt.tgz
+#          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+#
+#      # Caches
+#      - name: Cache Ivy
+#        uses: actions/cache@v1.1.2
+#        with:
+#          path: ~/.ivy2/cache
+#          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+#          restore-keys: ${{ runner.os }}-ivy-
+#      - name: Cache SBT
+#        uses: actions/cache@v1.1.2
+#        with:
+#          path: ~/.sbt
+#          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+#          restore-keys: ${{ runner.os }}-sbt-
+#      - name: Cache Coursier and Mill
+#        uses: actions/cache@v1.1.2
+#        with:
+#          path: ~/.cache
+#          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
+#          restore-keys: ${{ runner.os }}-coursier-
+#
+#      # Build
+#      - name: Build Enso
+#        run: sbt --no-colors compile
+#
+#      # Tests
+#      - name: Test Enso
+#        run: sbt --no-colors test
+#      - name: Benchmark the Parser
+#        run: sbt -no-colors syntax/bench
+#      - name: Check Runtime Benchmark Compilation
+#        run: sbt -no-colors runtime/Benchmark/compile
+#      - name: Build the Uberjar
+#        run: sbt -no-colors runner/assembly
+#      - name: Test the Uberjar
+#        run: ./enso.jar --run tools/ci/Test.enso
 
   # This job is responsible for building the artifacts
   build:
@@ -211,7 +211,7 @@ jobs:
       - name: Upload FlatBuffers Schemas to S3
         run: |
           aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Project Manager to S3
+      - name: Upload Distribution to S3
         run: |
           aws s3 sync ${{ env.DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
