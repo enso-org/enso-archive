@@ -15,7 +15,7 @@ design, specification, and implementation of the feature to which it pertains.
 We provide a number of useful resources for getting a quick understanding of
 the Enso project:
 
-- [**The Enso Philosophy:**](./enso-philosophy.md) Information on the design
+- [**The Enso Philosophy:**](./enso-philosophy.md) Information on the design 
   philosophy behind Enso, and why we build things in the way we do.
 - [**Contributing Guidelines:**](./CONTRIBUTING.md) Information for people
   wanting to contribute to Enso (in many different ways).
@@ -23,6 +23,8 @@ the Enso project:
   members of our community, developers and users alike.
 - [**Security Guidelines:**](./SECURITY.md) Security guidelines for the Enso
   project, including supported versions and our vulnerability reporting process.
+- [**Getting Enso](./getting-enso.md) Instructions for how to get and run
+  a copy of Enso.
 
 It is broken up into categories as follows:
 
@@ -40,3 +42,5 @@ It is broken up into categories as follows:
   of the Enso project.
 - [**Syntax:**](./syntax) A specification of Enso's syntax.
 - [**Types:**](./types) A specification of Enso's type system and type theory.
+- [**Debugger:**](./debugger) A specification of Enso's debugger.
+
