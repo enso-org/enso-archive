@@ -109,8 +109,13 @@ case object CachePreferenceAnalysis extends IRPass {
         )
       case _: IR.Comment.Documentation =>
         throw new CompilerError(
-          "Documentation should not exist as an entity during cacache " +
+          "Documentation should not exist as an entity during cache " +
           "preference analysis."
+        )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "cache preference analysis."
         )
       case err: IR.Error => err
     }

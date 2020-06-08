@@ -624,8 +624,8 @@ class AstToIrTest extends CompilerTest {
       pending
       @unused val ir =
         """
-          |x : { x : A ; y : B } -> B
-          |""".stripMargin
+          |#x : { x : A ; y : B } -> B
+          |""".stripMargin.toAst
     }
 
     "support arbitrarily complex expressions" in {

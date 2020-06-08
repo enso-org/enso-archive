@@ -6,7 +6,12 @@ import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 
@@ -129,7 +134,8 @@ case object FunctionBinding extends IRPass {
           "Documentation should not be present during function binding" +
           "desugaring."
         )
-      case e: IR.Error => e
+      case a: IR.Type.Ascription => a
+      case e: IR.Error           => e
     }
   }
 }

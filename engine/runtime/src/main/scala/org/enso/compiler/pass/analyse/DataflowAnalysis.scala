@@ -122,6 +122,11 @@ case object DataflowAnalysis extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during dataflow analysis."
         )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "dataflow analysis."
+        )
       case err: IR.Error => err
     }
   }

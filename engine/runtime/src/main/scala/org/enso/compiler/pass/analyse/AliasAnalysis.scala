@@ -173,6 +173,11 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during alias analysis."
         )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "alias analysis."
+        )
       case err: IR.Error => err
     }
   }
@@ -196,7 +201,7 @@ case object AliasAnalysis extends IRPass {
     expression: IR.Expression,
     graph: Graph,
     parentScope: Scope,
-    lambdaReuseScope: Boolean = false,
+    lambdaReuseScope: Boolean = false
   ): IR.Expression = {
     expression match {
       case fn: IR.Function =>
@@ -441,7 +446,7 @@ case object AliasAnalysis extends IRPass {
             body = analyseExpression(
               body,
               graph,
-              currentScope,
+              currentScope
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -527,7 +532,7 @@ case object AliasAnalysis extends IRPass {
         expression = analyseExpression(
           branch.expression,
           graph,
-          currentScope,
+          currentScope
         )
       )
       .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))

@@ -1624,6 +1624,7 @@ object IR {
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Type
+        with Module.Scope.Definition
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -1825,14 +1826,14 @@ object IR {
 
       override def toString: String =
         s"""IR.Type.Error(
-           |typed = $typed,
-           |error = $error,
-           |location = $location,
-           |passData = ${this.showPassData},
-           |diagnostics = $diagnostics,
-           |id = $id
-           |)
-           |""".toSingleLine
+        |typed = $typed,
+        |error = $error,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
 
       override def children: List[IR] = List(typed, error)
 
@@ -2951,6 +2952,9 @@ object IR {
     }
 
     object Literal {
+
+//      sealed case class Typeset() extends Literal with IRKind.Primitive {
+//      }
 
       /** A representation of a vector literal.
         *

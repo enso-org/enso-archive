@@ -518,12 +518,6 @@ object AstToIr {
     */
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
-      case AstView.ContextAscription(expr, context) =>
-        Type.Context(
-          translateExpression(expr),
-          translateExpression(context),
-          getIdentifiedLocation(callable)
-        )
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
