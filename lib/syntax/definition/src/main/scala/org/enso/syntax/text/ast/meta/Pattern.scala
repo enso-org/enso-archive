@@ -142,11 +142,6 @@ object Pattern {
     base.many1.build
   }
 
-  def ExprUntilVar(v: String) = {
-    val base = Except(AST.Var(v), Any())
-    base.many1.build
-  }
-
   //// Utils ////
 
   def buildASTFrom(stream: AST.Stream): Option[Shifted[AST]] =

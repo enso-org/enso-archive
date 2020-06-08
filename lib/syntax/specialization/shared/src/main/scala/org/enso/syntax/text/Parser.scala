@@ -229,6 +229,9 @@ class Parser {
   /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
+
+    // TODO [AA] Map over the token stream to replace Var("in") by Opr("in")
+    // It has blocks, and blocks have nested token streams
     val spanned     = tokenStream.map(attachModuleLocations)
     val resolved = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
