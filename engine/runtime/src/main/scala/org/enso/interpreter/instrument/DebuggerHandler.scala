@@ -36,5 +36,7 @@ class DebuggerHandler {
     endpoint.client.sendBinary(data)
   }
 
+  def hasClient: Boolean = endpoint.client != null
+
   def onMessage(@unused request: Request): Unit = {}
 }

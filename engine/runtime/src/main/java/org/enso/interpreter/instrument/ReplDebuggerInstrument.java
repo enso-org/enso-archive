@@ -95,9 +95,11 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     Instrumenter instrumenter = env.getInstrumenter();
     env.registerService(this);
 
+
+
+
     DebuggerHandler handler = new DebuggerHandler();
-    // this.handler = handler;
-    /*try {
+    try {
       MessageEndpoint client =
           env.startServer(URI.create(DebugServerInfo.URI), handler.endpoint());
       if (client != null) {
@@ -107,7 +109,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       // TODO we just ignore this exception ?
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }*/
+    }
 
     instrumenter.attachExecutionEventFactory(
         filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
@@ -238,9 +240,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     }
 
     private void sendSessionStartNotification() {
-      if (sessionManagerReference.get() == null) {
+      if (handler.hasClient()) {
         handler.sendToClient(Debugger.createSessionStartNotification());
-      } else {
+      } else if (sessionManagerReference.get() != null) {
         sessionManagerReference.get().startSession(this);
       }
     }

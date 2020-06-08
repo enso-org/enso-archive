@@ -56,12 +56,9 @@ public final class Language extends TruffleLanguage<Context> {
     Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
-    System.out.println(idValueListenerInstrument);
-    if (idValueListenerInstrument != null) {
-      IdExecutionInstrument idExecutionInstrumentService =
-          env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
-      env.registerService(new ExecutionService(context, idExecutionInstrumentService));
-    }
+    IdExecutionInstrument idExecutionInstrumentService =
+        env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
+    env.registerService(new ExecutionService(context, idExecutionInstrumentService));
     return context;
   }
 

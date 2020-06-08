@@ -11,14 +11,14 @@ import org.enso.polyglot.debugger.{
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.enso.polyglot.{debugger, LanguageInfo, PolyglotContext}
-import org.scalatest.matchers.must.Matchers
+import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 trait ReplRunner extends InterpreterRunner {
   var endPoint: MessageEndpoint = _
   var messageQueue
     : List[debugger.Response] = List() // TODO probably need a better message handler
-  /*
+
   override val ctx = Context
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)
@@ -35,6 +35,7 @@ trait ReplRunner extends InterpreterRunner {
           override def sendBinary(data: ByteBuffer): Unit =
             Debugger.deserializeResponse(data) match {
               case Some(response) =>
+                println(s"Got $response")
                 messageQueue ++= Seq(response)
               case None =>
                 throw new RuntimeException(
@@ -52,7 +53,7 @@ trait ReplRunner extends InterpreterRunner {
     )
     .build()
 
-  override lazy val executionContext = new PolyglotContext(ctx)*/
+  override lazy val executionContext = new PolyglotContext(ctx)
 }
 
 class ReplTest extends AnyWordSpec with Matchers with ReplRunner {
@@ -63,7 +64,8 @@ class ReplTest extends AnyWordSpec with Matchers with ReplRunner {
           |main = Debug.breakpoint
           |""".stripMargin
       eval(code)
-      // messageQueue contains SessionStartNotification
+
+      messageQueue should contain(SessionStartNotification)
     }
   }
 }
