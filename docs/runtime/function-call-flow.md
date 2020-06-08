@@ -110,7 +110,7 @@ This logic is encapsulated in the `ArgumentSorterNode`.
 ## Definition-Site Argument Suspension
 Enso allows functions to define certain arguments as `Suspended`, so that when
 these are passed to a function, the corresponding expressions are not evaluated
-at the call side, but are instead passed to the function as closures for
+at the call site, but are instead passed to the function as closures for
 evaluation at the function's discretion.
 
 Therefore, all application arguments are actually treated as thunks and only
