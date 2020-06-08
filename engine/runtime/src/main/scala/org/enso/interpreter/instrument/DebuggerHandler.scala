@@ -1,11 +1,15 @@
 package org.enso.interpreter.instrument
 
 import java.nio.ByteBuffer
-
-import org.enso.polyglot.debugger.{Debugger, Request}
+import org.enso.interpreter.instrument.ReplDebuggerInstrument.ReplExecutionEventNode
+import org.enso.polyglot.debugger.{
+  Debugger,
+  EvaluationRequest,
+  ListBindingsRequest,
+  Request,
+  SessionExitRequest
+}
 import org.graalvm.polyglot.io.MessageEndpoint
-
-import scala.annotation.unused
 
 class DebuggerEndpoint(handler: DebuggerHandler) extends MessageEndpoint {
   var client: MessageEndpoint = _
@@ -29,14 +33,33 @@ class DebuggerHandler {
   val endpoint = new DebuggerEndpoint(this)
 
   def sendToClient(data: ByteBuffer): Unit = {
-    if (endpoint.client == null)
-      throw new RuntimeException(
-        "Client not initialized"
-      ) // TODO probably remove
     endpoint.client.sendBinary(data)
   }
 
   def hasClient: Boolean = endpoint.client != null
 
-  def onMessage(@unused request: Request): Unit = {}
+  var currentExecutionNode: ReplExecutionEventNode = _
+
+  def startSession(executionNode: ReplExecutionEventNode): Unit = {
+    currentExecutionNode = executionNode
+    sendToClient(Debugger.createSessionStartNotification())
+  }
+
+  def onMessage(request: Request): Unit = request match {
+    case EvaluationRequest(expression) =>
+      val result = currentExecutionNode.evaluate(expression)
+      result match {
+        case Left(error) =>
+          sendToClient(Debugger.createEvaluationFailure(error))
+        case Right(value) =>
+          sendToClient(Debugger.createEvaluationSuccess(value))
+      }
+    case ListBindingsRequest =>
+      val bindings = currentExecutionNode.listBindings()
+      sendToClient(Debugger.createListBindingsResult(bindings))
+    case SessionExitRequest =>
+      currentExecutionNode.exit()
+      currentExecutionNode = null
+      sendToClient(Debugger.createSessionExitSuccess())
+  }
 }

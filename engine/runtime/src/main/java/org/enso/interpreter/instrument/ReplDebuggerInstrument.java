@@ -23,12 +23,14 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.polyglot.debugger.DebugServerInfo;
-import org.enso.polyglot.debugger.Debugger;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(
@@ -46,7 +48,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private SessionManager sessionManager;
 
     /**
-     * Create a new instanc of this class
+     * Create a new instance of this class
      *
      * @param sessionManager the session manager to initially store
      */
@@ -190,7 +192,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * @param expression the expression to evaluate
      * @return the result of evaluating the expression
      */
-    public Object evaluate(String expression) {
+    public Either<Exception, Object> evaluate(String expression) {
       try {
         Stateful result = evalNode.execute(lastScope, lastState, expression);
         lastState = result.getState();
@@ -198,9 +200,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
             (CaptureResultScopeNode.WithCallerInfo) result.getValue();
         lastScope = payload.getCallerInfo();
         lastReturn = payload.getResult();
-        return lastReturn;
+        return new Right<>(lastReturn);
       } catch (Exception e) {
-        return e;
+        return new Left<>(e);
       }
     }
 
@@ -228,7 +230,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
       // Note [Safe Access to State in the Debugger Instrument]
       lastState = Function.ArgumentsHelper.getState(frame.getArguments());
-      sendSessionStartNotification();
+      startSession();
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -252,9 +254,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return new Stateful(lastState, lastReturn);
     }
 
-    private void sendSessionStartNotification() {
+    private void startSession() {
       if (handler.hasClient()) {
-        handler.sendToClient(Debugger.createSessionStartNotification());
+        handler.startSession(this);
       } else if (sessionManagerReference.get() != null) {
         sessionManagerReference.get().startSession(this);
       }

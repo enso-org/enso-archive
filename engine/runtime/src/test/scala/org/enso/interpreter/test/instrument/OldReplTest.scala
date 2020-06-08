@@ -67,7 +67,7 @@ class OldReplTest extends InterpreterTest {
         |""".stripMargin
     var evalResult: AnyRef = null
     getReplInstrument.setSessionManager { executor =>
-      evalResult = executor.evaluate("x + y")
+      evalResult = executor.evaluate("x + y").fold(throw _, identity)
       executor.exit()
     }
     eval(code)
