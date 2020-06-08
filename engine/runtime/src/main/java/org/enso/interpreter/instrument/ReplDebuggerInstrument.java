@@ -11,7 +11,7 @@ import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.Language;
@@ -24,6 +24,9 @@ import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.polyglot.debugger.DebugServerInfo;
 import org.enso.polyglot.debugger.Debugger;
+import org.graalvm.options.OptionDescriptor;
+import org.graalvm.options.OptionDescriptors;
+import org.graalvm.options.OptionKey;
 import org.graalvm.polyglot.io.MessageEndpoint;
 import org.graalvm.polyglot.io.MessageTransport;
 
@@ -95,18 +98,20 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     Instrumenter instrumenter = env.getInstrumenter();
     env.registerService(this);
 
-
-
-
+    System.out.println("Debugger instrument initializing !!!");
     DebuggerHandler handler = new DebuggerHandler();
     try {
       MessageEndpoint client =
           env.startServer(URI.create(DebugServerInfo.URI), handler.endpoint());
       if (client != null) {
         handler.endpoint().setClient(client);
+        System.out.println("Client initialized");
+      } else {
+        System.out.println("Client was null");
       }
     } catch (MessageTransport.VetoException e) {
       // TODO we just ignore this exception ?
+      System.out.println("Vetoed");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -114,6 +119,14 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     instrumenter.attachExecutionEventFactory(
         filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
 
+  }
+
+  @Override
+  protected OptionDescriptors getOptionDescriptors() {
+    return OptionDescriptors.create(
+        Collections.singletonList(
+            OptionDescriptor.newBuilder(new OptionKey<>(""), DebugServerInfo.ENABLE_OPTION)
+                .build()));
   }
 
   /**

@@ -23,11 +23,13 @@ trait ReplRunner extends InterpreterRunner {
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)
     .allowAllAccess(true)
+    .option(DebugServerInfo.ENABLE_OPTION, "true")
     .out(output)
     .err(err)
     .in(in)
-    .serverTransport((uri, peer) =>
-      if (uri.toString == DebugServerInfo.INSTRUMENT_NAME) {
+    .serverTransport { (uri, peer) =>
+      println(uri)
+      if (uri.toString == DebugServerInfo.URI) {
         endPoint = peer
         new MessageEndpoint {
           override def sendText(text: String): Unit = {}
@@ -50,10 +52,12 @@ trait ReplRunner extends InterpreterRunner {
           override def sendClose(): Unit = {}
         }
       } else null
-    )
+    }
     .build()
 
   override lazy val executionContext = new PolyglotContext(ctx)
+
+  println("Done123?")
 }
 
 class ReplTest extends AnyWordSpec with Matchers with ReplRunner {
