@@ -2,7 +2,11 @@ package org.enso.interpreter.test.instrument
 
 import java.nio.ByteBuffer
 
-import org.enso.interpreter.test.{InterpreterException, InterpreterRunner}
+import org.enso.interpreter.test.{
+  InterpreterException,
+  InterpreterRunner,
+  ValueEquality
+}
 import org.enso.polyglot.debugger.protocol.{
   ExceptionRepresentation,
   ObjectRepresentation
@@ -80,6 +84,7 @@ class ReplTest
     extends AnyWordSpec
     with Matchers
     with BeforeAndAfter
+    with ValueEquality
     with ReplRunner {
 
   after {
@@ -107,6 +112,7 @@ class ReplTest
       var evalResult: Either[ExceptionRepresentation, ObjectRepresentation] =
         null
       wrapSessionManager { executor =>
+        println("Hello to session!")
         evalResult = executor.evaluate("x + y")
         executor.exit()
       }
@@ -209,6 +215,10 @@ class ReplTest
         "y"    -> "20",
         "z"    -> "30"
       )
+    }
+
+    "be able to be nested" in {
+      // TODO
     }
   }
 }

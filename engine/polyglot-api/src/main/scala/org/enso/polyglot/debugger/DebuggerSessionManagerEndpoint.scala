@@ -42,7 +42,10 @@ class DebuggerSessionManagerEndpoint(
       currentExecutor.onResponse(response)
     } else if (response == SessionStartNotification) {
       currentExecutor = new ReplExecutorImplementation
+      println("Starting a new session")
       sessionManager.startSession(currentExecutor)
+      currentExecutor = null
+      println("Session terminated")
     } else {
       throw new RuntimeException(
         s"Unexpected response $response, no session is initialized"
@@ -92,6 +95,8 @@ class DebuggerSessionManagerEndpoint(
     }
     override def exit(): SessionEnded = {
       ensureUsable()
+      currentExecutor = null
+      // TODO seems like this never returns ?
       peer.sendBinary(Debugger.createSessionExitRequest())
       if (!exitSuccess) {
         throw new RuntimeException(
@@ -100,15 +105,18 @@ class DebuggerSessionManagerEndpoint(
       }
     }
 
-    def onResponse(response: Response): Unit = response match {
-      case EvaluationSuccess(result)    => evaluationResult = Right(result)
-      case EvaluationFailure(exception) => evaluationResult = Left(exception)
-      case ListBindingsResult(bindings) => bindingsResult   = bindings
-      case SessionExitSuccess           => exitSuccess      = true
-      case SessionStartNotification =>
-        throw new RuntimeException(
-          "Session start notification sent while the session is already running"
-        )
+    def onResponse(response: Response): Unit = {
+      println(s"Response: $response")
+      response match {
+        case EvaluationSuccess(result)    => evaluationResult = Right(result)
+        case EvaluationFailure(exception) => evaluationResult = Left(exception)
+        case ListBindingsResult(bindings) => bindingsResult   = bindings
+        case SessionExitSuccess           => exitSuccess      = true
+        case SessionStartNotification =>
+          throw new RuntimeException(
+            "Session start notification sent while the session is already running"
+          )
+      }
     }
   }
 }
