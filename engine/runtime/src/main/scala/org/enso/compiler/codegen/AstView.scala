@@ -1,6 +1,5 @@
 package org.enso.compiler.codegen
 
-import org.enso.compiler.core.IR
 import org.enso.data
 import org.enso.data.List1
 import org.enso.syntax.text.AST

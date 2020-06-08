@@ -285,6 +285,16 @@ case object DataflowAnalysis extends IRPass {
             context = analyseExpression(context, info)
           )
           .updateMetadata(this -->> info)
+      case err @ IR.Type.Error(typed, error, _, _, _) =>
+        info.updateAt(asStatic(typed), Set(asStatic(err)))
+        info.updateAt(asStatic(error), Set(asStatic(err)))
+
+        err
+          .copy(
+            typed = analyseExpression(typed, info),
+            error = analyseExpression(error, info)
+          )
+          .updateMetadata(this -->> info)
       case member @ IR.Type.Set.Member(_, memberType, value, _, _, _) =>
         info.updateAt(asStatic(memberType), Set(asStatic(member)))
         info.updateAt(asStatic(value), Set(asStatic(member)))

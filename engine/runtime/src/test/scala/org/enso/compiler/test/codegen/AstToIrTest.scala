@@ -548,6 +548,13 @@ class AstToIrTest extends CompilerTest {
   }
 
   "AST translation for type operators" should {
+    "give them the correct precedence" in {
+      pending
+    }
+
+    "give them the correct associativity" in {
+      pending
+    }
   }
 
   "AST translation for type signatures" should {
@@ -597,13 +604,11 @@ class AstToIrTest extends CompilerTest {
     }
 
     "properly support the `in` context ascription operator" in {
+      pending
       @unused val ir =
         """
-          |#x : Number in (Maybe | IO) -> Number in IO
-          |x in IO
-          |""".stripMargin.toAst
-
-      println(Debug.pretty(ir.toString))
+          |x : Number in (Maybe | IO) -> Number in IO
+          |""".stripMargin
     }
 
     "properly support the `!` error ascription operator" in {

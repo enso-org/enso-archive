@@ -1767,6 +1767,79 @@ object IR {
       override val name: String = "in"
     }
 
+    /** Represents the ascription of an error context to an expression.
+      *
+      * @param typed the expression being ascribed an error context
+      * @param error the error being ascribed
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Error(
+      typed: Expression,
+      error: Expression,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Type
+        with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param typed the expression being ascribed an error context
+        * @param error the error being ascribed
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typed: Expression                    = typed,
+        error: Expression                    = error,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Error = {
+        val res = Error(typed, error, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(keepLocations: Boolean): Error = copy(
+        typed       = typed.duplicate(keepLocations),
+        error       = error.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+      override def setLocation(location: Option[IdentifiedLocation]): Error =
+        copy(location = location)
+
+      override def mapExpressions(fn: Expression => Expression): Error =
+        copy(typed = fn(typed), error = fn(error))
+
+      override def toString: String =
+        s"""IR.Type.Error(
+           |typed = $typed,
+           |error = $error,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      override def children: List[IR] = List(typed, error)
+
+      override def showCode(indent: Int): String =
+        s"(${typed.showCode(indent)} ! ${error.showCode(indent)})"
+    }
+
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression):      Set
