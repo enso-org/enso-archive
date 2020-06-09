@@ -35,21 +35,45 @@ class DebuggerSessionManagerEndpoint(
 
   override def sendClose(): Unit = {}
 
-  private var currentExecutor: ReplExecutorImplementation = _
+  private val executorStack
+    : collection.mutable.Stack[ReplExecutorImplementation] =
+    collection.mutable.Stack.empty
 
-  private def handleResponse(response: Response): Unit = {
-    if (currentExecutor != null) {
-      currentExecutor.onResponse(response)
-    } else if (response == SessionStartNotification) {
-      currentExecutor = new ReplExecutorImplementation
-      println("Starting a new session")
-      sessionManager.startSession(currentExecutor)
-    } else {
-      throw new RuntimeException(
-        s"Unexpected response $response, no session is initialized"
+  private def currentExecutor: Option[ReplExecutorImplementation] =
+    executorStack.headOption
+
+  private def startNewSession(): Nothing = {
+    println("Starting a new session")
+    val newExecutor = new ReplExecutorImplementation
+    executorStack.push(newExecutor)
+    sessionManager.startSession(newExecutor)
+  }
+
+  private def endMostNestedSession(
+    requestingExecutor: ReplExecutorImplementation
+  ): Unit = {
+    if (!currentExecutor.contains(requestingExecutor)) {
+      throw new IllegalStateException(
+        "Session termination requested not from the most nested session"
       )
+    } else {
+      executorStack.pop()
     }
   }
+
+  private def handleResponse(response: Response): Unit =
+    if (response == SessionStartNotification) {
+      startNewSession()
+    } else {
+      currentExecutor match {
+        case Some(executor) =>
+          executor.onResponse(response)
+        case None =>
+          throw new RuntimeException(
+            s"Unexpected response $response, no session is running"
+          )
+      }
+    }
 
   private class ReplExecutorImplementation extends ReplExecutor {
     var evaluationResult
@@ -93,8 +117,8 @@ class DebuggerSessionManagerEndpoint(
     override def exit(): Nothing = {
       ensureUsable()
       // Note [Debugger Session Exit Return]
-      currentExecutor = null
-      exited          = true
+      endMostNestedSession(this)
+      exited = true
       peer.sendBinary(Debugger.createSessionExitRequest())
       throw new RuntimeException(
         "DebuggerServer unexpectedly returned from exit"

@@ -101,7 +101,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     env.registerService(this);
 
     System.out.println("Debugger instrument initializing !!!");
-    DebuggerHandler handler = new DebuggerHandler();
+    DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
       MessageEndpoint client =
           env.startServer(URI.create(DebugServerInfo.URI), handler.endpoint());
@@ -150,11 +150,12 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
 
     private EventContext eventContext;
     private SessionManagerReference sessionManagerReference;
-    private DebuggerHandler handler;
+    private DebuggerMessageHandler handler;
+
 
     // TODO figure out how to handle responding to requests in the handler - register current execution node ?, probably
     private ReplExecutionEventNode(
-        EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerHandler handler) {
+        EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerMessageHandler handler) {
       this.eventContext = eventContext;
       this.sessionManagerReference = sessionManagerReference;
       this.handler = handler;

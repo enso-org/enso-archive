@@ -128,6 +128,21 @@ class ReplTest
       eval(code) shouldEqual 110
     }
 
+    "not overwrite bindings" in {
+      val code =
+        """
+          |main =
+          |    x = 10
+          |    Debug.breakpoint
+          |    x
+          |""".stripMargin
+      setSessionManager { executor =>
+        executor.evaluate("x = 20")
+        executor.exit()
+      }
+      eval(code) shouldEqual 10
+    }
+
     "access and modify monadic state" in {
       val code =
         """
@@ -193,21 +208,50 @@ class ReplTest
       )
     }
 
+    "allow to be nested" in {
+      val code =
+        """
+          |main =
+          |    10 * Debug.breakpoint + 1
+          |""".stripMargin
+      setSessionManager { topExecutor =>
+        setSessionManager { nestedExecutor =>
+          setSessionManager { doubleNestedExecutor =>
+            doubleNestedExecutor.evaluate("4")
+            doubleNestedExecutor.exit()
+          }
+          nestedExecutor.evaluate("10 * Debug.breakpoint + 3")
+          nestedExecutor.exit()
+        }
+        topExecutor.evaluate("10 * Debug.breakpoint + 2")
+        topExecutor.exit()
+      }
+      eval(code) shouldEqual 4321
+    }
+
     "behave well when nested" in {
       val code =
         """
           |main =
-          |    Debug.breakpoint + 1
+          |    x = 1
+          |    10 * Debug.breakpoint + x
           |""".stripMargin
       setSessionManager { topExecutor =>
+        topExecutor.evaluate("x = 2")
         setSessionManager { nestedExecutor =>
-          nestedExecutor.evaluate("1")
+          nestedExecutor.evaluate("x = 3")
+          setSessionManager { doubleNestedExecutor =>
+            doubleNestedExecutor.evaluate("x = 4")
+            doubleNestedExecutor.evaluate("x")
+            doubleNestedExecutor.exit()
+          }
+          nestedExecutor.evaluate("10 * Debug.breakpoint + x")
           nestedExecutor.exit()
         }
-        topExecutor.evaluate("1 + Debug.breakpoint")
+        topExecutor.evaluate("10 * Debug.breakpoint + x")
         topExecutor.exit()
       }
-      eval(code) shouldEqual 3
+      eval(code) shouldEqual 4321
     }
   }
 }

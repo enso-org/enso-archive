@@ -11,7 +11,8 @@ import org.enso.polyglot.debugger.{
 }
 import org.graalvm.polyglot.io.MessageEndpoint
 
-class DebuggerEndpoint(handler: DebuggerHandler) extends MessageEndpoint {
+class DebuggerEndpoint(handler: DebuggerMessageHandler)
+    extends MessageEndpoint {
   var client: MessageEndpoint = _
 
   def setClient(ep: MessageEndpoint): Unit = client = ep
@@ -29,7 +30,7 @@ class DebuggerEndpoint(handler: DebuggerHandler) extends MessageEndpoint {
   override def sendClose(): Unit = {}
 }
 
-class DebuggerHandler {
+class DebuggerMessageHandler {
   val endpoint = new DebuggerEndpoint(this)
 
   def sendToClient(data: ByteBuffer): Unit = {
@@ -38,10 +39,15 @@ class DebuggerHandler {
 
   def hasClient: Boolean = endpoint.client != null
 
-  var currentExecutionNode: ReplExecutionEventNode = _
+  private val executionNodeStack
+    : collection.mutable.Stack[ReplExecutionEventNode] =
+    collection.mutable.Stack.empty
+
+  private def currentExecutionNode: Option[ReplExecutionEventNode] =
+    executionNodeStack.headOption
 
   def startSession(executionNode: ReplExecutionEventNode): Unit = {
-    currentExecutionNode = executionNode
+    executionNodeStack.push(executionNode)
     sendToClient(Debugger.createSessionStartNotification())
   }
 
@@ -51,27 +57,34 @@ class DebuggerHandler {
     * @return never returns as control is passed to the interpreter
     */
   def endSession(): Nothing = {
-    val node = currentExecutionNode
-    currentExecutionNode = null
+    val node = executionNodeStack.pop()
     node.exit()
     throw new IllegalStateException(
       "exit() on execution node returned unexpectedly"
     )
   }
 
-  def onMessage(request: Request): Unit = request match {
-    case EvaluationRequest(expression) =>
-      val result = currentExecutionNode.evaluate(expression)
-      result match {
-        case Left(error) =>
-          sendToClient(Debugger.createEvaluationFailure(error))
-        case Right(value) =>
-          sendToClient(Debugger.createEvaluationSuccess(value))
-      }
-    case ListBindingsRequest =>
-      val bindings = currentExecutionNode.listBindings()
-      sendToClient(Debugger.createListBindingsResult(bindings))
-    case SessionExitRequest =>
-      endSession()
-  }
+  def onMessage(request: Request): Unit =
+    currentExecutionNode match {
+      case Some(node) =>
+        request match {
+          case EvaluationRequest(expression) =>
+            val result = node.evaluate(expression)
+            result match {
+              case Left(error) =>
+                sendToClient(Debugger.createEvaluationFailure(error))
+              case Right(value) =>
+                sendToClient(Debugger.createEvaluationSuccess(value))
+            }
+          case ListBindingsRequest =>
+            val bindings = node.listBindings()
+            sendToClient(Debugger.createListBindingsResult(bindings))
+          case SessionExitRequest =>
+            endSession()
+        }
+      case None =>
+        throw new IllegalStateException(
+          "Got a request but no session is running"
+        )
+    }
 }
