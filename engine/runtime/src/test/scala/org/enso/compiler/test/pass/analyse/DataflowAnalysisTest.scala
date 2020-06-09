@@ -874,7 +874,22 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for typeset literals" in {
-      pending
+      implicit val inlineContext: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |{ x := a ; y := b }
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
+
+      val literal           = ir.asInstanceOf[IR.Application.Literal.Typeset]
+      val literalExpression = literal.expression.get
+
+      val literalId           = mkStaticDep(literal.getId)
+      val literalExpressionId = mkStaticDep(literalExpression.getId)
+
+      depInfo.getDirect(literalExpressionId).get shouldEqual Set(literalId)
     }
 
     "work properly for case expressions" in {
@@ -895,9 +910,9 @@ class DataflowAnalysisTest extends CompilerTest {
       val caseBindingExpr =
         caseBinding.expression.asInstanceOf[IR.Application.Prefix]
       val caseBindingName = caseBinding.name.asInstanceOf[IR.Name.Literal]
-      val caseExpr   = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
-      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Name.Literal]
-      val consBranch = caseExpr.branches.head
+      val caseExpr        = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
+      val scrutinee       = caseExpr.scrutinee.asInstanceOf[IR.Name.Literal]
+      val consBranch      = caseExpr.branches.head
 
       val consBranchPattern =
         consBranch.pattern.asInstanceOf[Pattern.Constructor]

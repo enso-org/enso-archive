@@ -965,12 +965,29 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Alias analysis on typeset literals" should {
-    "create a new scope for the literal" in {
-      pending
-    }
+    implicit val ctx: ModuleContext = mkModuleContext
 
-    "use that new scope for the literal's pattern context" in {
-      pending
+    val method =
+      """
+        |main =
+        |    { x := 1, b := 2 }
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Method]
+
+    val block = method.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
+
+    val blockScope =
+      block.unsafeGetMetadata(AliasAnalysis, "").unsafeAs[Info.Scope.Child]
+
+    val literal = block.returnValue.asInstanceOf[IR.Application.Literal.Typeset]
+    val literalScope =
+      literal.unsafeGetMetadata(AliasAnalysis, "").unsafeAs[Info.Scope.Child]
+
+    "create a new scope for the literal" in {
+      blockScope.scope.childScopes should contain(literalScope.scope)
     }
   }
 

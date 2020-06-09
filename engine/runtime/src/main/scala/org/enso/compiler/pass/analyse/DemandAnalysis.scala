@@ -215,9 +215,14 @@ case object DemandAnalysis extends IRPass {
           )
         )
       )
-    case _ =>
+    case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      tSet.copy(
+        expression =
+          expr.map(analyseExpression(_, isInsideCallArgument = false))
+      )
+    case _: IR.Application.Operator =>
       throw new CompilerError(
-        "Unexpected application type during demand analysis."
+        "Operators should not be present during demand analysis."
       )
   }
 
