@@ -75,7 +75,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     }
   }
 
-  /** An object controlling the execution of REPL. */
+  /** An object controlling the execution of REPL.
+   * Deprecated, will be removed in the next version.
+   * Please use org.enso.polyglot.debugger.SessionManager.
+   */
   public interface SessionManager {
     /**
      * Starts a new session with the provided execution node.
@@ -104,9 +107,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
       MessageEndpoint client =
-          env.startServer(URI.create(DebugServerInfo.URI), handler.endpoint());
+          env.startServer(URI.create(DebugServerInfo.URI), handler);
       if (client != null) {
-        handler.endpoint().setClient(client);
+        handler.setClient(client);
         System.out.println("Client initialized");
       } else {
         System.out.println("Client was null");
@@ -152,8 +155,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private SessionManagerReference sessionManagerReference;
     private DebuggerMessageHandler handler;
 
-
-    // TODO figure out how to handle responding to requests in the handler - register current execution node ?, probably
     private ReplExecutionEventNode(
         EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerMessageHandler handler) {
       this.eventContext = eventContext;
@@ -191,7 +192,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * Evaluates an arbitrary expression in the current execution context.
      *
      * @param expression the expression to evaluate
-     * @return the result of evaluating the expression
+     * @return the result of evaluating the expression or an exception that
+     *          caused failure
      */
     public Either<Exception, Object> evaluate(String expression) {
       try {

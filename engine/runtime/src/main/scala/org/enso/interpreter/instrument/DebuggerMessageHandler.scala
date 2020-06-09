@@ -11,16 +11,30 @@ import org.enso.polyglot.debugger.{
 }
 import org.graalvm.polyglot.io.MessageEndpoint
 
-class DebuggerEndpoint(handler: DebuggerMessageHandler)
-    extends MessageEndpoint {
-  var client: MessageEndpoint = _
+/**
+  * Helper class that handles communication with Debugger client and delegates
+  * request to the execution event node of the ReplDebuggerInstrument.
+  */
+class DebuggerMessageHandler extends MessageEndpoint {
+  private var client: MessageEndpoint = _
 
+  /**
+    * Sets the client end of the connection, after it has been established.
+    *
+    * @param ep the client endpoint.
+    */
   def setClient(ep: MessageEndpoint): Unit = client = ep
+
+  /**
+    * Checks if a client has been registered.
+    * @return a boolean value indicating whether a client is registered
+    */
+  def hasClient: Boolean = client != null
 
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit = {
-    Debugger.deserializeRequest(data).foreach(handler.onMessage)
+    Debugger.deserializeRequest(data).foreach(onMessage)
   }
 
   override def sendPing(data: ByteBuffer): Unit = client.sendPong(data)
@@ -28,16 +42,10 @@ class DebuggerEndpoint(handler: DebuggerMessageHandler)
   override def sendPong(data: ByteBuffer): Unit = {}
 
   override def sendClose(): Unit = {}
-}
 
-class DebuggerMessageHandler {
-  val endpoint = new DebuggerEndpoint(this)
-
-  def sendToClient(data: ByteBuffer): Unit = {
-    endpoint.client.sendBinary(data)
+  private def sendToClient(data: ByteBuffer): Unit = {
+    client.sendBinary(data)
   }
-
-  def hasClient: Boolean = endpoint.client != null
 
   private val executionNodeStack
     : collection.mutable.Stack[ReplExecutionEventNode] =
@@ -46,6 +54,11 @@ class DebuggerMessageHandler {
   private def currentExecutionNode: Option[ReplExecutionEventNode] =
     executionNodeStack.headOption
 
+  /**
+    * Starts a REPL session by sending a message to the client.
+    *
+    * @param executionNode execution node used for instrumenting the session
+    */
   def startSession(executionNode: ReplExecutionEventNode): Unit = {
     executionNodeStack.push(executionNode)
     sendToClient(Debugger.createSessionStartNotification())
@@ -56,7 +69,7 @@ class DebuggerMessageHandler {
     *
     * @return never returns as control is passed to the interpreter
     */
-  def endSession(): Nothing = {
+  private def endSession(): Nothing = {
     val node = executionNodeStack.pop()
     node.exit()
     throw new IllegalStateException(
@@ -64,7 +77,7 @@ class DebuggerMessageHandler {
     )
   }
 
-  def onMessage(request: Request): Unit =
+  private def onMessage(request: Request): Unit =
     currentExecutionNode match {
       case Some(node) =>
         request match {

@@ -5,6 +5,11 @@ import org.enso.polyglot.debugger.protocol.{
   ObjectRepresentation
 }
 
+/**
+  * Interface for executing Repl commands inside of a Repl session.
+  * A single instance is valid only during the current session, it is provided
+  * to the SessionManager on start of each session.
+  */
 trait ReplExecutor {
 
   /**
@@ -41,6 +46,21 @@ trait ReplExecutor {
   def exit(): Nothing
 }
 
+/**
+  * Trait that should be implemented by Repl users to define how to handle Repl
+  * sessions.
+  */
 trait SessionManager {
+
+  /**
+    * Method that is run when starting each Repl session. The whole session
+    * lives inside this method. It should always be finished by running
+    * `executor.exit()`.
+    *
+    * @param executor the interface for sending commands to the Repl during the
+    *                 session
+    * @return does not return as it has to be ended by a call to
+    *         `executor.exit()` which brings control back to the interpreter.
+    */
   def startSession(executor: ReplExecutor): Nothing
 }

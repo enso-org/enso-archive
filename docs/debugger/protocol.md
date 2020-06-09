@@ -113,6 +113,10 @@ table Response {
 When a breakpoint is reached, the debugger sends a notification to the client
 indicating that a REPL session should be started.
 
+The whole REPL session should live inside the endpoint's function handling this
+notification. This means that this function should not return before sending the
+Session exit request.
+
 #### Notification
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
