@@ -238,7 +238,7 @@ The entry id in the suggestions database.
 #### Format
 
 ``` typescript
-type SuggestionEntryId = UUID;
+type SuggestionEntryId = Number;
 ```
 
 ### `SuggestionEntryArgument`
@@ -1227,7 +1227,7 @@ directory tree starting at a given path.
 ```typescript
 {
   path: Path;
-  depth?: Int;
+  depth?: Number;
 }
 ```
 

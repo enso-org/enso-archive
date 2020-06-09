@@ -8,9 +8,9 @@ order: 7
 
 # Searcher
 The language auto-completion feature requires an ability to search the codebase
-using different queues. This document describes the Searcher module, which
-consists of the suggestions database and the ranking algorithm for ordering the
-results.
+using different search criteria. This document describes the Searcher module,
+which consists of the suggestions database and the ranking algorithm for
+ordering the results.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -29,9 +29,10 @@ database is populated partially by analyzing the sources and enriched with the
 extra information from the runtime.
 
 ### Static Analysis
-The database is filled by analyzing the _IR_ parsed from the source.
+The database is filled by analyzing the Intermediate Representation (`IR`)
+parsed from the source.
 
-Language constructs for suggestions database extracted from the _IR_:
+Language constructs for suggestions database extracted from the `IR`:
 
 - Atoms
 - Methods
@@ -44,7 +45,7 @@ information specifies the scope where the node was defined, which is used in the
 results [ranking](#results-ranking) algorithm.
 
 ### Runtime Inspection
-The _IR_ is missing information about the types. Runtime instrumentation is used
+The `IR` is missing information about the types. Runtime instrumentation is used
 to capture the types and refine the database entries.
 
 Information for suggestions database gathered in runtime:
