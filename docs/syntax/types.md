@@ -151,6 +151,9 @@ These work as follows.
   label : Type := value
   ```
 
+  Please note that the right-hand-side of the `:=` operator is _not_ a pattern
+  context.
+
 - **Member Concatenation:** Members can be combined into a typeset using the
   concatenation operator `;`.
 
@@ -158,8 +161,10 @@ These work as follows.
   x ; y
   ```
 
-- **Typeset Literals:** A literal can be written using curly braces (`{}`) to
-  delimit the literal.
+- **Typeset Literals:** A typeset literal consists of zero or more typeset
+  member definitions concatenated while surrounded by curly braces `{}`. The
+  braces are necessary as they delimit a pattern context to allow the
+  introduction of new identifiers.
 
   ```ruby
   { x: T ; y: Q }

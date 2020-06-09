@@ -873,6 +873,10 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(vecId) shouldEqual Some(Set(lamId))
     }
 
+    "work properly for typeset literals" in {
+      pending
+    }
+
     "work properly for case expressions" in {
       implicit val inlineContext: InlineContext = mkInlineContext
 

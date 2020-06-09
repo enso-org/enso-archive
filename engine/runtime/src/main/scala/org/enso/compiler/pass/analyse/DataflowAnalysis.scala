@@ -255,6 +255,12 @@ case object DataflowAnalysis extends IRPass {
         vector
           .copy(items = items.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        expr.foreach(exp => info.updateAt(asStatic(exp), Set(asStatic(tSet))))
+
+        tSet
+          .copy(expression = expr.map(analyseExpression(_, info)))
+          .updateMetadata(this -->> info)
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
     }

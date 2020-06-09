@@ -964,6 +964,16 @@ class AliasAnalysisTest extends CompilerTest {
     }
   }
 
+  "Alias analysis on typeset literals" should {
+    "create a new scope for the literal" in {
+      pending
+    }
+
+    "use that new scope for the literal's pattern context" in {
+      pending
+    }
+  }
+
   "Redefinitions" should {
     "be caught for bindings" in {
       implicit val ctx: ModuleContext = mkModuleContext

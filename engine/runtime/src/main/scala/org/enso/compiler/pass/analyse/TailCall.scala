@@ -217,6 +217,12 @@ case object TailCall extends IRPass {
             items.map(analyseExpression(_, isInTailPosition = false))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        tSet
+          .copy(expression =
+            expr.map(analyseExpression(_, isInTailPosition = false))
+          )
+          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected binary operator.")
     }

@@ -548,6 +548,18 @@ class AstToIrTest extends CompilerTest {
   }
 
   "AST translation for type operators" should {
+    "support type ascription" in {
+      pending
+    }
+
+    "support context ascription" in {
+      pending
+    }
+
+    "support error ascription" in {
+      pending
+    }
+
     "give them the correct precedence" in {
       pending
     }
@@ -624,7 +636,7 @@ class AstToIrTest extends CompilerTest {
       pending
       @unused val ir =
         """
-          |#x : { x : A ; y : B } -> B
+          |x : { x : A ; y : B } -> B
           |""".stripMargin.toAst
     }
 

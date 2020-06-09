@@ -2953,8 +2953,81 @@ object IR {
 
     object Literal {
 
-//      sealed case class Typeset() extends Literal with IRKind.Primitive {
-//      }
+      /** A representation of a typeset literal.
+        *
+        * These are necessary as they delimit pattern contexts.
+        *
+        * @param expression the expression of the typeset body
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        */
+      sealed case class Typeset(
+        expression: Option[Expression],
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Literal
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        override def mapExpressions(fn: Expression => Expression): Typeset =
+          copy(expression = expression.map(fn))
+
+        /** Creates a copy of `this`.
+          *
+          * @param expression the expression of the typeset body
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updataed with the specified values
+          */
+        def copy(
+          expression: Option[Expression]       = expression,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Typeset = {
+          val res = Typeset(expression, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def duplicate(keepLocations: Boolean): Typeset = copy(
+          expression  = expression.map(_.duplicate(keepLocations)),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Typeset = copy(location = location)
+
+        override def toString: String =
+          s"""IR.Application.Literal.Typeset(
+          |expression = $expression,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
+          |id = $id
+          |)
+          |""".toSingleLine
+
+        override def children: List[IR] =
+          expression.map(List(_)).getOrElse(List())
+
+        override def showCode(indent: Int): String = {
+          val exprString = if (expression.isDefined) {
+            expression.get.showCode(indent)
+          } else ""
+
+          s"{ $exprString }"
+        }
+      }
 
       /** A representation of a vector literal.
         *

@@ -14,7 +14,6 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  CachePreferenceAnalysis,
   DataflowAnalysis,
   TailCall
 }
@@ -437,7 +436,7 @@ class IrToTruffle(
       case IR.Case.Expr(scrutinee, branches, location, _, _) =>
         val scrutineeNode = this.run(scrutinee)
 
-        val maybeCases = branches.map(processCaseBranch)
+        val maybeCases    = branches.map(processCaseBranch)
         val allCasesValid = maybeCases.forall(_.isRight)
 
         // TODO [AA] This is until we can resolve this statically in the
@@ -860,6 +859,17 @@ class IrToTruffle(
         case IR.Application.Literal.Sequence(items, location, _, _) =>
           val itemNodes = items.map(run).toArray
           setLocation(SequenceLiteralNode.build(itemNodes), location)
+        case _: IR.Application.Literal.Typeset =>
+          setLocation(
+            ErrorNode.build(
+              context.getBuiltins
+                .syntaxError()
+                .newInstance(
+                  "Typeset literals are not yet supported at runtime."
+                )
+            ),
+            application.location
+          )
         case op: IR.Application.Operator.Binary =>
           throw new CompilerError(
             s"Explicit operators not supported during codegen but $op found"
