@@ -5,16 +5,9 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  CachePreferenceAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   LambdaShorthandToLambda,
-  NestedPatternMatch,
   OperatorToFunction,
   SectionsToBinOp
 }
@@ -81,6 +74,18 @@ case object TypeFunctions extends IRPass {
 
   // === Pass Internals =======================================================
 
+  /** The names of the known typing functions. */
+  val knownTypingFunctions: Set[String] = Set(
+    IR.Type.Ascription.name,
+    IR.Type.Context.name,
+    IR.Type.Error.name,
+    IR.Type.Set.Subsumption.name,
+    IR.Type.Set.Equality.name,
+    IR.Type.Set.Union.name,
+    IR.Type.Set.Intersection.name,
+    IR.Type.Set.Subtraction.name
+  )
+
   /** Performs resolution of typing functions in an arbitrary expression.
     *
     * @param expr the expression to perform resolution in
@@ -93,19 +98,86 @@ case object TypeFunctions extends IRPass {
   }
 
   /** Performs resolution of typing functions in an application.
-   *
-   * @param app the application to perform resolution in
-   * @return `app`, with any typing functions resolved
-   */
-  def resolveApplication(app: IR.Application): IR.Application = {
+    *
+    * @param app the application to perform resolution in
+    * @return `app`, with any typing functions resolved
+    */
+  def resolveApplication(app: IR.Application): IR.Expression = {
     app match {
-      case Application.Prefix(_, _, _, _, _, _)     => app
-      case Application.Force(_, _, _, _)            => app
-      case Application.Literal.Sequence(_, _, _, _) => app
-      case Application.Literal.Typeset(_, _, _, _)  => app
+      case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
+        fn match {
+          case name: IR.Name if knownTypingFunctions.contains(name.name) =>
+            resolveKnownFunction(pre)
+          case _ =>
+            pre.copy(
+              function  = resolveExpression(fn),
+              arguments = arguments.map(resolveCallArgument)
+            )
+        }
+      case force @ Application.Force(target, _, _, _) =>
+        force.copy(target = resolveExpression(target))
+      case seq @ Application.Literal.Sequence(items, _, _, _) =>
+        seq.copy(
+          items = items.map(resolveExpression)
+        )
+      case tSet @ Application.Literal.Typeset(expr, _, _, _) =>
+        tSet.copy(
+          expression = expr.map(resolveExpression)
+        )
       case _: Application.Operator =>
         throw new CompilerError(
           "Operators should not be present during typing functions lifting."
+        )
+    }
+  }
+
+  /** Resolves a known typing function to its IR node.
+    *
+    * @param prefix the application to resolve
+    * @return the IR node representing `prefix`
+    */
+  def resolveKnownFunction(prefix: IR.Application.Prefix): IR.Expression = {
+    val expectedNumArgs = 2
+    val lengthIsValid   = prefix.arguments.length == expectedNumArgs
+    val argsAreValid    = prefix.arguments.forall(isValidCallArg)
+
+    if (lengthIsValid && argsAreValid) {
+      val leftArg  = prefix.arguments.head.value
+      val rightArg = prefix.arguments.last.value
+
+      prefix.function.asInstanceOf[IR.Name].name match {
+        case IR.Type.Ascription.name =>
+          IR.Type.Ascription(leftArg, rightArg, prefix.location)
+        case IR.Type.Context.name =>
+          IR.Type.Context(leftArg, rightArg, prefix.location)
+        case IR.Type.Error.name =>
+          IR.Type.Error(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Subsumption.name =>
+          IR.Type.Set.Subsumption(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Equality.name =>
+          IR.Type.Set.Equality(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Union.name =>
+          IR.Type.Set.Union(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Intersection.name =>
+          IR.Type.Set.Intersection(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Subtraction.name =>
+          IR.Type.Set.Subtraction(leftArg, rightArg, prefix.location)
+      }
+    } else {
+      IR.Error.InvalidIR(prefix)
+    }
+  }
+
+  /** Performs resolution of typing functions in a call argument.
+    *
+    * @param arg the argument to perform resolution in
+    * @return `arg`, with any call arguments resolved
+    */
+  def resolveCallArgument(arg: IR.CallArgument): IR.CallArgument = {
+    arg match {
+      case spec @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+        spec.copy(
+          value = resolveExpression(value)
         )
     }
   }

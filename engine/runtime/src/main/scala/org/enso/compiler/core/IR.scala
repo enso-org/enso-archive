@@ -1947,6 +1947,9 @@ object IR {
       override def showCode(indent: Int): String =
         s"(${typed.showCode(indent)} ! ${error.showCode(indent)})"
     }
+    object Error extends Info {
+      override val name: String = "!"
+    }
 
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {

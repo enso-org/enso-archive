@@ -21,16 +21,16 @@ class TypeFunctionsTest extends CompilerTest {
     new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to resolve typing functions to an expression.
-   *
-   * @param ir the expression to resolve typing functions in
-   */
+    *
+    * @param ir the expression to resolve typing functions in
+    */
   implicit class ResolveExpression(ir: IR.Expression) {
 
     /** Resolves typing functions on [[ir]].
-     *
-     * @param inlineContext the context win which resolution takes place
-     * @return [[ir]], with typing functions resolved
-     */
+      *
+      * @param inlineContext the context win which resolution takes place
+      * @return [[ir]], with typing functions resolved
+      */
     def resolve(implicit inlineContext: InlineContext): IR.Expression = {
       TypeFunctions.runExpression(ir, inlineContext)
     }
@@ -47,16 +47,68 @@ class TypeFunctionsTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Type functions resolution" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
     "work for saturated applications" in {
-      pending
+      val ir =
+        """
+          |a : B
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Ascription]
     }
 
-    "work for sections" in {
-      pending
+    "work for left sections" in {
+      val ir =
+        """
+          |(a :)
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
     }
 
-    "work for underscore arguments" in {
-      pending
+    "work for centre sections" in {
+      val ir =
+        """
+          |(:)
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body shouldBe an[IR.Type.Ascription]
+    }
+
+    "work for right sections" in {
+      val ir =
+        """
+          |(: a)
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+    }
+
+    "work for underscore arguments on the left" in {
+      val ir =
+        """
+          |_ : A
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
+    }
+
+    "work for underscore arguments on the right" in {
+      val ir =
+        """
+          |a : _
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Function.Lambda]
+      ir.asInstanceOf[IR.Function.Lambda].body shouldBe an[IR.Type.Ascription]
     }
   }
 
