@@ -45,10 +45,10 @@ class RecomputeContextCmd(
         reply(Api.EmptyStackError(request.contextId))
         false
       } else {
-        CacheInvalidation.run(
-          stack,
-          request.expressions.toSeq.map(CacheInvalidation(_))
-        )
+        val cacheInvalidationCommands = request.expressions.toSeq
+          .map(CacheInvalidation.Command(_))
+          .map(CacheInvalidation(CacheInvalidation.StackSelector.Top, _))
+        CacheInvalidation.runAll(stack, cacheInvalidationCommands)
         reply(Api.RecomputeContextResponse(request.contextId))
         true
       }

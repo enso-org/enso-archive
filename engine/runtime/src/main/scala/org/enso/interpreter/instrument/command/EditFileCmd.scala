@@ -29,6 +29,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   ): Future[Unit] = {
     for {
       _ <- Future { ctx.jobControlPlane.abortAllJobs() }
+      _ <- ctx.jobProcessor.run(new EnsureCompiledJob(List(request.path)))
       invalidationRules <- ctx.jobProcessor.run(
         new ApplyEditsJob(request.path, request.edits)
       )
@@ -38,7 +39,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   }
 
   private def executeAll(
-    invalidationRules: Iterable[CacheInvalidation]
+    invalidationCommands: Iterable[CacheInvalidation]
   )(implicit ctx: RuntimeContext): List[Future[Unit]] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
@@ -46,7 +47,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
       .toList
       .map {
         case (contextId, stack) =>
-          CacheInvalidation.run(stack, invalidationRules)
+          CacheInvalidation.runAll(stack, invalidationCommands)
           ctx.jobProcessor.run(new ExecuteJob(contextId, stack))
       }
   }

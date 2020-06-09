@@ -22,12 +22,29 @@ class ApplyEditsJob(file: File, edits: Seq[TextEdit])
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
-      val maybeChangeSet =
+      val changesetOpt =
         ctx.executionService
           .modifyModuleSources(file, edits.asJava)
           .toScala
-
-      List.empty
+      val invalidateExpressionsCommand = changesetOpt.map { changeset =>
+        CacheInvalidation.Command.InvalidateKeys(
+          changeset.compute(edits)
+        )
+      }
+      val invalidateStaleCommand = changesetOpt.map { changeset =>
+        val scopeIds = ctx.executionService.getContext.getCompiler
+          .parseMeta(changeset.source.toString)
+          .map(_._2)
+        CacheInvalidation.Command.InvalidateStale(scopeIds)
+      }
+      (invalidateExpressionsCommand.toList ++ invalidateStaleCommand.toList)
+        .map(
+          CacheInvalidation(
+            CacheInvalidation.StackSelector.All,
+            _,
+            Set(CacheInvalidation.IndexSelector.All)
+          )
+        )
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
