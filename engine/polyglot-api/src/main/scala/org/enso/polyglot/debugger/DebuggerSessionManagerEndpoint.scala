@@ -21,7 +21,6 @@ class DebuggerSessionManagerEndpoint(
   override def sendBinary(data: ByteBuffer): Unit =
     Debugger.deserializeResponse(data) match {
       case Some(response) =>
-        println(s"Got $response")
         handleResponse(response)
       case None =>
         throw new RuntimeException(
@@ -43,7 +42,6 @@ class DebuggerSessionManagerEndpoint(
     executorStack.headOption
 
   private def startNewSession(): Nothing = {
-    println("Starting a new session")
     val newExecutor = new ReplExecutorImplementation
     executorStack.push(newExecutor)
     sessionManager.startSession(newExecutor)
@@ -134,7 +132,6 @@ class DebuggerSessionManagerEndpoint(
      */
 
     def onResponse(response: Response): Unit = {
-      println(s"Response: $response")
       response match {
         case EvaluationSuccess(result)    => evaluationResult = Right(result)
         case EvaluationFailure(exception) => evaluationResult = Left(exception)

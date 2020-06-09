@@ -99,30 +99,34 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
-    Instrumenter instrumenter = env.getInstrumenter();
-    env.registerService(this);
+        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
+            .build();
+    env.registerService(this); // TODO this seems unnecessary after #791
 
-    System.out.println("Debugger instrument initializing !!!");
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
       MessageEndpoint client =
           env.startServer(URI.create(DebugServerInfo.URI), handler);
       if (client != null) {
         handler.setClient(client);
-        System.out.println("Client initialized");
       } else {
-        System.out.println("Client was null");
+        env.getLogger(ReplDebuggerInstrument.class)
+            .warning("ReplDebuggerInstrument was initialized, " +
+                "but no client connected");
       }
     } catch (MessageTransport.VetoException e) {
-      // TODO we just ignore this exception ?
-      System.out.println("Vetoed");
+      env.getLogger(ReplDebuggerInstrument.class)
+          .warning("ReplDebuggerInstrument was initialized, " +
+              "but client connection has been vetoed");
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
 
-    instrumenter.attachExecutionEventFactory(
-        filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
+    // TODO in #791 move this inside try to not initialize the factory if there
+    //  are no clients
+    Instrumenter instrumenter = env.getInstrumenter();
+    instrumenter.attachExecutionEventFactory(filter, ctx ->
+        new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
 
   }
 

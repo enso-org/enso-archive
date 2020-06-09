@@ -43,7 +43,6 @@ trait ReplRunner extends InterpreterRunner {
     .err(err)
     .in(in)
     .serverTransport { (uri, peer) =>
-      println(uri)
       if (uri.toString == DebugServerInfo.URI) {
         new DebuggerSessionManagerEndpoint(sessionManager, peer)
       } else null
@@ -88,7 +87,6 @@ class ReplTest
       var evalResult: Either[ExceptionRepresentation, ObjectRepresentation] =
         null
       setSessionManager { executor =>
-        println("Hello to session!")
         evalResult = executor.evaluate("x + y")
         executor.exit()
       }
