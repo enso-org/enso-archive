@@ -34,7 +34,10 @@ class DebuggerMessageHandler extends MessageEndpoint {
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit = {
-    Debugger.deserializeRequest(data).foreach(onMessage)
+    Debugger.deserializeRequest(data) match {
+      case Right(request) => onMessage(request)
+      case Left(error)    => throw error
+    }
   }
 
   override def sendPing(data: ByteBuffer): Unit = client.sendPong(data)

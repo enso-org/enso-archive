@@ -20,12 +20,10 @@ class DebuggerSessionManagerEndpoint(
 
   override def sendBinary(data: ByteBuffer): Unit =
     Debugger.deserializeResponse(data) match {
-      case Some(response) =>
+      case Right(response) =>
         handleResponse(response)
-      case None =>
-        throw new RuntimeException(
-          "Failed to deserialize response from the debugger"
-        )
+      case Left(error) =>
+        throw error
     }
 
   override def sendPing(data: ByteBuffer): Unit = peer.sendPong(data)
@@ -67,8 +65,8 @@ class DebuggerSessionManagerEndpoint(
         case Some(executor) =>
           executor.onResponse(response)
         case None =>
-          throw new RuntimeException(
-            s"Unexpected response $response, no session is running"
+          throw new IllegalStateException(
+            s"Unexpected response $response, but no session is running"
           )
       }
     }
@@ -83,7 +81,7 @@ class DebuggerSessionManagerEndpoint(
       evaluationResult = null
       peer.sendBinary(Debugger.createEvaluationRequest(expression))
       if (evaluationResult == null)
-        throw new RuntimeException(
+        throw new IllegalStateException(
           "DebuggerServer returned but did not send back expected result"
         )
       else
@@ -96,7 +94,7 @@ class DebuggerSessionManagerEndpoint(
       bindingsResult = null
       peer.sendBinary(Debugger.createListBindingsRequest())
       if (bindingsResult == null)
-        throw new RuntimeException(
+        throw new IllegalStateException(
           "DebuggerServer returned but did not send back expected result"
         )
       else
@@ -118,7 +116,7 @@ class DebuggerSessionManagerEndpoint(
       endMostNestedSession(this)
       exited = true
       peer.sendBinary(Debugger.createSessionExitRequest())
-      throw new RuntimeException(
+      throw new IllegalStateException(
         "DebuggerServer unexpectedly returned from exit"
       )
     }
@@ -137,8 +135,9 @@ class DebuggerSessionManagerEndpoint(
         case EvaluationFailure(exception) => evaluationResult = Left(exception)
         case ListBindingsResult(bindings) => bindingsResult   = bindings
         case SessionStartNotification =>
-          throw new RuntimeException(
-            "Session start notification sent while the session is already running"
+          throw new IllegalStateException(
+            "Session start notification sent while the session is already" +
+            " running"
           )
       }
     }
