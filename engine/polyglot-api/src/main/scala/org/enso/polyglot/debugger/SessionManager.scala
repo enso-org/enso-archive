@@ -7,6 +7,7 @@ import org.enso.polyglot.debugger.protocol.{
 
 /**
   * Interface for executing Repl commands inside of a Repl session.
+  *
   * A single instance is valid only during the current session, it is provided
   * to the SessionManager on start of each session.
   */
@@ -33,8 +34,7 @@ trait ReplExecutor {
   /**
     * Terminates this REPL session.
     *
-    * The last result of {@link #evaluate(String)} (or
-    * {@link Builtins#unit()} if {@link #evaluate(String)} was not called
+    * The last result of [[evaluate]] (or `Unit` if [[evaluate]] was not called
     * before) will be returned from the instrumented node.
     *
     * This function must always be called at the end of REPL session, as

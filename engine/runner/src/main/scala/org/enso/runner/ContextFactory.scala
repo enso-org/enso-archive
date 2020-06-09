@@ -36,7 +36,7 @@ class ContextFactory {
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .out(out)
-      .in(in) // TODO will put serverTransport here for #791
+      .in(in) // TODO [RW] will put serverTransport here for #791
       .build
     val instrument = context.getEngine.getInstruments
       .get(DebugServerInfo.INSTRUMENT_NAME)

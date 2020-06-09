@@ -115,7 +115,7 @@ indicating that a REPL session should be started.
 
 The whole REPL session should live inside the endpoint's function handling this
 notification. This means that this function should not return before sending the
-Session exit request.
+session exit request.
 
 #### Notification
 ```idl

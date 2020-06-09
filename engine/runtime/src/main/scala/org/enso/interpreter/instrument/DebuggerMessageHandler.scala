@@ -27,6 +27,7 @@ class DebuggerMessageHandler extends MessageEndpoint {
 
   /**
     * Checks if a client has been registered.
+    *
     * @return a boolean value indicating whether a client is registered
     */
   def hasClient: Boolean = client != null

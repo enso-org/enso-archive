@@ -156,7 +156,7 @@ trait InterpreterRunner {
     inOutPrinter.println(string)
   }
 
-  // TODO remove this for #791
+  // TODO [RW] remove this for #791
   def getReplInstrument: ReplDebuggerInstrument = {
     ctx.getEngine.getInstruments
       .get(DebugServerInfo.INSTRUMENT_NAME)

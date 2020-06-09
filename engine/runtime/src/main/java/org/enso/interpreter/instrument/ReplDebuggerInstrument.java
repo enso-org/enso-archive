@@ -37,8 +37,6 @@ import scala.util.Right;
     id = DebugServerInfo.INSTRUMENT_NAME,
     services = ReplDebuggerInstrument.class)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-  // private Env env; // TODO make sure if these are needed
-  // private DebuggerHandler handler;
 
   /**
    * Internal reference type to store session manager and get the current version on each execution
@@ -101,7 +99,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
             .build();
-    env.registerService(this); // TODO this seems unnecessary after #791
+    env.registerService(this); // TODO [RW] this seems unnecessary after #791
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
@@ -122,8 +120,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       throw new RuntimeException(e);
     }
 
-    // TODO in #791 move this inside try to not initialize the factory if there
-    //  are no clients
+    // TODO [RW] in #791 move this inside try to not initialize the factory if
+    //  there are no clients
     Instrumenter instrumenter = env.getInstrumenter();
     instrumenter.attachExecutionEventFactory(filter, ctx ->
         new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
