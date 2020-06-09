@@ -675,6 +675,10 @@ class IrToTruffle(
           throw new CompilerError(
             "Blanks should not be present at codegen time."
           )
+        case _: IR.Name.MethodReference =>
+          throw new CompilerError(
+            "Method references should not be present at codegen time."
+          )
       }
 
       setLocation(nameExpr, name.location)

@@ -643,6 +643,7 @@ class AstToIrTest extends CompilerTest {
 
   "AST translation for type signatures" should {
     "work at the top level" in {
+      pending
       val ir =
         """
           |MyAtom.foo : Number -> Number -> Number
@@ -651,7 +652,9 @@ class AstToIrTest extends CompilerTest {
 
       // TODO [AA] Needs to handle the LHS properly (as a method reference or smth)
       ir shouldBe an[IR.Type.Ascription]
-      println(ir.pretty)
+
+      val asc = ir.asInstanceOf[IR.Type.Ascription]
+      asc.typed shouldBe an[IR.Name/*.MethodReference*/]
     }
 
     "work in block contexts" in {

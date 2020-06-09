@@ -1343,6 +1343,117 @@ object IR {
   }
   object Name {
 
+    /** A representation of a method reference of the form
+      *
+      * @param typeName the type name
+      * @param methodName the method on `typeName`
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class MethodReference(
+      typeName: List[IR.Name],
+      methodName: IR.Name,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Sugar {
+      override val name: String             = showCode()
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param typeName the type name
+        * @param methodName the method on `typeName`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typeName: List[IR.Name]              = typeName,
+        methodName: IR.Name                  = methodName,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): MethodReference = {
+        val res =
+          MethodReference(typeName, methodName, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(keepLocations: Boolean): MethodReference = copy(
+        typeName    = typeName.duplicate(keepLocations),
+        methodName  = methodName.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+      override def mapExpressions(
+        fn: Expression => Expression
+      ): MethodReference = copy(
+        typeName   = typeName.map(_.mapExpressions(fn)),
+        methodName = methodName.mapExpressions(fn)
+      )
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): MethodReference = {
+        copy(location = location)
+      }
+
+      override def toString: String =
+        s"""
+        |IR.Name.MethodReference(
+        |typeName = $typeName,
+        |methodName = $methodName,
+        |location = $location,
+        |passData = $passData,
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def children: List[IR] = typeName :+ methodName
+
+      override def showCode(indent: Int): String = s"$typeName.$methodName"
+
+      /** Constructs a name literal from the type name segments.
+        *
+        * @return a name literal representing [[typeName]]
+        */
+      def typeNameAsName: IR.Name = {
+        val nameStr = typeName.map(_.name).mkString(".")
+        val newLoc = typeName.foldLeft(None: Option[IdentifiedLocation])(
+          (identLoc, segment) => {
+            identLoc.flatMap(loc => {
+              Some(
+                IdentifiedLocation(
+                  Location(
+                    loc.location.start,
+                    segment.location
+                      .flatMap(l => Some(l.location.end))
+                      .getOrElse(loc.location.end)
+                  )
+                )
+              )
+            })
+          }
+        )
+
+        IR.Name.Literal(
+          nameStr,
+          newLoc
+        )
+      }
+    }
+
     /** Represents occurrences of blank (`_`) expressions.
       *
       * @param location the source location that the node corresponds to.
