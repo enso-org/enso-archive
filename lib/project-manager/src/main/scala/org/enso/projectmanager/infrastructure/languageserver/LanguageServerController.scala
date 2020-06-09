@@ -23,7 +23,8 @@ import org.enso.languageserver.boot.{
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
-  SupervisionConfig
+  SupervisionConfig,
+  TimeoutConfig
 }
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
@@ -52,12 +53,15 @@ import scala.concurrent.duration._
   * @param project a project open by the server
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
+  * @param supervisionConfig a supervision config
+  * @param timeoutConfig a timeout config
   */
 class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
-  supervisionConfig: SupervisionConfig
+  supervisionConfig: SupervisionConfig,
+  timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
     with Stash
@@ -182,7 +186,8 @@ class LanguageServerController(
       context.children.foreach(_ ! GracefulStop)
       server.stop() pipeTo self
       val cancellable =
-        context.system.scheduler.scheduleOnce(10.seconds, self, StoppageTimeout)
+        context.system.scheduler
+          .scheduleOnce(timeoutConfig.stoppageTimeout, self, StoppageTimeout)
       context.become(stopping(cancellable, maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
@@ -249,20 +254,24 @@ object LanguageServerController {
     * @param project a project open by the server
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
+    * @param supervisionConfig a supervision config
+    * @param timeoutConfig a timeout config
     * @return a configuration object
     */
   def props(
     project: Project,
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
-    supervisionConfig: SupervisionConfig
+    supervisionConfig: SupervisionConfig,
+    timeoutConfig: TimeoutConfig
   ): Props =
     Props(
       new LanguageServerController(
         project,
         networkConfig,
         bootloaderConfig,
-        supervisionConfig
+        supervisionConfig,
+        timeoutConfig
       )
     )
 
