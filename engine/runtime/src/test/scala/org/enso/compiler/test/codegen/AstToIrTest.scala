@@ -1,6 +1,7 @@
 package org.enso.compiler.test.codegen
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.Debug
 
@@ -554,7 +555,7 @@ class AstToIrTest extends CompilerTest {
           |a : Type
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Ascription]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support context ascription" in {
@@ -563,7 +564,7 @@ class AstToIrTest extends CompilerTest {
           |a in IO
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Context]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support error ascription" in {
@@ -572,7 +573,7 @@ class AstToIrTest extends CompilerTest {
           |IO ! FileNotFound
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Error]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the subsumption operator" in {
@@ -581,7 +582,7 @@ class AstToIrTest extends CompilerTest {
           |IO.Read <: IO
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Subsumption]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the equality operator" in {
@@ -590,7 +591,7 @@ class AstToIrTest extends CompilerTest {
           |T ~ Q
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Equality]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the concatenation operator" in {
@@ -599,7 +600,7 @@ class AstToIrTest extends CompilerTest {
           |a ; b
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Concat]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the union operator" in {
@@ -608,7 +609,7 @@ class AstToIrTest extends CompilerTest {
           |A | B
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Union]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the intersection operator" in {
@@ -617,7 +618,7 @@ class AstToIrTest extends CompilerTest {
           |A & B
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Intersection]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "support the minus operator" in {
@@ -626,7 +627,7 @@ class AstToIrTest extends CompilerTest {
           |A \ B
           |""".stripMargin.toIrExpression.get
 
-      ir shouldBe an[IR.Type.Set.Subtraction]
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
   }
 
@@ -641,87 +642,130 @@ class AstToIrTest extends CompilerTest {
     }
   }
 
-  "AST translation for type signatures" should {
-    "work at the top level" in {
-      pending
+  "AST translation for top-level type signatures" should {
+    "work for method signatures" in {
+      val ir =
+        """
+          |MyAtom.foo : Number -> Number -> Number
+          |MyAtom.foo = a -> b -> a + b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Type.Ascription]
+
+      val asc = ir.asInstanceOf[IR.Type.Ascription]
+      asc.typed shouldBe an[IR.Name.MethodReference]
+    }
+
+    "work for module-method signatures" in {
+      val ir =
+        """
+          |foo : Number -> Number
+          |foo a = a
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Type.Ascription]
+      val asc = ir.asInstanceOf[IR.Type.Ascription]
+      asc.typed shouldBe an[IR.Name.MethodReference]
+    }
+
+    "work with sugared syntax" in {
       val ir =
         """
           |MyAtom.foo : Number -> Number -> Number
           |MyAtom.foo a b = a + b
           |""".stripMargin.toIrModule.bindings.head
 
-      // TODO [AA] Needs to handle the LHS properly (as a method reference or smth)
       ir shouldBe an[IR.Type.Ascription]
 
       val asc = ir.asInstanceOf[IR.Type.Ascription]
-      asc.typed shouldBe an[IR.Name/*.MethodReference*/]
+      asc.typed shouldBe an[IR.Name.MethodReference]
     }
 
+    "result in a syntax error if not valid" in {
+      val ir =
+        """
+          |a b : Number -> Number -> Number
+          |MyAtom.foo a b = a + b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[Syntax.InvalidStandaloneSignature.type]
+    }
+  }
+
+  "AST translation for expression-level type signatures" should {
     "work in block contexts" in {
-      pending
-      @unused val ir =
+      val ir =
         """
           |x : Number
           |x = 10
-          |""".stripMargin
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Expression.Block]
+
+      ir.expressions.head shouldBe an[IR.Application.Operator.Binary]
     }
 
     "work in expression contexts" in {
-      pending
-      @unused val ir =
+      val ir =
         """
           |(a + b) : Number
-          |""".stripMargin
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Operator.Binary]
     }
 
     "work properly when used in assignments" in {
-      // x = ... : T should be x = (... : T)
-      pending
-      @unused val ir =
+      val ir =
         """
           |x = a : Number
-          |""".stripMargin
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Expression.Binding]
+
+      ir.asInstanceOf[IR.Expression.Binding]
+        .expression shouldBe an[IR.Application.Operator.Binary]
     }
 
     "properly support nested ascriptions" in {
-      pending
-      @unused val ir =
+      val ir =
         """
-          |x : (a: Type) -> (b : Type -> Type) -> (c : Type)
-          |""".stripMargin
+          |x : (a : Type) -> (b : Type -> Type) -> (c : Type)
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Operator.Binary]
+
+      ir.right.value
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .left
+        .value shouldBe an[IR.Application.Operator.Binary]
     }
 
     "properly support the `in` context ascription operator" in {
-      pending
-      @unused val ir =
+      val ir =
         """
-          |x : Number in (Maybe | IO) -> Number in IO
-          |""".stripMargin
+          |x : Number in (Maybe | IO)
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Operator.Binary]
+
+      ir.right.value shouldBe an[IR.Application.Operator.Binary]
+      ir.right.value
+        .asInstanceOf[IR.Application.Operator.Binary]
+        .operator
+        .name shouldEqual "in"
     }
 
     "properly support the `!` error ascription operator" in {
-      // Should parse as (Number in IO) ! OverflowError
-      pending
-      @unused val ir =
+      val ir =
         """
           |x : Number in IO ! OverflowError
-          |""".stripMargin
-    }
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Operator.Binary]
+          .right
+          .value
 
-    "properly support the `{}` typeset literal syntax" in {
-      pending
-      @unused val ir =
-        """
-          |x : { x : A ; y : B } -> B
-          |""".stripMargin.toAst
-    }
-
-    "support arbitrarily complex expressions" in {
-      pending
-      @unused val ir =
-        """
-          |x : X | Y -> X & Z -> X in IO | Maybe ! Error
-          |""".stripMargin
+      ir shouldBe an[IR.Application.Operator.Binary]
+      ir.asInstanceOf[IR.Application.Operator.Binary]
+        .operator
+        .name shouldEqual "!"
     }
   }
 }

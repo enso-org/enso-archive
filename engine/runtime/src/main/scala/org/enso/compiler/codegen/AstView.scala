@@ -927,10 +927,10 @@ object AstView {
   object TypesetMember {
 
     /** Matches a usage of the typeset member assignment operator `:=`.
-     *
-     * @param ast the structure to try and match on
-     * @return the left and right hand sides
-     */
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
     def unapply(ast: AST): Option[(AST, AST)] = ast match {
       case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(":="), sig)) =>
         Some((typed, sig))

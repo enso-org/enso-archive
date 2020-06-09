@@ -4449,6 +4449,11 @@ object IR {
           s"Cannot define a pattern outside a pattern context."
       }
 
+      case object InvalidStandaloneSignature extends Reason {
+        override def explanation: String =
+          s"Invalid stand-alone signature expression."
+      }
+
       case class MethodDefinedInline(methodName: String) extends Reason {
         override def explanation: String =
           s"Cannot define $methodName, methods are not supported in the " +
