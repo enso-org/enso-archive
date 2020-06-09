@@ -224,6 +224,9 @@ class LanguageServerController(
       log.error("Language server stoppage timed out")
       maybeRequester.foreach(_ ! ServerStoppageTimedOut)
       stop()
+
+    case StartServer(_, _) =>
+      sender() ! PreviousInstanceNotShutDown
   }
 
   private def waitingForChildren(): Receive = {

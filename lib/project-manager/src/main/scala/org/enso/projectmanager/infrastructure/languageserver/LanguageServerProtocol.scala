@@ -49,6 +49,11 @@ object LanguageServerProtocol {
   case object ServerBootTimedOut extends ServerStartupFailure
 
   /**
+    * Signals that previous instance of the server hasn't been shut down yet.
+    */
+  case object PreviousInstanceNotShutDown extends ServerStartupFailure
+
+  /**
     * Command to stop a server.
     *
     * @param clientId the requester id

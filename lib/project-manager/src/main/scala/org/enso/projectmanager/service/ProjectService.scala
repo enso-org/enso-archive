@@ -114,6 +114,12 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     languageServerService
       .start(clientId, project)
       .mapError {
+        case PreviousInstanceNotShutDown =>
+          ProjectOpenFailed(
+            "The previous instance of the Language Server hasn't been shut " +
+            "down yet."
+          )
+
         case ServerBootTimedOut =>
           ProjectOpenFailed("Language server boot timed out")
 
