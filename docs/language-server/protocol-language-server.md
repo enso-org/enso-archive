@@ -24,7 +24,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`MethodPointer`](#methodpointer)
   - [`ExpressionValueUpdate`](#expressionvalueupdate)
   - [`VisualisationConfiguration`](#visualisationconfiguration)
-  - [`SuggestionEntryId`](#suggestionentryid)
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
@@ -232,33 +231,24 @@ interface VisualisationConfiguration {
 }
 ```
 
-### `SuggestionEntryId`
-The entry id in the suggestions database.
-
-#### Format
-
-``` typescript
-type SuggestionEntryId = Number;
-```
-
 ### `SuggestionEntryArgument`
 The argument of a [`SuggestionEntry`](#suggestionentry).
 
 #### Format
 
-``` typescript
-/**
- * The argument of an atom, method or function suggestion.
- */
-interface SuggestionEntryArgument {
-  /** The argument name */
-  name: String;
-  /** The arguement type. String 'Any' is used to specify genric types */
-  type: String;
-  /** Indicates whether the argument is lazy */
-  isSuspended: Boolean;
-  /** Indicates whether the argument has default value */
-  hasDefault: Boolean;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+// The argument of an atom, method or function suggestion
+table SuggestionEntryArgument {
+  // The argument name
+  name: string (required);
+  // The arguement type. String 'Any' is used to specify genric types
+  type: string (required);
+  // Indicates whether the argument is lazy
+  isSuspended: bool (required);
+  // Indicates whether the argument has default value
+  hasDefault: bool (required);
 }
 ```
 
@@ -267,45 +257,46 @@ The language construct that can be returned as a suggestion.
 
 #### Format
 
-``` typescript
-/**
- * A type of suggestion entries.
- */
-type SuggestionEntry
-    /** A value constructor. */
-  = SuggestionEntryAtom
-    /** A method defined on a type. */
-  | SuggestionEntryMethod
-    /** A function. */
-  | SuggestionEntryFunction
-    /** A local value. */
-  | SuggestionEntryLocal;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
 
-interface SuggestionEntryAtom {
-  name: String;
-  arguments: SuggestionEntryArgument[];
-  returnType: String;
-  documentation?: String;
+// A type of suggestion entries.
+union SuggestionEntry {
+  // A value constructor
+  SuggestionEntryAtom,
+  // A method defined on a type
+  SuggestionEntryMethod,
+  // A function
+  SuggestionEntryFunction,
+  // A local value
+  SuggestionEntryLocal
 }
 
-interface SuggestionEntryMethod {
-  name: String;
-  arguments: SuggestionEntryArgument[];
-  selfType: String
-  returnType: String;
-  documentation?: String;
+table SuggestionEntryAtom {
+  name: string (required);
+  arguments: [SuggestionEntryArgument] (required);
+  returnType: string (required);
+  documentation: string;
 }
 
-interface SuggestionEntryFunction {
-  name: String;
-  arguments: SuggestionEntryArgument[];
-  returnType: String;
-  documentation?: String;
+table SuggestionEntryMethod {
+  name: string (required);
+  arguments: [SuggestionEntryArgument] (required);
+  selfType: string (required);
+  returnType: string (required);
+  documentation: string;
 }
 
-interface SuggestionEntryLocal {
-  name: String;
-  returnType: String;
+table SuggestionEntryFunction {
+  name: string (required);
+  arguments: [SuggestionEntryArgument] (required);
+  returnType: string (required);
+  documentation: string;
+}
+
+table SuggestionEntryLocal {
+  name: string (required);
+  returnType: string (required);
 }
 ```
 
@@ -314,11 +305,16 @@ The suggestion entry type that is used as a filter in search requests.
 
 #### Format
 
-``` typescript
-/**
- * The kind of a suggestion.
- */
-type SuggestionEntryType = 'Atom' | 'Method' | 'Function' | 'Local';
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+// The kind of a suggestion.
+enum SuggestionEntryType : byte {
+  Atom,
+  Method,
+  Function,
+  Local
+}
 ```
 
 ### `SuggestionsDatabaseEntry`
@@ -326,13 +322,14 @@ The entry in the suggestions database.
 
 #### Format
 
-``` typescript
-/**
- * The suggestions database entry.
- */
-interface SuggestionsDatabaseEntry {
-  id: SuggestionEntryId;
-  suggestion: Suggestion;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+// The suggestions database entry.
+table SuggestionsDatabaseEntry {
+  // suggestion entry id;
+  id: int64 (required);
+  suggestion: Suggestion (required);
 }
 ```
 
@@ -341,23 +338,38 @@ The update of the suggestions database.
 
 #### Format
 
-``` typescript
-/**
- * The kind of the suggestions database update.
- */
-type SuggestionsDatabaseUpdate
-    /** Create or replace the database entry. */
-  = SuggestionsDatabaseUpdatePut
-    /** Remove the database Entry. */
-  | SuggestionsDatabaseUpdateRemove;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
 
-interface SuggestionsDatabaseUpdatePut {
-  id: SuggestionEntryId;
-  suggestion: SuggestionEntry;
+// The kind of the suggestions database update.
+union SuggestionsDatabaseUpdate {
+  // Create or replace the database entry
+  SuggestionsDatabaseUpdateInsert,
+  // Update the entry fields
+  SuggestionsDatabaseUpdateModify,
+  // Remove the database Entry
+  SuggestionsDatabaseUpdateRemove
 }
 
-interface SuggestionsDatabaseUpdateRemove {
-  id: SuggestionEntryId;
+table SuggestionsDatabaseUpdateInsert {
+  // suggestion entry id
+  id: int64 (required);
+  suggestion: SuggestionEntry (required);
+}
+
+table SuggestionsDatabaseUpdateModify {
+  // suggestion entry id
+  id: int64 (required);
+  name: string;
+  arguments: [SuggestionEntryArgument];
+  selfType: string;
+  returnType: string;
+  documentation: string;
+}
+
+table SuggestionsDatabaseUpdateRemove {
+  // suggestion entry id
+  id: int64 (required);
 }
 ```
 
@@ -457,6 +469,17 @@ interface Position {
    * the line length.
    */
   character: number;
+}
+```
+
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+struct Position {
+  // Line position in a document (zero-based)
+  line: uint64;
+  // Character offset on a line in a document (zero-based)
+  character: uint64;
 }
 ```
 
@@ -2270,8 +2293,7 @@ N/A
 Search operations allow requesting for the autocomplete suggestions and search
 for the documentation. Search operations return links to the items in the
 Suggestions Database instead of returning full entries. Suggestions Database is
-a key-value storage with [`SuggestionEntryId`](#suggestionentryid) keys and
-[`SuggestionEntry`](#suggestionentry) values.
+a key-value storage with [`SuggestionEntry`](#suggestionentry) values.
 
 ### Suggestions Database Example
 
@@ -2328,7 +2350,7 @@ main =
   arguments: [
     {
       name: 'a',
-n      type: 'Any',
+      type: 'Any',
       isSuspended: false,
       hasDefault: false,
     }
@@ -2406,23 +2428,27 @@ Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
-```typescript
-{
-  contextId: ContextId;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table GetSuggestionsDatabaseCommand {
+  contextId: EnsoUUID (required);
 }
 ```
 
 #### Result
-```typescript
-{
-  /** The list of suggestions database entries */
-  entries: [SuggestionsDatabaseEntry];
-  /** The version of received suggestions database */
-  currentVersion: SHA3-224;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table GetSuggestionsDatabaseReply {
+  // The list of suggestions database entries
+  entries: [SuggestionsDatabaseEntry] (required);
+  // The version of received suggestions database
+  currentVersion: int64 (required);
 }
 ```
 
@@ -2435,21 +2461,25 @@ database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
-```typescript
-{
-  contextId: ContextId;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table GetSuggestionsDatabaseVersionCommand {
+  contextId: EnsoUUID (required);
 }
 ```
 
 #### Result
-```typescript
-{
-  /** The version of the suggestions database */
-  currentVersion: SHA3-224;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table GetSuggestionsDatabaseVersionReply {
+  // The version of the suggestions database
+  currentVersion: int64 (required);
 }
 ```
 
@@ -2462,19 +2492,21 @@ database.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
 
-``` typescript
-{
-  /** The context id */
-  contextId: ContextId;
-  /** The list of database updates to apply */
-  updates: SuggestionsDatabaseUpdate[];
-  /** The version of suggestions database after applying the updates */
-  currentVersion: SHA3-224
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table SuggestionsDatabaseUpdate {
+  // The context id
+  contextId: EnsoUUID (required);
+  // The list of database updates to apply
+  updates: [SuggestionsDatabaseUpdate] (required);
+  // The version of suggestions database after applying the updates
+  currentVersion: int64 (required);
 }
 ```
 
@@ -2486,33 +2518,37 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
 
-```typescript
-{
-  /** The context id */
-  contextId: ContextId;
-  /** The edited file */
-  file: Path;
-  /** The cursor position */
-  position: Position;
-  /** Filter by methods with the provided self type */
-  selfType?: String;
-  /** Filter by the return type */
-  returnType?: String;
-  /** Filter by the suggestion types */
-  tags?: SuggestionEntryType[];
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table SearchCompletionCommand {
+  // The context id
+  contextId: EnsoUUID (required);
+  // The edited file
+  file: Path (required);
+  // The cursor position
+  position: Position (required);
+  // Filter by methods with the provided self type
+  selfType: string;
+  // Filter by the return type
+  returnType: string;
+  // Filter by the suggestion types
+  tags: [SuggestionEntryType];
 }
 ```
 
 #### Result
-```typescript
-{
-  results: SuggestionEntryId[];
-  currentVersion: SHA3-224;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table SearchCompletionReply {
+  results: [SuggestionEntryId] (required);
+  currentVersion: int64 (required);
 }
 ```
 
@@ -2524,31 +2560,35 @@ Sent from client to the server to search suggestion entries by the documentation
 
 - **Type:** Request
 - **direction:** Client -> Server
-- **Connection:** Protocol
+- **Connection:** Binary
 - **Visibility:** Public
 
 #### Parameters
 
-```typescript
-{
-  /** The context id */
-  contextId: ContextId;
-  /** The string to search for */
-  searchString: String;
-  /** Filter by methods with the provided self type */
-  selfType?: String;
-  /** Filter by tye return type */
-  returnType?: String;
-  /** Filter by the suggestion types */
-  tags?: SuggestionEntryType[];
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table SearchDocumentationCommand {
+  // The context id
+  contextId: EnsoUUID (required);
+  // The string to search for
+  searchString: string (required);
+  // Filter by methods with the provided self type
+  selfType: string;
+  // Filter by tye return type
+  returnType: string;
+  // Filter by the suggestion types
+  tags: [SuggestionEntryType];
 }
 ```
 
 #### Result
-```typescript
-{
-  results: SuggestionEntryId[];
-  currentVersion: SHA3-224;
+``` idl
+namespace org.enso.languageserver.protocol.binary;
+
+table SearchDocumentationReply {
+  results: [SuggestionEntryId] (required);
+  currentVersion: int64 (required);
 }
 ```
 

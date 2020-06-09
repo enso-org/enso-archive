@@ -83,12 +83,5 @@ function, the search results will have the order of: `x2` > `x1` > `const_x`.
 
 ### Type
 
-The values in Enso can have multiple types. Suggestions based on the type are
-ranked from the most specific to the most abstract.
-
-``` ruby
-7 : 7 : Natural : Integer : Number : Any : Any : ...
-```
-
-The types are ordered based on the typeset subsumption described in the [Type
-Hierarchy](../types/hierarchy.md) document.
+Suggestions based on the type are selected by matching with the string runtime
+type representation.
