@@ -28,6 +28,29 @@ with additional indexes used to answer the different search criteria. The
 database is populated partially by analyzing the sources and enriched with the
 extra information from the runtime.
 
+### Database Structure
+
+SQLite representation of the database.
+
+#### Suggestions Table
+
+* `id` `INTEGER` - unique identifier
+* `kind` `INTEGER` - type of suggestion entry, i.e. Atom, Method, Function, or
+  Local
+* `name` `TEXT` - entry name
+* `self_type` `TEXT` - self type of the Method
+* `return_type` `TEXT` - return type of the entry
+* `documentation` `TEXT` - documentation string
+
+#### Arguments Table
+
+* `id` `INTEGER` - unique identifier
+* `suggestion_id` `INTEGER` - suggestion key this argument relates to
+* `name` `TEXT` - argument name
+* `type` `TEXT` - argument type; const 'Any' is used to specify generic types
+* `is_suspended` `INTEGER` - indicates whether the argument is lazy
+* `has_defult` `INTEGER` - indicates whether the argument has default value
+
 ### Static Analysis
 The database is filled by analyzing the Intermediate Representation (`IR`)
 parsed from the source.
@@ -62,7 +85,7 @@ the [ranking](#results-ranking) algorithm:
 - documentation tags
 
 ## Results Ranking
-The search result has an intrinsic ranking based on the scope and the type specificity.
+The search result has an intrinsic ranking based on the scope and the type.
 
 ### Scope
 The results from the local scope have the highest rank in the search result. As
@@ -85,3 +108,12 @@ function, the search results will have the order of: `x2` > `x1` > `const_x`.
 
 Suggestions based on the type are selected by matching with the string runtime
 type representation.
+
+### Documentation
+
+Search in the documentation ranks tags matches first and fallback to search in
+the documentation text:
+
+1. Full match with a documentation tag
+2. Partial match with a document tag
+3. Matches in a documentation text
