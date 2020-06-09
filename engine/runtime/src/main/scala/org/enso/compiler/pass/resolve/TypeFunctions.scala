@@ -79,6 +79,7 @@ case object TypeFunctions extends IRPass {
     IR.Type.Ascription.name,
     IR.Type.Context.name,
     IR.Type.Error.name,
+    IR.Type.Set.Concat.name,
     IR.Type.Set.Subsumption.name,
     IR.Type.Set.Equality.name,
     IR.Type.Set.Union.name,
@@ -152,6 +153,8 @@ case object TypeFunctions extends IRPass {
           IR.Type.Context(leftArg, rightArg, prefix.location)
         case IR.Type.Error.name =>
           IR.Type.Error(leftArg, rightArg, prefix.location)
+        case IR.Type.Set.Concat.name =>
+          IR.Type.Set.Concat(leftArg, rightArg, prefix.location)
         case IR.Type.Set.Subsumption.name =>
           IR.Type.Set.Subsumption(leftArg, rightArg, prefix.location)
         case IR.Type.Set.Equality.name =>

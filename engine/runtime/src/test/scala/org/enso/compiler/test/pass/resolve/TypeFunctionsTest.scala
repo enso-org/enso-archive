@@ -113,40 +113,87 @@ class TypeFunctionsTest extends CompilerTest {
   }
 
   "Resolution" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
     "resolve type ascription" in {
-      pending
+      val ir =
+        """
+          |a : A
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Ascription]
     }
 
     "resolve context ascription" in {
-      pending
+      val ir =
+        """
+          |a in IO
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Context]
     }
 
     "resolve error ascription" in {
-      pending
+      val ir =
+        """
+          |IO ! Error
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Error]
     }
 
     "resolve subsumption" in {
-      pending
+      val ir =
+        """
+          |T <: P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Subsumption]
     }
 
     "resolve equality" in {
-      pending
+      val ir =
+        """
+          |T ~ P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Equality]
     }
 
     "resolve concatenation" in {
-      pending
+      val ir =
+        """
+          |T ; P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Concat]
     }
 
     "resolve union" in {
-      pending
+      val ir =
+        """
+          |T | P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Union]
     }
 
     "resolve intersection" in {
-      pending
+      val ir =
+        """
+          |T & P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Intersection]
     }
 
     "resolve subtraction" in {
-      pending
+      val ir =
+        """
+          |T \ P
+          |""".stripMargin.preprocessExpression.get.resolve
+
+      ir shouldBe an[IR.Type.Set.Subtraction]
     }
   }
 }
