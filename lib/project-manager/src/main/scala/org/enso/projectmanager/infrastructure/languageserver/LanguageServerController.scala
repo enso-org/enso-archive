@@ -35,7 +35,8 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
   BootTimeout,
-  ServerDied
+  ServerDied,
+  StoppageTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
@@ -178,8 +179,11 @@ class LanguageServerController(
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
+      context.children.foreach(_ ! GracefulStop)
       server.stop() pipeTo self
-      context.become(stopping(maybeRequester))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(10.seconds, self, StoppageTimeout)
+      context.become(stopping(cancellable, maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(supervising(config, server, updatedClients))
@@ -192,8 +196,12 @@ class LanguageServerController(
       stop()
   }
 
-  private def stopping(maybeRequester: Option[ActorRef]): Receive = {
+  private def stopping(
+    cancellable: Cancellable,
+    maybeRequester: Option[ActorRef]
+  ): Receive = {
     case Failure(th) =>
+      cancellable.cancel()
       log.error(
         th,
         s"An error occurred during Language server shutdown [$project]."
@@ -202,8 +210,14 @@ class LanguageServerController(
       stop()
 
     case ComponentStopped =>
+      cancellable.cancel()
       log.info(s"Language server shut down successfully [$project].")
       maybeRequester.foreach(_ ! ServerStopped)
+      stop()
+
+    case StoppageTimeout =>
+      log.error("Language server stoppage timed out")
+      maybeRequester.foreach(_ ! ServerStoppageTimedOut)
       stop()
   }
 
@@ -261,6 +275,11 @@ object LanguageServerController {
     * Boot command.
     */
   case object Boot
+
+  /**
+    * Signals stoppage timeout.
+    */
+  case object StoppageTimeout
 
   case object ServerDied
 

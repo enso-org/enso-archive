@@ -72,6 +72,11 @@ object LanguageServerProtocol {
   sealed trait ServerStoppageFailure extends ServerStoppageResult
 
   /**
+    * Signals that server stoppage timed out.
+    */
+  case object ServerStoppageTimedOut extends ServerStoppageFailure
+
+  /**
     * Signals that an exception was thrown during stopping a server.
     *
     * @param th an exception
