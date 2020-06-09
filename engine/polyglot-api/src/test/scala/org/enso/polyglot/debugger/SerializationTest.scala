@@ -8,13 +8,13 @@ import org.enso.polyglot.debugger.protocol.{
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SerializationTest extends AnyWordSpec with Matchers {
+class SerializationTest extends AnyWordSpec with Matchers with EitherValue {
 
   "EvaluationRequest" should {
     "preserve all information when being serialized and deserialized" in {
-      val expression     = "2 + 2"
-      val bytes          = Debugger.createEvaluationRequest(expression)
-      val Right(request) = Debugger.deserializeRequest(bytes)
+      val expression = "2 + 2"
+      val bytes      = Debugger.createEvaluationRequest(expression)
+      val request    = Debugger.deserializeRequest(bytes).rightValue
 
       request shouldEqual EvaluationRequest(expression)
     }
@@ -22,8 +22,8 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "ListBindingsRequest" should {
     "preserve all information when being serialized and deserialized" in {
-      val bytes          = Debugger.createListBindingsRequest()
-      val Right(request) = Debugger.deserializeRequest(bytes)
+      val bytes   = Debugger.createListBindingsRequest()
+      val request = Debugger.deserializeRequest(bytes).rightValue
 
       request shouldEqual ListBindingsRequest
     }
@@ -31,8 +31,8 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "SessionExitRequest" should {
     "preserve all information when being serialized and deserialized" in {
-      val bytes          = Debugger.createSessionExitRequest()
-      val Right(request) = Debugger.deserializeRequest(bytes)
+      val bytes   = Debugger.createSessionExitRequest()
+      val request = Debugger.deserializeRequest(bytes).rightValue
 
       request shouldEqual SessionExitRequest
     }
@@ -46,10 +46,11 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "EvaluationSuccess" should {
     "preserve all information when being serialized and deserialized" in {
-      val result          = ("String", 42)
-      val bytes           = Debugger.createEvaluationSuccess(result)
-      val Right(response) = Debugger.deserializeResponse(bytes)
+      val result   = ("String", 42)
+      val bytes    = Debugger.createEvaluationSuccess(result)
+      val response = Debugger.deserializeResponse(bytes).rightValue
 
+      response should matchPattern { case EvaluationSuccess(_) => }
       val EvaluationSuccess(repr) = response
       assert(objectRepresentationIsConsistent(result, repr))
     }
@@ -91,10 +92,11 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "EvaluationFailure" should {
     "preserve all information when being serialized and deserialized" in {
-      val exception       = new RuntimeException("Test")
-      val bytes           = Debugger.createEvaluationFailure(exception)
-      val Right(response) = Debugger.deserializeResponse(bytes)
+      val exception = new RuntimeException("Test")
+      val bytes     = Debugger.createEvaluationFailure(exception)
+      val response  = Debugger.deserializeResponse(bytes).rightValue
 
+      response should matchPattern { case EvaluationFailure(_) => }
       val EvaluationFailure(repr) = response
       assert(
         exceptionRepresentationIsConsistent(exception, repr),
@@ -109,9 +111,10 @@ class SerializationTest extends AnyWordSpec with Matchers {
         "a" -> "Test",
         "b" -> int2Integer(42)
       )
-      val bytes           = Debugger.createListBindingsResult(bindings)
-      val Right(response) = Debugger.deserializeResponse(bytes)
+      val bytes    = Debugger.createListBindingsResult(bindings)
+      val response = Debugger.deserializeResponse(bytes).rightValue
 
+      response should matchPattern { case ListBindingsResult(_) => }
       val ListBindingsResult(bindingsRepr) = response
 
       bindingsRepr.size shouldEqual bindings.size
@@ -127,8 +130,8 @@ class SerializationTest extends AnyWordSpec with Matchers {
 
   "SessionExitNotification" should {
     "preserve all information when being serialized and deserialized" in {
-      val bytes           = Debugger.createSessionStartNotification()
-      val Right(response) = Debugger.deserializeResponse(bytes)
+      val bytes    = Debugger.createSessionStartNotification()
+      val response = Debugger.deserializeResponse(bytes).rightValue
 
       response shouldEqual SessionStartNotification
     }
