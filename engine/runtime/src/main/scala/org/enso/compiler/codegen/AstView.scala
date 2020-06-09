@@ -775,17 +775,166 @@ object AstView {
 
   object TypeOperator {
 
+    /** Matches a usage of an arbitrary type operator.
+      *
+      * @param inputAst the structure to try and match on
+      * @return the expression using the type operator
+      */
+    def unapply(inputAst: AST): Option[AST] = {
+      val ast = MaybeParensed.unapply(inputAst).getOrElse(inputAst)
+      ast match {
+        case TypeAscription(_, _)      => Some(ast)
+        case ContextAscription(_, _)   => Some(ast)
+        case ErrorAscription(_, _)     => Some(ast)
+        case TypeSubsumption(_, _)     => Some(ast)
+        case TypeEquality(_, _)        => Some(ast)
+        case TypesetConcat(_, _)       => Some(ast)
+        case TypesetUnion(_, _)        => Some(ast)
+        case TypesetIntersection(_, _) => Some(ast)
+        case TypesetSubtraction(_, _)  => Some(ast)
+        case TypesetMember(_, _)       => Some(ast)
+        case _                         => None
+      }
+    }
   }
 
   object TypeAscription {
 
+    /** Matches a usage of the type ascription operator `:`.
+      *
+      * @param ast the structure to try and match on
+      * @return the typed expression, and the ascribed type
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(":"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
   }
 
   object ContextAscription {
 
+    /** Matches a usage of the context ascription operator `in`.
+      *
+      * @param ast the structure to try and match on
+      * @return the typed expression, and the ascribed context
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("in"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
   }
 
   object ErrorAscription {
 
+    /** Matches a usage of the error ascription operator `!`.
+      *
+      * @param ast the structure to try and match on
+      * @return the typed expression, and the ascribed error
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("!"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypeSubsumption {
+
+    /** Matches a usage of the type subsumption operator `<:`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("<:"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypeEquality {
+
+    /** Matches a usage of the type equality operator `~`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("~"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypesetConcat {
+
+    /** Matches a usage of the typeset concatenation operator `;`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(";"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypesetUnion {
+
+    /** Matches a usage of the typeset union operator `|`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("|"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypesetIntersection {
+
+    /** Matches a usage of the typeset intersection operator `&`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("&"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypesetSubtraction {
+
+    /** Matches a usage of the typeset intersection operator `\`.
+      *
+      * @param ast the structure to try and match on
+      * @return the left and right hand sides
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr("\\"), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
+  }
+
+  object TypesetMember {
+
+    /** Matches a usage of the typeset member assignment operator `:=`.
+     *
+     * @param ast the structure to try and match on
+     * @return the left and right hand sides
+     */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(":="), sig)) =>
+        Some((typed, sig))
+      case _ => None
+    }
   }
 }

@@ -181,6 +181,11 @@ object AstToIr {
           getIdentifiedLocation(inputAst)
         )
       case AST.Comment.any(comment) => translateComment(comment)
+      case AstView.TypeAscription(typed, sig) => IR.Type.Ascription(
+        translateExpression(typed),
+        translateExpression(sig),
+        getIdentifiedLocation(inputAst)
+      )
       case _ =>
         throw new UnhandledEntity(inputAst, "translateModuleSymbol")
     }
@@ -316,6 +321,10 @@ object AstToIr {
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.TypesetLiteral.any(tSet) => IR.Application.Literal.Typeset(
+        tSet.expression.map(translateExpression),
+        getIdentifiedLocation(tSet)
+      )
       case AST.SequenceLiteral.any(inputAST) =>
         translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
@@ -510,6 +519,73 @@ object AstToIr {
     (validArguments, hasDefaultsSuspended)
   }
 
+  /** Translates an arbitrary type operator expression from its [[AST]]
+   * representation into [[IR]].
+   *
+   * @param inputAst the type operator expression to translate
+   * @return the [[IR]] representation of `inputAst`
+   */
+  def translateTypeOperator(inputAst: AST): Expression = {
+    val ast = AstView.MaybeParensed.unapply(inputAst).getOrElse(inputAst)
+    ast match {
+      case AstView.TypeAscription(typed, sig) =>
+        IR.Type.Ascription(
+          translateExpression(typed),
+          translateExpression(sig),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.ContextAscription(typed, ctx) =>
+        IR.Type.Context(
+          translateExpression(typed),
+          translateExpression(ctx),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.ErrorAscription(typed, err) =>
+        IR.Type.Error(
+          translateExpression(typed),
+          translateExpression(err),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypeSubsumption(left, right) =>
+        IR.Type.Set.Subsumption(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypeEquality(left, right) =>
+        IR.Type.Set.Equality(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypesetConcat(left, right) =>
+        IR.Type.Set.Concat(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypesetUnion(left, right) =>
+        IR.Type.Set.Union(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypesetIntersection(left, right) =>
+        IR.Type.Set.Intersection(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case AstView.TypesetSubtraction(left, right) =>
+        IR.Type.Set.Subtraction(
+          translateExpression(left),
+          translateExpression(right),
+          getIdentifiedLocation(inputAst)
+        )
+      case _ => throw new UnhandledEntity(inputAst, "translateTypeOperator")
+    }
+  }
+
   /** Translates an arbitrary expression that takes the form of a syntactic
     * application from its [[AST]] representation into [[IR]].
     *
@@ -518,6 +594,7 @@ object AstToIr {
     */
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
+      case AstView.TypeOperator(op) => translateTypeOperator(op)
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)

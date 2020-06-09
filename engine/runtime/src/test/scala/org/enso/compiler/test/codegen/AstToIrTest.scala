@@ -549,36 +549,109 @@ class AstToIrTest extends CompilerTest {
 
   "AST translation for type operators" should {
     "support type ascription" in {
-      pending
+      val ir =
+        """
+          |a : Type
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Ascription]
     }
 
     "support context ascription" in {
-      pending
+      val ir =
+        """
+          |a in IO
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Context]
     }
 
     "support error ascription" in {
-      pending
+      val ir =
+        """
+          |IO ! FileNotFound
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Error]
     }
 
-    "give them the correct precedence" in {
-      pending
+    "support the subsumption operator" in {
+      val ir =
+        """
+          |IO.Read <: IO
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Subsumption]
     }
 
-    "give them the correct associativity" in {
-      pending
+    "support the equality operator" in {
+      val ir =
+        """
+          |T ~ Q
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Equality]
+    }
+
+    "support the concatenation operator" in {
+      val ir =
+        """
+          |a ; b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Concat]
+    }
+
+    "support the union operator" in {
+      val ir =
+        """
+          |A | B
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Union]
+    }
+
+    "support the intersection operator" in {
+      val ir =
+        """
+          |A & B
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Intersection]
+    }
+
+    "support the minus operator" in {
+      val ir =
+        """
+          |A \ B
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Type.Set.Subtraction]
+    }
+  }
+
+  "AST translation for typeset literals" should {
+    "work properly" in {
+      val ir =
+        """
+          |{ x := 0 ; y := 0 }
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Literal.Typeset]
     }
   }
 
   "AST translation for type signatures" should {
     "work at the top level" in {
-      pending
       val ir =
         """
           |MyAtom.foo : Number -> Number -> Number
           |MyAtom.foo a b = a + b
-          |""".toIrExpression.get
+          |""".stripMargin.toIrModule.bindings.head
 
+      // TODO [AA] Needs to handle the LHS properly (as a method reference or smth)
       ir shouldBe an[IR.Type.Ascription]
+      println(ir.pretty)
     }
 
     "work in block contexts" in {
