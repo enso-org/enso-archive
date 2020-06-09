@@ -82,7 +82,7 @@ case object TailCall extends IRPass {
   ): IR.Module.Scope.Definition = {
     definition match {
       case method @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)

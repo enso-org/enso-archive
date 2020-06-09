@@ -137,7 +137,7 @@ case object AliasAnalysis extends IRPass {
 
     ir match {
       case m @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         body match {
           case _: IR.Function =>
             m.copy(

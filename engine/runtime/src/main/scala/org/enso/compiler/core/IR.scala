@@ -725,30 +725,28 @@ object IR {
 
         /** A trait representing method definitions in Enso. */
         sealed trait Method extends Definition {
-          val typeName: IR.Name
-          val methodName: IR.Name
+          val methodReference: IR.Name.MethodReference
           val body: Expression
 
           override def setLocation(location: Option[IdentifiedLocation]): Method
           override def mapExpressions(fn: Expression => Expression):      Method
           override def duplicate(keepLocations: Boolean = true): Method
+
+          def typeName: IR.Name   = methodReference.typePointerAsName
+          def methodName: IR.Name = methodReference.methodName
         }
         object Method {
 
-          /** The definition of a method for a given constructor [[typeName]].
+          /** The definition of a method for a given constructor.
             *
-            * @param typeName the name of the atom that the method is being
-            *                 defined for
-            * @param methodName the name of the method being defined on
-            *                   `typename`
+            * @param methodReference a reference to the method being defined
             * @param body the body of the method
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
             */
           sealed case class Explicit(
-            override val typeName: IR.Name,
-            override val methodName: IR.Name,
+            override val methodReference: IR.Name.MethodReference,
             override val body: Expression,
             override val location: Option[IdentifiedLocation],
             override val passData: MetadataStorage      = MetadataStorage(),
@@ -759,9 +757,7 @@ object IR {
 
             /** Creates a copy of `this`.
               *
-              * @param typeName the name of the atom that the method is being
-              *                 defined for
-              * @param methodName the name of the method being defined on `typename`
+              * @param methodReference a reference to the method being defined
               * @param body the body of the method
               * @param location the source location that the node corresponds to
               * @param passData the pass metadata associated with this node
@@ -770,17 +766,15 @@ object IR {
               * @return a copy of `this`, updated with the specified values
               */
             def copy(
-              typeName: IR.Name                    = typeName,
-              methodName: IR.Name                  = methodName,
-              body: Expression                     = body,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage            = passData,
-              diagnostics: DiagnosticStorage       = diagnostics,
-              id: Identifier                       = id
+              methodReference: IR.Name.MethodReference = methodReference,
+              body: Expression                         = body,
+              location: Option[IdentifiedLocation]     = location,
+              passData: MetadataStorage                = passData,
+              diagnostics: DiagnosticStorage           = diagnostics,
+              id: Identifier                           = id
             ): Explicit = {
               val res = Explicit(
-                typeName,
-                methodName,
+                methodReference,
                 body,
                 location,
                 passData,
@@ -792,13 +786,12 @@ object IR {
 
             override def duplicate(keepLocations: Boolean = true): Explicit =
               copy(
-                typeName    = typeName.duplicate(keepLocations),
-                methodName  = methodName.duplicate(keepLocations),
-                body        = body.duplicate(keepLocations),
-                location    = if (keepLocations) location else None,
-                passData    = MetadataStorage(),
-                diagnostics = DiagnosticStorage(),
-                id          = randomId
+                methodReference = methodReference.duplicate(keepLocations),
+                body            = body.duplicate(keepLocations),
+                location        = if (keepLocations) location else None,
+                passData        = MetadataStorage(),
+                diagnostics     = DiagnosticStorage(),
+                id              = randomId
               )
 
             override def setLocation(
@@ -810,17 +803,15 @@ object IR {
               fn: Expression => Expression
             ): Explicit = {
               copy(
-                typeName   = typeName.mapExpressions(fn),
-                methodName = methodName.mapExpressions(fn),
-                body       = fn(body)
+                methodReference = methodReference.mapExpressions(fn),
+                body            = fn(body)
               )
             }
 
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Explicit(
-              |typeName = $typeName,
-              |methodName = $methodName,
+              |methodReference = $methodReference,
               |body = $body,
               |location = $location,
               |passData = ${this.showPassData},
@@ -829,7 +820,7 @@ object IR {
               |)
               |""".toSingleLine
 
-            override def children: List[IR] = List(typeName, methodName, body)
+            override def children: List[IR] = List(methodReference, body)
 
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -838,17 +829,14 @@ object IR {
                 s"${body.showCode(indent)}"
               }
 
-              s"$typeName.$methodName = $exprStr"
+              s"${methodReference.showCode(indent)} = $exprStr"
             }
           }
 
-          /** The definition of a method for a given constructor [[typeName]]
-            * using sugared syntax.
+          /** The definition of a method for a given constructor using sugared
+            * syntax.
             *
-            * @param typeName the name of the atom that the method is being
-            *                 defined for
-            * @param methodName the name of the method being defined on
-            *                   `typename`
+            * @param methodReference a reference to the method being defined
             * @param arguments the arguments to the method
             * @param body the body of the method
             * @param location the source location that the node corresponds to
@@ -856,8 +844,7 @@ object IR {
             * @param diagnostics compiler diagnostics for this node
             */
           sealed case class Binding(
-            override val typeName: IR.Name,
-            override val methodName: IR.Name,
+            override val methodReference: IR.Name.MethodReference,
             arguments: List[IR.DefinitionArgument],
             override val body: Expression,
             override val location: Option[IdentifiedLocation],
@@ -869,10 +856,7 @@ object IR {
 
             /** Creates a copy of `this`.
               *
-              * @param typeName the name of the atom that the method is being
-              *                 defined for
-              * @param methodName the name of the method being defined on
-              *                   `typename`
+              * @param methodReference a reference to the method being defined
               * @param arguments the arguments to the method
               * @param body the body of the method
               * @param location the source location that the node corresponds to
@@ -882,18 +866,16 @@ object IR {
               * @return a copy of `this`, updated with the specified values
               */
             def copy(
-              typeName: IR.Name                      = typeName,
-              methodName: IR.Name                    = methodName,
-              arguments: List[IR.DefinitionArgument] = arguments,
-              body: Expression                       = body,
-              location: Option[IdentifiedLocation]   = location,
-              passData: MetadataStorage              = passData,
-              diagnostics: DiagnosticStorage         = diagnostics,
-              id: Identifier                         = id
+              methodReference: IR.Name.MethodReference = methodReference,
+              arguments: List[IR.DefinitionArgument]   = arguments,
+              body: Expression                         = body,
+              location: Option[IdentifiedLocation]     = location,
+              passData: MetadataStorage                = passData,
+              diagnostics: DiagnosticStorage           = diagnostics,
+              id: Identifier                           = id
             ): Binding = {
               val res = Binding(
-                typeName,
-                methodName,
+                methodReference,
                 arguments,
                 body,
                 location,
@@ -906,14 +888,13 @@ object IR {
 
             override def duplicate(keepLocations: Boolean = true): Binding =
               copy(
-                typeName    = typeName.duplicate(keepLocations),
-                methodName  = methodName.duplicate(keepLocations),
-                arguments   = arguments.map(_.duplicate(keepLocations)),
-                body        = body.duplicate(keepLocations),
-                location    = if (keepLocations) location else None,
-                passData    = MetadataStorage(),
-                diagnostics = DiagnosticStorage(),
-                id          = randomId
+                methodReference = methodReference.duplicate(keepLocations),
+                arguments       = arguments.map(_.duplicate(keepLocations)),
+                body            = body.duplicate(keepLocations),
+                location        = if (keepLocations) location else None,
+                passData        = MetadataStorage(),
+                diagnostics     = DiagnosticStorage(),
+                id              = randomId
               )
 
             override def setLocation(
@@ -925,18 +906,16 @@ object IR {
               fn: Expression => Expression
             ): Binding = {
               copy(
-                typeName   = typeName.mapExpressions(fn),
-                methodName = methodName.mapExpressions(fn),
-                arguments  = arguments.map(_.mapExpressions(fn)),
-                body       = fn(body)
+                methodReference = methodReference.mapExpressions(fn),
+                arguments       = arguments.map(_.mapExpressions(fn)),
+                body            = fn(body)
               )
             }
 
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Binding(
-              |typeName = $typeName,
-              |methodName = $methodName,
+              |methodReference = $methodReference,
               |arguments = $arguments,
               |body = $body,
               |location = $location,
@@ -947,7 +926,7 @@ object IR {
               |""".toSingleLine
 
             override def children: List[IR] =
-              (typeName :: methodName :: arguments) :+ body
+              (methodReference :: arguments) :+ body
 
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -958,7 +937,7 @@ object IR {
 
               val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
 
-              s"${typeName.name}.${methodName.name} $argsStr = $exprStr"
+              s"${methodReference.showCode(indent)} $argsStr = $exprStr"
             }
           }
         }
@@ -1345,14 +1324,14 @@ object IR {
 
     /** A representation of a method reference of the form
       *
-      * @param typeName the type name
+      * @param typePointer the type name
       * @param methodName the method on `typeName`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typeName: List[IR.Name],
+      typePointer: List[IR.Name],
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -1364,7 +1343,7 @@ object IR {
 
       /** Creates a copy of `this`.
         *
-        * @param typeName the type name
+        * @param typePointer the type name
         * @param methodName the method on `typeName`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
@@ -1373,7 +1352,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        typeName: List[IR.Name]              = typeName,
+        typePointer: List[IR.Name]           = typePointer,
         methodName: IR.Name                  = methodName,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -1381,13 +1360,19 @@ object IR {
         id: Identifier                       = id
       ): MethodReference = {
         val res =
-          MethodReference(typeName, methodName, location, passData, diagnostics)
+          MethodReference(
+            typePointer,
+            methodName,
+            location,
+            passData,
+            diagnostics
+          )
         res.id = id
         res
       }
 
       override def duplicate(keepLocations: Boolean): MethodReference = copy(
-        typeName    = typeName.duplicate(keepLocations),
+        typePointer = typePointer.duplicate(keepLocations),
         methodName  = methodName.duplicate(keepLocations),
         location    = if (keepLocations) location else None,
         passData    = MetadataStorage(),
@@ -1398,8 +1383,8 @@ object IR {
       override def mapExpressions(
         fn: Expression => Expression
       ): MethodReference = copy(
-        typeName   = typeName.map(_.mapExpressions(fn)),
-        methodName = methodName.mapExpressions(fn)
+        typePointer = typePointer.map(_.mapExpressions(fn)),
+        methodName  = methodName.mapExpressions(fn)
       )
 
       override def setLocation(
@@ -1411,7 +1396,7 @@ object IR {
       override def toString: String =
         s"""
         |IR.Name.MethodReference(
-        |typeName = $typeName,
+        |typePointer = $typePointer,
         |methodName = $methodName,
         |location = $location,
         |passData = $passData,
@@ -1420,17 +1405,33 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] = typeName :+ methodName
+      override def children: List[IR] = typePointer :+ methodName
 
-      override def showCode(indent: Int): String = s"$typeName.$methodName"
+      override def showCode(indent: Int): String = s"$typePointer.$methodName"
 
       /** Constructs a name literal from the type name segments.
         *
-        * @return a name literal representing [[typeName]]
+        * @return a name literal representing [[typePointer]]
         */
-      def typeNameAsName: IR.Name = {
-        val nameStr = typeName.map(_.name).mkString(".")
-        val newLoc = typeName.foldLeft(None: Option[IdentifiedLocation])(
+      def typePointerAsName: IR.Name = {
+        val nameStr = typePointer.map(_.name).mkString(".")
+        val newLoc = MethodReference.genLocation(typePointer)
+
+        IR.Name.Literal(
+          nameStr,
+          newLoc
+        )
+      }
+    }
+    object MethodReference {
+
+      /** Generates a location for the reference from the segments.
+       *
+       * @param segments the reference segments
+       * @return a location for the method reference
+       */
+      def genLocation(segments: List[IR.Name]): Option[IdentifiedLocation] = {
+        segments.foldLeft(None: Option[IdentifiedLocation])(
           (identLoc, segment) => {
             identLoc.flatMap(loc => {
               Some(
@@ -1445,11 +1446,6 @@ object IR {
               )
             })
           }
-        )
-
-        IR.Name.Literal(
-          nameStr,
-          newLoc
         )
       }
     }

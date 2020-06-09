@@ -93,7 +93,7 @@ case object CachePreferenceAnalysis extends IRPass {
           )
           .updateMetadata(this -->> weights)
       case method @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         method
           .copy(body = analyseExpression(body, weights))
           .updateMetadata(this -->> weights)

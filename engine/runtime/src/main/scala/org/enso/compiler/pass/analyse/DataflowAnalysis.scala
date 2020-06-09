@@ -100,7 +100,7 @@ case object DataflowAnalysis extends IRPass {
           )
           .updateMetadata(this -->> info)
       case method @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         info.updateAt(asStatic(body), Set(asStatic(method)))
 
         method

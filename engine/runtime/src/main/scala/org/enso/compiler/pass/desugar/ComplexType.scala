@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -140,11 +141,21 @@ case object ComplexType extends IRPass {
         }
 
         names.map(typeName => {
-          Method.Binding(typeName, name, List(), realExpr, location)
+          val methodRef = IR.Name.MethodReference(
+            List(typeName),
+            name,
+            MethodReference.genLocation(List(typeName, name))
+          )
+          Method.Binding(methodRef, List(), realExpr, location)
         })
       case IR.Function.Binding(name, args, body, location, _, _, _) =>
         names.map(typeName => {
-          Method.Binding(typeName, name, args, body, location)
+          val methodRef = IR.Name.MethodReference(
+            List(typeName),
+            name,
+            MethodReference.genLocation(List(typeName, name))
+          )
+          Method.Binding(methodRef, args, body, location)
         })
       case _ =>
         throw new CompilerError(
