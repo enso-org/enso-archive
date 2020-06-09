@@ -6,7 +6,6 @@ import org.enso.polyglot.debugger.protocol.{
 }
 
 trait ReplExecutor {
-  type SessionEnded
 
   /**
     * Evaluates an arbitrary expression in the current execution context.
@@ -29,17 +28,19 @@ trait ReplExecutor {
   /**
     * Terminates this REPL session.
     *
-    * <p>The last result of {@link #evaluate(String)} (or
+    * The last result of {@link #evaluate(String)} (or
     * {@link Builtins#unit()} if {@link #evaluate(String)} was not called
     * before) will be returned from the instrumented node.
     *
-    * <p>This function must always be called at the end of REPL session, as
+    * This function must always be called at the end of REPL session, as
     * otherwise the program will never resume. It's forbidden to use this object
     * after exit has been called.
+    *
+    * As it brings control back to the interpreter, it never returns.
     */
-  def exit(): SessionEnded
+  def exit(): Nothing
 }
 
 trait SessionManager {
-  def startSession(executor: ReplExecutor): executor.SessionEnded
+  def startSession(executor: ReplExecutor): Nothing
 }

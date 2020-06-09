@@ -5,7 +5,8 @@ import org.enso.interpreter.test.InterpreterTest
 import scala.jdk.CollectionConverters._
 
 @deprecated(
-  "These will be removed once the Repl in runner is migrated to server based solution"
+  "These will be removed once the Repl in runner is migrated " +
+  "to server based solution"
 )
 class OldReplTest extends InterpreterTest {
   "Repl" should "be able to list local variables in its scope" in {

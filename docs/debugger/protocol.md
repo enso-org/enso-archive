@@ -100,7 +100,6 @@ union ResponsePayload {
     EVALUATION_SUCCESS: EvaluationSuccess,
     EVALUATION_FAILURE: EvaluationFailure,
     LIST_BINDINGS: ListBindingsResult,
-    SESSION_EXIT: SessionExitSuccess,
     SESSION_START: SessionStartNotification
 }
 
@@ -176,19 +175,14 @@ Terminates this REPL session (and resumes normal program execution).
 The last result of Evaluation will be returned from the instrumented node or if
 no expressions have been evaluated, unit is returned.
 
-This function must always be called at the end of REPL session, as otherwise the
-program will never resume.
+This request must always be sent at the end of REPL session, as otherwise the
+program will never resume. It does not return any response. It is important to
+note that a thread calling `sendBinary` with this message will never return, as
+control will be passed to the interpreter. 
 
 #### Request
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
 table ReplExitRequest {}
-```
-
-#### Response
-```idl
-namespace org.enso.polyglot.protocol.debugger;
-
-table ReplExitSuccess {}
 ```

@@ -45,6 +45,20 @@ class DebuggerHandler {
     sendToClient(Debugger.createSessionStartNotification())
   }
 
+  /**
+    * A helper function that cleans up the current session and terminates it.
+    *
+    * @return never returns as control is passed to the interpreter
+    */
+  def endSession(): Nothing = {
+    val node = currentExecutionNode
+    currentExecutionNode = null
+    node.exit()
+    throw new IllegalStateException(
+      "exit() on execution node returned unexpectedly"
+    )
+  }
+
   def onMessage(request: Request): Unit = request match {
     case EvaluationRequest(expression) =>
       val result = currentExecutionNode.evaluate(expression)
@@ -58,8 +72,6 @@ class DebuggerHandler {
       val bindings = currentExecutionNode.listBindings()
       sendToClient(Debugger.createListBindingsResult(bindings))
     case SessionExitRequest =>
-      currentExecutionNode.exit()
-      currentExecutionNode = null
-      sendToClient(Debugger.createSessionExitSuccess())
+      endSession()
   }
 }

@@ -10,7 +10,7 @@ import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
   * Class that can be returned by serverTransport to establish communication
-  * with Debugger Instrument.
+  * with the ReplDebuggerInstrument.
   */
 class DebuggerSessionManagerEndpoint(
   val sessionManager: SessionManager,
@@ -44,8 +44,6 @@ class DebuggerSessionManagerEndpoint(
       currentExecutor = new ReplExecutorImplementation
       println("Starting a new session")
       sessionManager.startSession(currentExecutor)
-      currentExecutor = null
-      println("Session terminated")
     } else {
       throw new RuntimeException(
         s"Unexpected response $response, no session is initialized"
@@ -54,8 +52,6 @@ class DebuggerSessionManagerEndpoint(
   }
 
   private class ReplExecutorImplementation extends ReplExecutor {
-    override type SessionEnded = Unit
-
     var evaluationResult
       : Either[ExceptionRepresentation, ObjectRepresentation] = _
     override def evaluate(
@@ -85,25 +81,33 @@ class DebuggerSessionManagerEndpoint(
         bindingsResult
     }
 
-    var exitSuccess: Boolean = false
-    private def ensureUsable(): Unit = {
-      if (exitSuccess) {
+    var exited: Boolean = false
+    def ensureUsable(): Unit = {
+      if (exited) {
         throw new IllegalStateException(
           "Cannot use the executor after exit() has been called"
         )
       }
     }
-    override def exit(): SessionEnded = {
+
+    override def exit(): Nothing = {
       ensureUsable()
+      // Note [Debugger Session Exit Return]
       currentExecutor = null
-      // TODO seems like this never returns ?
+      exited          = true
       peer.sendBinary(Debugger.createSessionExitRequest())
-      if (!exitSuccess) {
-        throw new RuntimeException(
-          "DebuggerServer returned but did not confirm Session Exit Success"
-        )
-      }
+      throw new RuntimeException(
+        "DebuggerServer unexpectedly returned from exit"
+      )
     }
+
+    /* Note [Debugger Session Exit Return]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * Sending exit request throws an exception that returns control to the
+     * interpreter. Sending the request using the synchronous sendBinary
+     * function means that this function will never return. So cleanup has to be
+     * done before calling it.
+     */
 
     def onResponse(response: Response): Unit = {
       println(s"Response: $response")
@@ -111,7 +115,6 @@ class DebuggerSessionManagerEndpoint(
         case EvaluationSuccess(result)    => evaluationResult = Right(result)
         case EvaluationFailure(exception) => evaluationResult = Left(exception)
         case ListBindingsResult(bindings) => bindingsResult   = bindings
-        case SessionExitSuccess           => exitSuccess      = true
         case SessionStartNotification =>
           throw new RuntimeException(
             "Session start notification sent while the session is already running"

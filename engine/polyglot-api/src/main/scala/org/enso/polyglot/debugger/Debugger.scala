@@ -76,8 +76,6 @@ object Debugger {
           Some(ListBindingsResult(bindings.toMap))
         case ResponsePayload.SESSION_START =>
           Some(SessionStartNotification)
-        case ResponsePayload.SESSION_EXIT =>
-          Some(SessionExitSuccess)
         case _ => None
       }
     } catch {
@@ -208,24 +206,6 @@ object Debugger {
     bindings: java.util.Map[String, Object]
   ): ByteBuffer =
     createListBindingsResult(bindings.asScala.toMap)
-
-  /**
-    * Creates an ExitSuccess message in the form of a ByteBuffer that can be
-    * sent from the debugger.
-    *
-    * @return the serialized message
-    */
-  def createSessionExitSuccess(): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
-    val replyOffset                         = ResponseFactory.createSessionExitSuccess()
-    val outMsg = BinaryResponse.createResponse(
-      builder,
-      ResponsePayload.SESSION_EXIT,
-      replyOffset
-    )
-    builder.finish(outMsg)
-    builder.dataBuffer()
-  }
 
   /**
     * Creates an SessionStartNotification message in the form of a ByteBuffer

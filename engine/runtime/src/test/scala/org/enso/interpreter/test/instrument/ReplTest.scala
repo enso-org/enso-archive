@@ -1,29 +1,20 @@
 package org.enso.interpreter.test.instrument
 
-import java.nio.ByteBuffer
-
-import org.enso.interpreter.test.{
-  InterpreterException,
-  InterpreterRunner,
-  ValueEquality
-}
+import org.enso.interpreter.test.{InterpreterRunner, ValueEquality}
 import org.enso.polyglot.debugger.protocol.{
   ExceptionRepresentation,
   ObjectRepresentation
 }
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
-  Debugger,
   DebuggerSessionManagerEndpoint,
   ReplExecutor,
-  SessionExitSuccess,
-  SessionManager,
-  SessionStartNotification
+  SessionManager
 }
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.enso.polyglot.{debugger, LanguageInfo, PolyglotContext}
-import org.scalatest.{BeforeAndAfter, EitherValues}
+import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -37,7 +28,7 @@ trait ReplRunner extends InterpreterRunner {
     def setSessionManager(manager: SessionManager): Unit =
       currentSessionManager = manager
 
-    override def startSession(executor: ReplExecutor): executor.SessionEnded =
+    override def startSession(executor: ReplExecutor): Nothing =
       currentSessionManager.startSession(executor)
   }
 
@@ -63,21 +54,6 @@ trait ReplRunner extends InterpreterRunner {
 
   def setSessionManager(manager: SessionManager): Unit =
     sessionManager.setSessionManager(manager)
-
-  /**
-    * Sets as the current session manager, a manager that executes the provided
-    * function and finishes the session with a call to executor.exit.
-    * The session does not have to (and must not) call executor.exit.
-    */
-  def wrapSessionManager(session: ReplExecutor => Unit): Unit =
-    sessionManager.setSessionManager(new SessionManager {
-      override def startSession(
-        executor: ReplExecutor
-      ): executor.SessionEnded = {
-        session(executor)
-        executor.exit()
-      }
-    })
 }
 
 class ReplTest
@@ -97,7 +73,7 @@ class ReplTest
         """
           |main = Debug.breakpoint
           |""".stripMargin
-      wrapSessionManager(_ => ())
+      setSessionManager(executor => executor.exit())
       eval(code)
     }
 
@@ -111,12 +87,12 @@ class ReplTest
           |""".stripMargin
       var evalResult: Either[ExceptionRepresentation, ObjectRepresentation] =
         null
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         println("Hello to session!")
         evalResult = executor.evaluate("x + y")
         executor.exit()
       }
-      eval(code)
+      eval(code) shouldEqual 3
       evalResult.fold(_.toString, _.representation()) shouldEqual "3"
     }
 
@@ -129,7 +105,7 @@ class ReplTest
           |    c = Debug.breakpoint
           |    c * a
           |""".stripMargin
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         executor.evaluate("a + b")
         executor.exit()
       }
@@ -143,7 +119,7 @@ class ReplTest
           |    x = 10
           |    Debug.breakpoint
           |""".stripMargin
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         executor.evaluate("y = x + 1")
         executor.evaluate("z = y * x")
         executor.evaluate("z")
@@ -160,7 +136,7 @@ class ReplTest
           |    Debug.breakpoint
           |    State.get
           |""".stripMargin
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         executor.evaluate("x = State.get")
         executor.evaluate("State.put (x + 1)")
         executor.exit()
@@ -179,7 +155,7 @@ class ReplTest
           |    Debug.breakpoint
           |""".stripMargin
       var scopeResult: Map[String, ObjectRepresentation] = Map()
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         scopeResult = executor.listBindings()
         executor.exit()
       }
@@ -203,7 +179,7 @@ class ReplTest
           |    Debug.breakpoint
           |""".stripMargin
       var scopeResult: Map[String, ObjectRepresentation] = Map()
-      wrapSessionManager { executor =>
+      setSessionManager { executor =>
         executor.evaluate("x = y + z")
         scopeResult = executor.listBindings()
         executor.exit()
@@ -217,8 +193,21 @@ class ReplTest
       )
     }
 
-    "be able to be nested" in {
-      // TODO
+    "behave well when nested" in {
+      val code =
+        """
+          |main =
+          |    Debug.breakpoint + 1
+          |""".stripMargin
+      setSessionManager { topExecutor =>
+        setSessionManager { nestedExecutor =>
+          nestedExecutor.evaluate("1")
+          nestedExecutor.exit()
+        }
+        topExecutor.evaluate("1 + Debug.breakpoint")
+        topExecutor.exit()
+      }
+      eval(code) shouldEqual 3
     }
   }
 }
