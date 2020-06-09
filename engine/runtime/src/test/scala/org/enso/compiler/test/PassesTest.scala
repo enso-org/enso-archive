@@ -8,7 +8,12 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.ShadowedPatternFields
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings, TypeFunctions}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  TypeFunctions,
+  TypeSignatures
+}
 
 class PassesTest extends CompilerTest {
 
@@ -51,7 +56,8 @@ class PassesTest extends CompilerTest {
           UnreachableMatchBranches,
           NestedPatternMatch,
           IgnoredBindings,
-          TypeFunctions
+          TypeFunctions,
+          TypeSignatures
         )
       )
     }
