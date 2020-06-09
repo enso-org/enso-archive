@@ -5,11 +5,7 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
-import org.enso.compiler.exception.{
-  BadPatternMatch,
-  CompilerError,
-  UnhandledEntity
-}
+import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
@@ -344,7 +340,7 @@ class IrToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR): RuntimeExpression = {
+    def run(ir: IR.Expression): RuntimeExpression = {
       val tailMeta = ir.unsafeGetMetadata(
         TailCall,
         "Missing tail call information on method."
@@ -358,6 +354,11 @@ class IrToTruffle(
         case function: IR.Function          => processFunction(function)
         case binding: IR.Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case              => processCase(caseExpr)
+        case typ: IR.Type                   => processType(typ)
+        case _: IR.Empty =>
+          throw new CompilerError(
+            "Empty IR nodes should not exist during code generation."
+          )
         case _: IR.Comment =>
           throw new CompilerError(
             "Comments should not be present during codegen."
@@ -367,7 +368,6 @@ class IrToTruffle(
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
-        case _ => throw new UnhandledEntity(ir, "run")
       }
 
       runtimeExpression.setTail(tailMeta)
@@ -427,7 +427,25 @@ class IrToTruffle(
       }
     }
 
-    /** Performs code generation for Enso case expression.
+    /** Performs code generation for an Enso type operator.
+      *
+      * @param value the type operation to generate code for
+      * @return the truffle nodes corresponding to `value`
+      */
+    def processType(value: IR.Type): RuntimeExpression = {
+      setLocation(
+        ErrorNode.build(
+          context.getBuiltins
+            .syntaxError()
+            .newInstance(
+              "Type operators are not currently supported at runtime."
+            )
+        ),
+        value.location
+      )
+    }
+
+    /** Performs code generation for an Enso case expression.
       *
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
