@@ -92,8 +92,15 @@ final class Handler {
     * @param request the message to handle.
     */
   def onMessage(request: Api.Request): Unit = {
-    val cmd = CommandFactory.createCommand(request)
-    commandProcessor.invoke(cmd)
+    request.payload match {
+      case Api.ShutDownRuntimeServer() =>
+        commandProcessor.stop()
+
+      case _ =>
+        val cmd = CommandFactory.createCommand(request)
+        commandProcessor.invoke(cmd)
+    }
+
   }
 
 }

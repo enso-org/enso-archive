@@ -142,6 +142,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InitializedNotification],
         name  = "initializedNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ShutDownRuntimeServer],
+        name  = "shutDownRuntimeServer"
       )
     )
   )
@@ -598,6 +602,11 @@ object Runtime {
       * Signals that a visualisation modification has succeeded.
       */
     case class VisualisationModified() extends ApiResponse
+
+    /**
+      * A request to shut down the runtime server.
+      */
+    case class ShutDownRuntimeServer() extends ApiRequest
 
     private lazy val mapper = {
       val factory = new CBORFactory()

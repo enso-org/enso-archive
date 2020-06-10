@@ -80,4 +80,10 @@ class CommandExecutionEngine(
 
   }
 
+  /** @inheritdoc **/
+  override def stop(): Unit = {
+    jobExecutionEngine.stop()
+    commandExecutor.shutdownNow()
+  }
+
 }

@@ -104,4 +104,13 @@ class JobExecutionEngine(
       .checkInterrupts()
   }
 
+  /** @inheritdoc **/
+  override def stop(): Unit = {
+    val allJobs = runningJobsRef.get()
+    allJobs.foreach(_.future.cancel(true))
+    runtimeContext.executionService.getContext.getThreadManager
+      .checkInterrupts()
+    jobExecutor.shutdownNow()
+  }
+
 }

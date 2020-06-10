@@ -17,4 +17,9 @@ trait JobProcessor {
     */
   def run[A](job: Job[A]): Future[A]
 
+  /**
+    * Stops the job processor.
+    */
+  def stop(): Unit
+
 }

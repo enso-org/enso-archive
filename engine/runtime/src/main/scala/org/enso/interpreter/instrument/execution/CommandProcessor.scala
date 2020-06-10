@@ -17,4 +17,9 @@ trait CommandProcessor {
     */
   def invoke(cmd: Command): Future[Completion]
 
+  /**
+    * Stops the command processor.
+    */
+  def stop(): Unit
+
 }
