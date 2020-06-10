@@ -250,13 +250,7 @@ class ReplTest
       var evalResult: Either[Exception, ObjectRepresentation] =
         null
       setSessionManager { executor =>
-        try {
-          evalResult = executor.evaluate("1 + undefined")
-        } catch {
-          case e: Exception =>
-            println(s"Executor failed! $e")
-            e.printStackTrace()
-        }
+        evalResult = executor.evaluate("1 + undefined")
         executor.exit()
       }
       eval(code)
@@ -264,5 +258,31 @@ class ReplTest
         "Unexpected type for `that` operand in Number.+"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
+
+    "not pollute bindings upon nested error" in pending
+    /*{
+      val code =
+        """
+          |main =
+          |    Debug.breakpoint
+          |""".stripMargin
+      var outerResult: Either[Exception, ObjectRepresentation] = null
+      setSessionManager { outerExecutor =>
+        outerExecutor.evaluate("x = \"outer\"")
+        setSessionManager { innerExecutor =>
+          innerExecutor.evaluate("x = \"inner\"")
+          innerExecutor.exit()
+        }
+
+        // breakpoint will return Unit here, deliberately trigger an error
+        outerExecutor.evaluate("1 + Debug.breakpoint")
+
+        outerResult = outerExecutor.evaluate("x")
+        outerExecutor.exit()
+      }
+
+      eval(code)
+      outerResult.fold(_.toString, _.toString) shouldEqual "outer"
+    }*/
   }
 }
