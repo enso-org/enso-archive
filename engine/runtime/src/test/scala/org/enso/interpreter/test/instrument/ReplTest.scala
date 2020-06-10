@@ -241,7 +241,7 @@ class ReplTest
       eval(code) shouldEqual 4321
     }
 
-    "handle errors graciously" in {
+    "handle errors gracefully" in {
       val code =
         """
           |main =
