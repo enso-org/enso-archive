@@ -7,7 +7,7 @@ import java.util.logging.Level
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.Job
-import org.enso.polyglot.RuntimeOptions
+import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
@@ -33,7 +33,7 @@ class JobExecutionEngine(
 
   private val jobParallelism =
     interpreterContext.executionService.getContext.getEnvironment.getOptions
-      .get(RuntimeOptions.JOB_PARALLELISM_KEY)
+      .get(RuntimeServerInfo.JOB_PARALLELISM_KEY)
       .intValue()
 
   private val jobExecutor = Executors.newFixedThreadPool(

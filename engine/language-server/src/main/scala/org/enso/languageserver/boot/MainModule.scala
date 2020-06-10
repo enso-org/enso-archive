@@ -114,7 +114,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
     .option(
-      RuntimeOptions.JOB_PARALLELISM,
+      RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
     )
     .out(stdOut)
