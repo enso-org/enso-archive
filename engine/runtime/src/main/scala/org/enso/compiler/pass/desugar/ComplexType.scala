@@ -2,6 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.core.IR.Name.MethodReference
@@ -13,6 +14,7 @@ import org.enso.compiler.pass.analyse.{
   DemandAnalysis,
   TailCall
 }
+import org.enso.compiler.pass.desugar.ComplexType.genMethodDef
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
@@ -115,7 +117,44 @@ case object ComplexType extends IRPass {
 
     var lastSignature: Option[IR.Type.Ascription] = None
 
-    // TODO [AA] De-dupe this
+    /** Pairs up signatures with method definitions, and then generates the
+     * appropriate method definitions for the atoms in scope.
+     *
+     * @param name the name of the method
+     * @param defn the definition of the method
+     * @return a list of method definitions for `name`
+     */
+    def matchSignaturesAndGenerate(
+      name: IR.Name,
+      defn: IR
+    ): List[IR.Module.Scope.Definition] = {
+      var unusedSig: Option[IR.Type.Ascription] = None
+      val sig = lastSignature match {
+        case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
+          typed match {
+            case IR.Name.Literal(nameStr, _, _, _) =>
+              if (name.name == nameStr) {
+                lastSignature
+              } else {
+                unusedSig = lastSignature
+                None
+              }
+            case _ =>
+              unusedSig = lastSignature
+              None
+          }
+        case None => None
+      }
+
+      lastSignature = None
+      val unusedList: List[Definition] = unusedSig.toList
+      unusedList ::: genMethodDef(
+        defn,
+        namesToDefineMethodsOn,
+        sig
+      )
+    }
+
     val entityResults: List[Definition] = remainingEntities.flatMap {
       case sig: IR.Type.Ascription =>
         val res = lastSignature match {
@@ -126,57 +165,9 @@ case object ComplexType extends IRPass {
         lastSignature = Some(sig)
         res
       case binding @ IR.Expression.Binding(name, _, _, _, _) =>
-        var unusedSig: Option[IR.Type.Ascription] = None
-        val sig = lastSignature match {
-          case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
-            typed match {
-              case IR.Name.Literal(nameStr, _, _, _) =>
-                if (name.name == nameStr) {
-                  lastSignature
-                } else {
-                  unusedSig = lastSignature
-                  None
-                }
-              case _ =>
-                unusedSig = lastSignature
-                None
-            }
-          case None => None
-        }
-
-        lastSignature = None
-        val unusedList: List[Definition] = unusedSig.toList
-        unusedList ::: genMethodDef(
-          binding,
-          namesToDefineMethodsOn,
-          sig
-        )
+        matchSignaturesAndGenerate(name, binding)
       case funSugar @ IR.Function.Binding(name, _, _, _, _, _, _) =>
-        var unusedSig: Option[IR.Type.Ascription] = None
-        val sig = lastSignature match {
-          case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
-            typed match {
-              case IR.Name.Literal(nameStr, _, _, _) =>
-                if (name.name == nameStr) {
-                  lastSignature
-                } else {
-                  unusedSig = lastSignature
-                  None
-                }
-              case _ =>
-                unusedSig = lastSignature
-                None
-            }
-          case None => None
-        }
-
-        lastSignature = None
-        val unusedList: List[Definition] = unusedSig.toList
-        unusedList ::: genMethodDef(
-          funSugar,
-          namesToDefineMethodsOn,
-          sig
-        )
+        matchSignaturesAndGenerate(name, funSugar)
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")
     }
@@ -193,7 +184,6 @@ case object ComplexType extends IRPass {
     * @param signature the type signature for the method, if it exists
     * @return `ir` as a method
     */
-  // TODO [AA] De-dupe this
   def genMethodDef(
     ir: IR,
     names: List[IR.Name],
@@ -207,45 +197,54 @@ case object ComplexType extends IRPass {
           case _ => expr
         }
 
-        names.flatMap(typeName => {
-          val methodRef = IR.Name.MethodReference(
-            List(typeName),
-            name,
-            MethodReference.genLocation(List(typeName, name))
-          )
-          val newSig =
-            signature.map(sig =>
-              sig.copy(typed = methodRef.duplicate()).duplicate()
-            )
-
-          val binding = Method.Binding(
-            methodRef.duplicate(),
-            List(),
-            realExpr.duplicate(),
-            location
-          )
-
-          newSig.toList :+ binding
-        })
+        names.flatMap(
+          genForName(_, name, List(), realExpr, location, signature)
+        )
       case IR.Function.Binding(name, args, body, location, _, _, _) =>
-        names.flatMap(typeName => {
-          val methodRef = IR.Name.MethodReference(
-            List(typeName),
-            name,
-            MethodReference.genLocation(List(typeName, name))
-          )
-          val newSig = signature.map(sig =>
-            sig.copy(typed = methodRef.duplicate()).duplicate()
-          )
-          val binding = Method
-            .Binding(methodRef.duplicate(), args, body.duplicate(), location)
-
-          newSig.toList :+ binding
-        })
+        names.flatMap(
+          genForName(_, name, args, body, location, signature)
+        )
       case _ =>
         throw new CompilerError(
           "Unexpected IR node during complex type desugaring."
         )
     }
+  }
+
+  /** Generates a top-level method definition for the provided parameters.
+    *
+    * @param typeName the type name the method is being defined on
+    * @param name the method being defined
+    * @param args the definition arguments to the method
+    * @param body the body of the method
+    * @param location the source location of the method
+    * @param signature the method's type signature, if it exists
+    * @return a top-level method definition
+    */
+  def genForName(
+    typeName: IR.Name,
+    name: IR.Name,
+    args: List[IR.DefinitionArgument],
+    body: IR.Expression,
+    location: Option[IdentifiedLocation],
+    signature: Option[IR.Type.Ascription]
+  ): List[IR.Module.Scope.Definition] = {
+    val methodRef = IR.Name.MethodReference(
+      List(typeName),
+      name,
+      MethodReference.genLocation(List(typeName, name))
+    )
+
+    val newSig =
+      signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
+
+    val binding = Method.Binding(
+      methodRef.duplicate(),
+      args,
+      body.duplicate(),
+      location
+    )
+
+    newSig.toList :+ binding
   }
 }
