@@ -24,7 +24,7 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
-  public static final String JOB_PARALLELISM = "jobParallelism";
+  public static final String JOB_PARALLELISM = optionName("jobParallelism");
   public static final OptionKey<Integer> JOB_PARALLELISM_KEY = new OptionKey<>(1);
   public static final OptionDescriptor JOB_PARALLELISM_DESCRIPTOR =
       OptionDescriptor.newBuilder(JOB_PARALLELISM_KEY, JOB_PARALLELISM).build();
