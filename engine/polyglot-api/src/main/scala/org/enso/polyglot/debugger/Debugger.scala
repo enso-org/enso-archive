@@ -255,7 +255,22 @@ object Debugger {
     )
   }
 
-  // TODO [RW] document
+  /**
+    * Creates an instance of java.lang.Exception based on the
+    * ExceptionRepresentation.
+    *
+    * The created Exception has the same stack trace as the original. The
+    * message is either the original message, or if null, result of calling
+    * toString on the original exception. The chain of causing exceptions is
+    * preserved too.
+    *
+    * This can be used, for example, to use the built-in printStackTrace method.
+    *
+    * @param exceptionRepresentation the internal exception representation
+    *                                used in the binary protocol
+    * @return an Exception instance that resembles the original serialized
+    *         exception as closely as reasonably possible
+    */
   def unwrapSerializedException(
     exceptionRepresentation: ExceptionRepresentation
   ): Exception = {

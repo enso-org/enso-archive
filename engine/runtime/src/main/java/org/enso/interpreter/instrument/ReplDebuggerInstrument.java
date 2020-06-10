@@ -49,7 +49,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
             .build();
     this.env = env;
-    // env.registerService(this); // TODO [RW] this seems unnecessary after #791
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
