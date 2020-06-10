@@ -132,7 +132,9 @@ case class Repl(replIO: ReplIO) extends SessionManager {
             val result = executor.evaluate(line)
             result match {
               case Left(error) =>
-                replIO.println(s"Evaluation failed with error: $error")
+                replIO.println(
+                  s"Evaluation failed with error: ${error.getMessage}"
+                )
               case Right(objectRepresentation) =>
                 replIO.println(s">>> $objectRepresentation")
             }

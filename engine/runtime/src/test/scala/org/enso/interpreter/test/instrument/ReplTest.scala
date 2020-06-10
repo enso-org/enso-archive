@@ -250,12 +250,18 @@ class ReplTest
       var evalResult: Either[Exception, ObjectRepresentation] =
         null
       setSessionManager { executor =>
-        evalResult = executor.evaluate("1 + undefined")
+        try {
+          evalResult = executor.evaluate("1 + undefined")
+        } catch {
+          case e: Exception =>
+            println(s"Executor failed! $e")
+            e.printStackTrace()
+        }
         executor.exit()
       }
       eval(code)
       val errorMsg =
-        "org.enso.interpreter.runtime.error.TypeError: Unexpected type for `that` operand in Number.+"
+        "Unexpected type for `that` operand in Number.+"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
   }
