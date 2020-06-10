@@ -11,8 +11,8 @@ import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentStopped
 }
 import org.enso.languageserver.runtime.RuntimeKiller.{
-  KillRuntime,
-  RuntimeShutdownResult
+  RuntimeShutdownResult,
+  ShutDownRuntime
 }
 
 import scala.concurrent.duration._
@@ -85,7 +85,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
   private def terminateTruffle(serverContext: ServerContext): Future[Unit] = {
     implicit val askTimeout = Timeout(12.seconds)
     val killFiber =
-      (serverContext.mainModule.runtimeKiller ? KillRuntime)
+      (serverContext.mainModule.runtimeKiller ? ShutDownRuntime)
         .mapTo[RuntimeShutdownResult]
 
     for {
