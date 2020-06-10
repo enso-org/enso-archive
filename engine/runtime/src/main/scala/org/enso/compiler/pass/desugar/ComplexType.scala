@@ -106,31 +106,44 @@ case object ComplexType extends IRPass {
       case n: IR.Name => n
     }
     val namesToDefineMethodsOn = atomIncludes ++ atomDefs.map(_.name)
-    val methods = typ.body.collect {
-      case b: IR.Expression.Binding => b
-      case f: IR.Function.Binding   => f
+
+    val remainingEntities = typ.body.filterNot {
+      case _: IR.Module.Scope.Definition => true
+      case _: IR.Name                    => true
+      case _                             => false
     }
 
-    if ((atomDefs ::: atomIncludes ::: methods).length != typ.body.length) {
-      throw new CompilerError(
-        "All bindings in a type definition body should be accounted for."
-      )
+    var lastSignature: Option[IR.Type.Ascription] = None
+
+    val entityResults = remainingEntities.flatMap {
+      case sig: IR.Type.Ascription =>
+        lastSignature = Some(sig)
+        None
+      case binding: IR.Expression.Binding =>
+        val res = genMethodDef(binding, namesToDefineMethodsOn, lastSignature)
+        lastSignature = None
+        res
+      case funSugar: IR.Function.Binding =>
+        val res = genMethodDef(funSugar, namesToDefineMethodsOn, lastSignature)
+        res
+      case _ =>
+        throw new CompilerError("Unexpected IR node in complex type body.")
     }
 
-    val methodDefs = methods.flatMap(genMethodDef(_, namesToDefineMethodsOn))
-
-    atomDefs ::: methodDefs
+    atomDefs ::: entityResults
   }
 
   /** Generates a method definition from a definition in complex type def body.
     *
     * @param ir the definition to generate a method from
     * @param names the names on which the method is being defined
+    * @param signature the type signature for the method, if it exists
     * @return `ir` as a method
     */
   def genMethodDef(
     ir: IR,
-    names: List[IR.Name]
+    names: List[IR.Name],
+    @unused signature: Option[IR.Type.Ascription]
   ): List[IR.Module.Scope.Definition.Method] = {
     ir match {
       case IR.Expression.Binding(name, expr, location, _, _) =>
@@ -146,7 +159,7 @@ case object ComplexType extends IRPass {
             name,
             MethodReference.genLocation(List(typeName, name))
           )
-          Method.Binding(methodRef, List(), realExpr, location)
+          Method.Binding(methodRef, List(), realExpr.duplicate(), location)
         })
       case IR.Function.Binding(name, args, body, location, _, _, _) =>
         names.map(typeName => {
@@ -155,7 +168,7 @@ case object ComplexType extends IRPass {
             name,
             MethodReference.genLocation(List(typeName, name))
           )
-          Method.Binding(methodRef, args, body, location)
+          Method.Binding(methodRef, args, body.duplicate(), location)
         })
       case _ =>
         throw new CompilerError(

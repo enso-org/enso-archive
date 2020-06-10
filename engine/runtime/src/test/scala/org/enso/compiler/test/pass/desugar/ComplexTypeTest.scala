@@ -59,7 +59,7 @@ class ComplexTypeTest extends CompilerTest {
         |    Nothing
         |    type Just a
         |
-        |    is_just : this -> Boolean
+        |    #is_just : this -> Boolean
         |    is_just = case this of
         |        Nothing -> false
         |        Just _  -> true
