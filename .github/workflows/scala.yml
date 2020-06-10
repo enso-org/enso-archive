@@ -96,6 +96,8 @@ jobs:
         run: sbt -no-colors runner/assembly
       - name: Test the Uberjar
         run: ./enso.jar --run tools/ci/Test.enso
+      - name: Test the Repl in the Uberjar
+        run: ./enso.jar --repl < tools/ci/ReplTest.in | diff -q tools/ci/ReplTest.out - && echo "Test successful"
 
   # This job is responsible for building the artifacts
   build:
