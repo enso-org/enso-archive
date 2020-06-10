@@ -692,6 +692,21 @@ class AstToIrTest extends CompilerTest {
       ir.asInstanceOf[IR.Error.Syntax]
         .reason shouldBe an[Syntax.InvalidStandaloneSignature.type]
     }
+
+    "work inside type bodies" in {
+      val ir =
+        """
+          |type MyType
+          |    type MyAtom
+          |
+          |    foo : this -> integer
+          |    foo = 0
+          |""".stripMargin.toIrModule.bindings.head
+          .asInstanceOf[IR.Module.Scope.Definition.Type]
+
+      ir.body.length shouldEqual 3
+      ir.body(1) shouldBe an[IR.Type.Ascription]
+    }
   }
 
   "AST translation for expression-level type signatures" should {

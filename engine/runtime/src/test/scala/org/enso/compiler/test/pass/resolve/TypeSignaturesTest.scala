@@ -43,11 +43,38 @@ class TypeSignaturesTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Resolution of type signatures in modules" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     "associate signatures with method definitions" in {
       pending
+      val ir =
+        """
+          |MyAtom.bar : Number -> Suspended Number -> Number
+          |MyAtom.bar a b = a + b
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 1
     }
 
     "raise an error if a signature is divorced from its definition" in {
+      pending
+      val ir =
+        """
+          |MyAtom.foo a b -> Number -> Number -> Number
+          |
+          |MyAtom.bar
+          |
+          |MyAtom.foo a b = a + b
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 3
+    }
+
+    "work inside type definition bodies" in {
+      pending
+    }
+
+    "recurse into bodies" in {
       pending
     }
   }
@@ -60,10 +87,18 @@ class TypeSignaturesTest extends CompilerTest {
     "raise an error if a signature is divorced from its definition" in {
       pending
     }
+
+    "work recursively" in {
+      pending
+    }
   }
 
   "Resolution of inline type signatures" should {
     "associate the signature with the typed expression" in {
+      pending
+    }
+
+    "work recursively" in {
       pending
     }
   }

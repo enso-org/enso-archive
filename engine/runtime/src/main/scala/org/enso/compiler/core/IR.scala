@@ -1415,21 +1415,39 @@ object IR {
         */
       def typePointerAsName: IR.Name = {
         val nameStr = typePointer.map(_.name).mkString(".")
-        val newLoc = MethodReference.genLocation(typePointer)
+        val newLoc  = MethodReference.genLocation(typePointer)
 
         IR.Name.Literal(
           nameStr,
           newLoc
         )
       }
+
+      /** Checks whether `this` and `that` reference the same method.
+        *
+        * @param that the other method reference to check against
+        * @return `true`, if `this` and `that` represent the same method,
+        *         otherwise `false`
+        */
+      def isSameReferenceAs(that: MethodReference): Boolean = {
+        if (this.typePointer.length == that.typePointer.length) {
+          val pathsAreSame = this.typePointer.zip(that.typePointer).forall {
+            case (l, r) => l.name == r.name
+          }
+
+          pathsAreSame && (this.methodName.name == that.methodName.name)
+        } else {
+          false
+        }
+      }
     }
     object MethodReference {
 
       /** Generates a location for the reference from the segments.
-       *
-       * @param segments the reference segments
-       * @return a location for the method reference
-       */
+        *
+        * @param segments the reference segments
+        * @return a location for the method reference
+        */
       def genLocation(segments: List[IR.Name]): Option[IdentifiedLocation] = {
         segments.foldLeft(None: Option[IdentifiedLocation])(
           (identLoc, segment) => {
@@ -4416,6 +4434,7 @@ object IR {
         s"""
         |IR.Error.Syntax(
         |ast = $ast,
+        |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,

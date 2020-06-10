@@ -59,6 +59,7 @@ class ComplexTypeTest extends CompilerTest {
         |    Nothing
         |    type Just a
         |
+        |    is_just : this -> Boolean
         |    is_just = case this of
         |        Nothing -> false
         |        Just _  -> true
@@ -101,6 +102,10 @@ class ComplexTypeTest extends CompilerTest {
       val justF = ir.bindings(4).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
       justF.typeName.name shouldEqual "Just"
+    }
+
+    "have type signatures copied to above each method" in {
+      pending
     }
   }
 }

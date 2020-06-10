@@ -266,6 +266,12 @@ object AstToIr {
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      case AstView.TypeAscription(typed, sig) =>
+        IR.Type.Ascription(
+          translateExpression(typed),
+          translateExpression(sig),
+          getIdentifiedLocation(inputAst)
+        )
       case assignment @ AstView.BasicAssignment(_, _) =>
         translateExpression(assignment)
       case _ =>
