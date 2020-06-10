@@ -1,18 +1,19 @@
 package org.enso.polyglot.debugger
 
 import java.nio.ByteBuffer
-import scala.jdk.CollectionConverters._
 
+import scala.jdk.CollectionConverters._
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.polyglot.debugger.protocol.factory.{
   RequestFactory,
   ResponseFactory
 }
 import org.enso.polyglot.debugger.protocol.{
-  Request => BinaryRequest,
-  Response => BinaryResponse,
+  ExceptionRepresentation,
   RequestPayload,
-  ResponsePayload
+  ResponsePayload,
+  Request => BinaryRequest,
+  Response => BinaryResponse
 }
 
 object Debugger {
@@ -241,5 +242,33 @@ object Debugger {
     )
     builder.finish(outMsg)
     builder.dataBuffer()
+  }
+
+  private def unwrapSerializedStackTraceElement(
+    stackTraceElement: protocol.StackTraceElement
+  ): StackTraceElement = {
+    new StackTraceElement(
+      stackTraceElement.declaringClass(),
+      stackTraceElement.methodName(),
+      stackTraceElement.fileName(),
+      stackTraceElement.lineNumber()
+    )
+  }
+
+  // TODO [RW]
+  def unwrapSerializedException(
+    exceptionRepresentation: ExceptionRepresentation
+  ): Exception = {
+    val cause = Option(exceptionRepresentation.cause())
+      .map(unwrapSerializedException)
+      .orNull
+    val stackTrace =
+      for (i <- 0 until exceptionRepresentation.stackTraceLength())
+        yield unwrapSerializedStackTraceElement(
+          exceptionRepresentation.stackTrace(i)
+        )
+    val exception = new Exception(exceptionRepresentation.message(), cause)
+    exception.setStackTrace(stackTrace.toArray)
+    exception
   }
 }
