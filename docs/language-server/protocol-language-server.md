@@ -107,7 +107,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
-  - [`search/documentation`](#searchdocumentation)
 - [Input/Output Operations](#input-output-operations)
   - [`io/redirectStandardOutput`](#ioredirectstdardoutput)
   - [`io/suppressStandardOutput`](#iosuppressstdardoutput)
@@ -2547,46 +2546,6 @@ table SearchCompletionCommand {
 namespace org.enso.languageserver.protocol.binary;
 
 table SearchCompletionReply {
-  results: [SuggestionEntryId] (required);
-  currentVersion: int64 (required);
-}
-```
-
-#### Errors
-TBC
-
-### `search/documentation`
-Sent from client to the server to search suggestion entries by the documentation.
-
-- **Type:** Request
-- **direction:** Client -> Server
-- **Connection:** Binary
-- **Visibility:** Public
-
-#### Parameters
-
-``` idl
-namespace org.enso.languageserver.protocol.binary;
-
-table SearchDocumentationCommand {
-  // The context id
-  contextId: EnsoUUID (required);
-  // The string to search for
-  searchString: string (required);
-  // Filter by methods with the provided self type
-  selfType: string;
-  // Filter by tye return type
-  returnType: string;
-  // Filter by the suggestion types
-  tags: [SuggestionEntryType];
-}
-```
-
-#### Result
-``` idl
-namespace org.enso.languageserver.protocol.binary;
-
-table SearchDocumentationReply {
   results: [SuggestionEntryId] (required);
   currentVersion: int64 (required);
 }
