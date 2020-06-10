@@ -259,8 +259,7 @@ class ReplTest
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 
-    "not pollute bindings upon nested error" in pending
-    /*{
+    "not pollute bindings upon nested error" in {
       val code =
         """
           |main =
@@ -283,6 +282,6 @@ class ReplTest
 
       eval(code)
       outerResult.fold(_.toString, _.toString) shouldEqual "outer"
-    }*/
+    }
   }
 }
