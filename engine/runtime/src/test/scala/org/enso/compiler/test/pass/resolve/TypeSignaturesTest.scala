@@ -60,14 +60,16 @@ class TypeSignaturesTest extends CompilerTest {
       pending
       val ir =
         """
-          |MyAtom.foo a b -> Number -> Number -> Number
+          |MyAtom.quux : Fizz
+          |MyAtom.foo : Number -> Number -> Number
           |
           |MyAtom.bar
           |
           |MyAtom.foo a b = a + b
           |""".stripMargin.preprocessModule.resolve
 
-      ir.bindings.length shouldEqual 3
+      // TODO [AA] both index 0 and index 3 should be errors
+      ir.bindings.length shouldEqual 4
     }
 
     "work inside type definition bodies" in {

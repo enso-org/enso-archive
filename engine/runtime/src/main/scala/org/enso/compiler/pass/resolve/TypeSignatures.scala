@@ -70,6 +70,8 @@ case object TypeSignatures extends IRPass {
   // === Pass Internals =======================================================
 
   def resolveModule(mod: IR.Module): IR.Module = {
+//    var lastSignature: Option[IR.Type.Ascription] = None
+
     mod
   }
 

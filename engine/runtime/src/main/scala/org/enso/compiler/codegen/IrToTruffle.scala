@@ -735,6 +735,8 @@ class IrToTruffle(
           context.getBuiltins.compileError().newInstance(err.message)
         case err: Error.Redefined.ThisArg =>
           context.getBuiltins.compileError().newInstance(err.message)
+        case err: Error.Unexpected.TypeSignature =>
+          context.getBuiltins.compileError().newInstance(err.message)
       }
       setLocation(ErrorNode.build(payload), error.location)
     }

@@ -4907,6 +4907,82 @@ object IR {
           s"(Redefined (Binding $invalidBinding))"
       }
     }
+
+    /** A trait for errors about unexpected language constructs. */
+    sealed trait Unexpected extends Error {
+
+      /** The unexpected construct. */
+      val ir: IR
+
+      /** The name of the unexpected entity. */
+      val entity: String
+
+      override val location: Option[IdentifiedLocation] = ir.location
+
+      override def message: String = s"Unexpected $entity."
+
+      override def mapExpressions(fn: Expression => Expression):      Unexpected
+      override def setLocation(location: Option[IdentifiedLocation]): Unexpected
+      override def duplicate(keepLocations: Boolean):                 Unexpected
+    }
+    object Unexpected {
+
+      /** An error representing a type signature not associated with a
+        * binding of some kind.
+        *
+        * @param ir the erroneous signature
+        * @param passData any pass metadata associated with this node
+        * @param diagnostics any compiler diagnostics for this node
+        */
+      sealed case class TypeSignature(
+        override val ir: IR,
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Unexpected {
+        override val entity: String = "type signature"
+
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param ir the erroneous signature
+          * @param passData any pass metadata associated with this node
+          * @param diagnostics any compiler diagnostics for this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          ir: IR                         = ir,
+          passData: MetadataStorage      = passData,
+          diagnostics: DiagnosticStorage = diagnostics,
+          id: Identifier                 = id
+        ): TypeSignature = {
+          val res = TypeSignature(ir, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): TypeSignature = this
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): TypeSignature = this
+
+        override def duplicate(keepLocations: Boolean): Unexpected = copy(
+          ir = ir.duplicate(keepLocations),
+          passData = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id = randomId
+        )
+
+        override def children: List[IR] = List(ir)
+
+        override def showCode(indent: Int): String =
+          s"(Unexpected.TypeSignature ${ir.showCode(indent)})"
+      }
+    }
   }
 
   // ==========================================================================
