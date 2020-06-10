@@ -10,8 +10,10 @@ import scala.collection.mutable
   *
   * @param contextId an identifier of a context to execute
   * @param stack a call stack that must be executed
+  * @param updatedVisualisations a list of updated visualisations
   */
 case class Executable(
   contextId: Api.ContextId,
-  stack: mutable.Stack[InstrumentFrame]
+  stack: mutable.Stack[InstrumentFrame],
+  updatedVisualisations: Seq[Api.ExpressionId]
 )

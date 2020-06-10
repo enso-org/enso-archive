@@ -101,13 +101,14 @@ trait ProgramExecutionSupport {
     *
     * @param contextId an identifier of an execution context
     * @param stack a call stack
+    * @param updatedVisualisations a list of updated visualisations
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program
     */
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
-    updatedVisualisations: Seq[Api.ExpressionId] = Seq()
+    updatedVisualisations: Seq[Api.ExpressionId]
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(

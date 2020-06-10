@@ -60,7 +60,8 @@ class UpsertVisualisationJob(
           updateVisualisation(callable)
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
-          val exe   = Executable(config.executionContextId, stack)
+          val exe =
+            Executable(config.executionContextId, stack, Seq(expressionId))
           Some(exe)
       }
     } finally {

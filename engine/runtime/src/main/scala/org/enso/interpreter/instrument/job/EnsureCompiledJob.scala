@@ -2,14 +2,12 @@ package org.enso.interpreter.instrument.job
 
 import java.io.File
 
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
+import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
-import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model.TextEdit
 
 import scala.collection.concurrent.TrieMap
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
@@ -18,16 +16,8 @@ import scala.jdk.OptionConverters._
   *
   * @param files a files to compile
   */
-class EnsureCompiledJob(files: List[File])
+class EnsureCompiledJob(protected val files: List[File])
     extends Job[Unit](List.empty, true, false) {
-
-  /**
-    * Ensures that all files on the provided stack are compiled.
-    *
-    * @param stack a call stack
-    */
-  def this(stack: mutable.Stack[InstrumentFrame]) =
-    this(EnsureCompiledJob.extractFilesFromStack(stack))
 
   /**
     * Ensures that a files is compiled after applying the edits
@@ -44,15 +34,21 @@ class EnsureCompiledJob(files: List[File])
     ctx.locking.acquireWriteCompilationLock()
     try {
       val modules = files.flatMap(compile)
-      val invalidationCommands = files.flatMap { file =>
-        applyEdits(file, EnsureCompiledJob.dequeueEdits(file))
-      }
-      runInvalidation(invalidationCommands)
+      runInvalidation(files)
       modules.foreach(compile)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
   }
+
+  protected def runInvalidation(
+    files: Iterable[File]
+  )(implicit ctx: RuntimeContext): Unit =
+    runInvalidationCommands {
+      files.flatMap { file =>
+        applyEdits(file, EnsureCompiledJob.dequeueEdits(file))
+      }
+    }
 
   private def compile(
     file: File
@@ -101,7 +97,7 @@ class EnsureCompiledJob(files: List[File])
     }
   }
 
-  private def runInvalidation(
+  private def runInvalidationCommands(
     invalidationCommands: Iterable[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAll.valuesIterator
@@ -116,10 +112,10 @@ class EnsureCompiledJob(files: List[File])
 object EnsureCompiledJob {
 
   private val unappliedEdits =
-    new TrieMap[File, Seq[TextEdit]]().withDefaultValue(Seq())
+    new TrieMap[File, Seq[TextEdit]]()
 
   private def dequeueEdits(file: File): Seq[TextEdit] =
-    unappliedEdits.remove(file).get
+    unappliedEdits.remove(file).getOrElse(Seq())
 
   private def enqueueEdits(file: File, edits: Seq[TextEdit]): Unit =
     unappliedEdits.updateWith(file) {
@@ -127,20 +123,4 @@ object EnsureCompiledJob {
       case None    => Some(edits)
     }
 
-  /**
-    * Extracts files to compile from a call stack.
-    *
-    * @param stack a call stack
-    * @return a list of files to compile
-    */
-  private def extractFilesFromStack(
-    stack: mutable.Stack[InstrumentFrame]
-  ): List[File] =
-    stack
-      .map(_.item)
-      .collect {
-        case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
-          methodPointer.file
-      }
-      .toList
 }

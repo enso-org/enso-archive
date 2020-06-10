@@ -39,7 +39,7 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
       .mapValues(_.toList)
       .map {
         case (contextId, stack) =>
-          new ExecuteJob(contextId, stack)
+          new ExecuteJob(contextId, stack, Seq())
       }
   }
 
