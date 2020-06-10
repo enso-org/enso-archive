@@ -248,6 +248,8 @@ table SuggestionEntryArgument {
   isSuspended: bool (required);
   // Indicates whether the argument has default value
   hasDefault: bool (required);
+  // Optional default value
+  defaultValue: string;
 }
 ```
 

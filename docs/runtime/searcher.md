@@ -54,6 +54,7 @@ SQLite representation of the database.
 * `type` `TEXT` - argument type; const 'Any' is used to specify generic types
 * `is_suspended` `INTEGER` - indicates whether the argument is lazy
 * `has_defult` `INTEGER` - indicates whether the argument has default value
+* `default_value` `TEXT` - optional default value
 
 ### Static Analysis
 The database is filled by analyzing the Intermediate Representation (`IR`)
@@ -112,12 +113,3 @@ function, the search results will have the order of: `x2` > `x1` > `const_x`.
 
 Suggestions based on the type are selected by matching with the string runtime
 type representation.
-
-### Documentation
-
-Search in the documentation ranks tags matches first and fallback to search in
-the documentation text:
-
-1. Full match with a documentation tag
-2. Partial match with a document tag
-3. Matches in the documentation text
