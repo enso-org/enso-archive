@@ -34,7 +34,10 @@ document.
 
 ### Database Structure
 
-SQLite representation of the database.
+Implementation utilizes the SQLite database.
+
+Database is created per project and the database file stored in the project
+directory. That way the index can be preserved between the IDE restarts.
 
 #### Suggestions Table
 
