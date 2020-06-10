@@ -136,10 +136,10 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   ): F[ProjectServiceFailure, Unit] = {
     log.debug(s"Closing project $projectId") *>
     languageServerService.stop(clientId, projectId).mapError {
-      case ServerStoppageTimedOut =>
-        ProjectCloseFailed("Server stoppage timed out")
+      case ServerShutdownTimedOut =>
+        ProjectCloseFailed("Server shutdown timed out")
 
-      case FailureDuringStoppage(th)    => ProjectCloseFailed(th.getMessage)
+      case FailureDuringShutdown(th)    => ProjectCloseFailed(th.getMessage)
       case ServerNotRunning             => ProjectNotOpen
       case CannotDisconnectOtherClients => ProjectOpenByOtherPeers
     }

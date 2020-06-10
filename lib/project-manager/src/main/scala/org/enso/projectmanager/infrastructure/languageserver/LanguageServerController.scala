@@ -37,7 +37,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
   Boot,
   BootTimeout,
   ServerDied,
-  StoppageTimeout
+  ShutdownTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
@@ -187,7 +187,7 @@ class LanguageServerController(
       server.stop() pipeTo self
       val cancellable =
         context.system.scheduler
-          .scheduleOnce(timeoutConfig.stoppageTimeout, self, StoppageTimeout)
+          .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
       context.become(stopping(cancellable, maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
@@ -211,7 +211,7 @@ class LanguageServerController(
         th,
         s"An error occurred during Language server shutdown [$project]."
       )
-      maybeRequester.foreach(_ ! FailureDuringStoppage(th))
+      maybeRequester.foreach(_ ! FailureDuringShutdown(th))
       stop()
 
     case ComponentStopped =>
@@ -220,9 +220,9 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! ServerStopped)
       stop()
 
-    case StoppageTimeout =>
-      log.error("Language server stoppage timed out")
-      maybeRequester.foreach(_ ! ServerStoppageTimedOut)
+    case ShutdownTimeout =>
+      log.error("Language server shutdown timed out")
+      maybeRequester.foreach(_ ! ServerShutdownTimedOut)
       stop()
 
     case StartServer(_, _) =>
@@ -289,9 +289,9 @@ object LanguageServerController {
   case object Boot
 
   /**
-    * Signals stoppage timeout.
+    * Signals shutdown timeout.
     */
-  case object StoppageTimeout
+  case object ShutdownTimeout
 
   case object ServerDied
 

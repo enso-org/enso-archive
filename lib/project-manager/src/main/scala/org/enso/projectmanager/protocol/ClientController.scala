@@ -47,7 +47,7 @@ class ClientController[F[+_, +_]: Exec](
         .props[F](
           clientId,
           projectService,
-          config.stoppageTimeout.plus(1.second)
+          config.shutdownTimeout.plus(1.second)
         ),
       ProjectListRecent -> ProjectListRecentHandler
         .props[F](clientId, projectService, config.requestTimeout)

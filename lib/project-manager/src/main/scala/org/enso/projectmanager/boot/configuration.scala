@@ -51,7 +51,7 @@ object configuration {
     ioTimeout: FiniteDuration,
     requestTimeout: FiniteDuration,
     bootTimeout: FiniteDuration,
-    stoppageTimeout: FiniteDuration
+    shutdownTimeout: FiniteDuration
   )
 
   /**
