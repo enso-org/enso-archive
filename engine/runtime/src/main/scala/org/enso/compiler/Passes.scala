@@ -35,6 +35,7 @@ class Passes(passes: Option[List[IRPass]] = None) {
       IgnoredBindings,
       TypeFunctions,
       TypeSignatures,
+      SuspendedArguments,
       AliasAnalysis,
       LambdaConsolidate,
       OverloadsResolution,

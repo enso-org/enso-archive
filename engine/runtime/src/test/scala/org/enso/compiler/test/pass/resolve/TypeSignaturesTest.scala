@@ -20,22 +20,52 @@ class TypeSignaturesTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(precursorPasses, passConfiguration)
 
+  /** Adds an extension method to a module for performing type signature
+    * resolution.
+    *
+    * @param ir the IR to add the extension method to
+    */
   implicit class ResolveModule(ir: IR.Module) {
+
+    /** Resolves type signatures in [[ir]].
+      *
+      * @param moduleContext the context in which resolution is taking place
+      * @return [[ir]], with all type signatures resolved
+      */
     def resolve(implicit moduleContext: ModuleContext): IR.Module = {
       TypeSignatures.runModule(ir, moduleContext)
     }
   }
 
+  /** Adds an extension method to an expression for performing type signature
+    * resolution.
+    *
+    * @param ir the expression to add the extension method to
+    */
   implicit class ResolveExpression(ir: IR.Expression) {
+
+    /** Resolves type signatures in [[ir]].
+      *
+      * @param inlineContext the context in which resolution is taking place
+      * @return [[ir]], with all type signatures resolved
+      */
     def resolve(implicit inlineContext: InlineContext): IR.Expression = {
       TypeSignatures.runExpression(ir, inlineContext)
     }
   }
 
+  /** Creates a defaulted module context.
+    *
+    * @return a defaulted module context
+    */
   def mkModuleContext: ModuleContext = {
     ModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
+  /** Creates a defaulted inline context.
+    *
+    * @return a defaulted inline context
+    */
   def mkInlineContext: InlineContext = {
     InlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
