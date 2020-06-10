@@ -255,7 +255,7 @@ object Debugger {
     )
   }
 
-  // TODO [RW]
+  // TODO [RW] document
   def unwrapSerializedException(
     exceptionRepresentation: ExceptionRepresentation
   ): Exception = {

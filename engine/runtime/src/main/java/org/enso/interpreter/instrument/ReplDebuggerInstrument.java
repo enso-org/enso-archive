@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -33,61 +34,9 @@ import scala.util.Left;
 import scala.util.Right;
 
 /** The Instrument implementation for the interactive debugger REPL. */
-@TruffleInstrument.Registration(
-    id = DebugServerInfo.INSTRUMENT_NAME,
-    services = ReplDebuggerInstrument.class)
+@TruffleInstrument.Registration(id = DebugServerInfo.INSTRUMENT_NAME)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-
-  /**
-   * Internal reference type to store session manager and get the current version on each execution
-   * of this instrument.
-   */
-  private static class SessionManagerReference {
-    private SessionManager sessionManager;
-
-    /**
-     * Create a new instance of this class
-     *
-     * @param sessionManager the session manager to initially store
-     */
-    private SessionManagerReference(SessionManager sessionManager) {
-      this.sessionManager = sessionManager;
-    }
-
-    /**
-     * Get the current session manager
-     *
-     * @return the current session manager
-     */
-    private SessionManager get() {
-      return sessionManager;
-    }
-
-    /**
-     * Set a new session manager for subsequent {@link #get()} calls.
-     *
-     * @param sessionManager the new session manager
-     */
-    private void set(SessionManager sessionManager) {
-      this.sessionManager = sessionManager;
-    }
-  }
-
-  /** An object controlling the execution of REPL.
-   * Deprecated, will be removed in the next version.
-   * Please use org.enso.polyglot.debugger.SessionManager.
-   */
-  public interface SessionManager {
-    /**
-     * Starts a new session with the provided execution node.
-     *
-     * @param executionNode the execution node that should be used for the duration of this session.
-     */
-    void startSession(ReplExecutionEventNode executionNode);
-  }
-
-  private SessionManagerReference sessionManagerReference =
-      new SessionManagerReference(ReplExecutionEventNode::exit);
+  private Env env;
 
   /**
    * Called by Truffle when this instrument is installed.
@@ -99,7 +48,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
             .build();
-    env.registerService(this); // TODO [RW] this seems unnecessary after #791
+    this.env = env;
+    // env.registerService(this); // TODO [RW] this seems unnecessary after #791
 
     DebuggerMessageHandler handler = new DebuggerMessageHandler();
     try {
@@ -107,6 +57,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
           env.startServer(URI.create(DebugServerInfo.URI), handler);
       if (client != null) {
         handler.setClient(client);
+        Instrumenter instrumenter = env.getInstrumenter();
+        instrumenter.attachExecutionEventFactory(filter, ctx ->
+            new ReplExecutionEventNode(ctx, handler, env.getLogger(ReplExecutionEventNode.class)));
       } else {
         env.getLogger(ReplDebuggerInstrument.class)
             .warning("ReplDebuggerInstrument was initialized, " +
@@ -119,13 +72,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-
-    // TODO [RW] in #791 move this inside try to not initialize the factory if
-    //  there are no clients
-    Instrumenter instrumenter = env.getInstrumenter();
-    instrumenter.attachExecutionEventFactory(filter, ctx ->
-        new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
-
   }
 
   @Override
@@ -134,15 +80,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         Collections.singletonList(
             OptionDescriptor.newBuilder(new OptionKey<>(""), DebugServerInfo.ENABLE_OPTION)
                 .build()));
-  }
-
-  /**
-   * Registers the session manager to use whenever this instrument is activated.
-   *
-   * @param sessionManager the session manager to use
-   */
-  public void setSessionManager(SessionManager sessionManager) {
-    this.sessionManagerReference.set(sessionManager);
   }
 
   /** The actual node that's installed as a probe on any node the instrument was launched for. */
@@ -154,14 +91,13 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private CallerInfo lastScope;
 
     private EventContext eventContext;
-    private SessionManagerReference sessionManagerReference;
     private DebuggerMessageHandler handler;
+    private TruffleLogger logger;
 
-    private ReplExecutionEventNode(
-        EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerMessageHandler handler) {
+    private ReplExecutionEventNode(EventContext eventContext, DebuggerMessageHandler handler, TruffleLogger logger) {
       this.eventContext = eventContext;
-      this.sessionManagerReference = sessionManagerReference;
       this.handler = handler;
+      this.logger = logger;
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
@@ -262,8 +198,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private void startSession() {
       if (handler.hasClient()) {
         handler.startSession(this);
-      } else if (sessionManagerReference.get() != null) {
-        sessionManagerReference.get().startSession(this);
+      } else {
+        logger.warning("Debugger session starting, " +
+            "but no client connected, will terminate the session immediately");
+        exit();
       }
     }
   }
