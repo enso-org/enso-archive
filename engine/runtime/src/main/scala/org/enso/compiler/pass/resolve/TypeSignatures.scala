@@ -2,14 +2,10 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  CachePreferenceAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 
 import scala.annotation.unused
@@ -69,14 +65,135 @@ case object TypeSignatures extends IRPass {
 
   // === Pass Internals =======================================================
 
+  /** Resolves type signatures in a module.
+    *
+    * @param mod the module to resolve signatures in
+    * @return `mod`, with type signatures resolved
+    */
   def resolveModule(mod: IR.Module): IR.Module = {
-//    var lastSignature: Option[IR.Type.Ascription] = None
+    var lastSignature: Option[IR.Type.Ascription] = None
 
-    mod
+    val newBindings: List[IR.Module.Scope.Definition] = mod.bindings.flatMap {
+        case sig: IR.Type.Ascription =>
+          val res = lastSignature match {
+            case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
+            case None         => None
+          }
+
+          lastSignature = Some(sig)
+          res
+        case meth: IR.Module.Scope.Definition.Method =>
+          val newMethod = meth.mapExpressions(resolveExpression)
+          val res = lastSignature match {
+            case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+              val methodRef = meth.methodReference
+
+              typed match {
+                case ref: IR.Name.MethodReference =>
+                  if (ref isSameReferenceAs methodRef) {
+                    Some(newMethod.updateMetadata(this -->> Signature(sig)))
+                  } else {
+                    List(IR.Error.Unexpected.TypeSignature(asc), newMethod)
+                  }
+                case _ =>
+                  List(IR.Error.Unexpected.TypeSignature(asc), newMethod)
+              }
+            case None => Some(newMethod)
+          }
+
+          lastSignature = None
+          res
+        case atom: IR.Module.Scope.Definition.Atom =>
+          Some(atom.mapExpressions(resolveExpression))
+        case err: IR.Error => Some(err)
+        case _: IR.Module.Scope.Definition.Type =>
+          throw new CompilerError(
+            "Complex type definitions should not be present during type " +
+            "signature resolution."
+          )
+        case _: IR.Comment.Documentation =>
+          throw new CompilerError(
+            "Documentation comments should not be present during type " +
+            "signature resolution."
+          )
+      } ::: lastSignature
+        .map(asc => IR.Error.Unexpected.TypeSignature(asc))
+        .toList
+
+    mod.copy(
+      bindings = newBindings
+    )
   }
 
+  /** Resolves type signatures in an arbitrary expression.
+    *
+    * @param expr the expression to resolve signatures in
+    * @return `expr`, with any type signatures resolved
+    */
   def resolveExpression(expr: IR.Expression): IR.Expression = {
-    expr
+    expr.transformExpressions {
+      case block: IR.Expression.Block => resolveBlock(block)
+      case sig: IR.Type.Ascription    => resolveAscription(sig)
+    }
+  }
+
+  /** Resolves type signatures in an ascription.
+    *
+    * @param sig the signature to convert
+    * @return the typed expression in `sig`, with `signature` attached
+    */
+  def resolveAscription(sig: IR.Type.Ascription): IR.Expression = {
+    val newSig = sig.typed.mapExpressions(resolveExpression)
+    newSig.updateMetadata(this -->> Signature(sig.signature))
+  }
+
+  /** Resolves type signatures in a block.
+    *
+    * @param block the block to resolve signatures in
+    * @return `block`, with any type signatures resolved
+    */
+  def resolveBlock(block: IR.Expression.Block): IR.Expression.Block = {
+    var lastSignature: Option[IR.Type.Ascription] = None
+    val allBlockExpressions =
+      block.expressions :+ block.returnValue
+
+    val newExpressions = allBlockExpressions.flatMap {
+        case sig: IR.Type.Ascription =>
+          val res = lastSignature match {
+            case Some(oldSig) => Some(IR.Error.Unexpected.TypeSignature(oldSig))
+            case None         => None
+          }
+
+          lastSignature = Some(sig)
+          res
+        case binding: IR.Expression.Binding =>
+          val newBinding = binding.mapExpressions(resolveExpression)
+          val res = lastSignature match {
+            case Some(asc @ IR.Type.Ascription(typed, sig, _, _, _)) =>
+              val name = binding.name
+
+              typed match {
+                case typedName: IR.Name =>
+                  if (typedName.name == name.name) {
+                    Some(newBinding.updateMetadata(this -->> Signature(sig)))
+                  } else {
+                    List(IR.Error.Unexpected.TypeSignature(asc), newBinding)
+                  }
+                case _ =>
+                  List(IR.Error.Unexpected.TypeSignature(asc), newBinding)
+              }
+            case None => Some(newBinding)
+          }
+
+          lastSignature = None
+          res
+        case a => Some(resolveExpression(a))
+      } ::: lastSignature.map(IR.Error.Unexpected.TypeSignature(_)).toList
+
+    block.copy(
+      expressions = newExpressions.init,
+      returnValue = newExpressions.last
+    )
   }
 
   // === Metadata =============================================================

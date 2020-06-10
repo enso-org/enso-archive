@@ -143,8 +143,8 @@ case object TypeFunctions extends IRPass {
     val argsAreValid    = prefix.arguments.forall(isValidCallArg)
 
     if (lengthIsValid && argsAreValid) {
-      val leftArg  = prefix.arguments.head.value
-      val rightArg = prefix.arguments.last.value
+      val leftArg  = resolveExpression(prefix.arguments.head.value)
+      val rightArg = resolveExpression(prefix.arguments.last.value)
 
       prefix.function.asInstanceOf[IR.Name].name match {
         case IR.Type.Ascription.name =>

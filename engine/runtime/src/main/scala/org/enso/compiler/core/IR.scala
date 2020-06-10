@@ -4938,7 +4938,9 @@ object IR {
         override val ir: IR,
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends Unexpected {
+      ) extends Unexpected
+          with IRKind.Primitive
+          with IR.Module.Scope.Definition {
         override val entity: String = "type signature"
 
         override protected var id: Identifier = randomId
@@ -4970,11 +4972,11 @@ object IR {
           location: Option[IdentifiedLocation]
         ): TypeSignature = this
 
-        override def duplicate(keepLocations: Boolean): Unexpected = copy(
-          ir = ir.duplicate(keepLocations),
-          passData = MetadataStorage(),
+        override def duplicate(keepLocations: Boolean): TypeSignature = copy(
+          ir          = ir.duplicate(keepLocations),
+          passData    = MetadataStorage(),
           diagnostics = DiagnosticStorage(),
-          id = randomId
+          id          = randomId
         )
 
         override def children: List[IR] = List(ir)

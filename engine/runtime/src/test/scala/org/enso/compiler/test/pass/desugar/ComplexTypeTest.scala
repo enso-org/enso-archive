@@ -68,6 +68,8 @@ class ComplexTypeTest extends CompilerTest {
         |
         |    f : (a: Monoid) -> a
         |    f a = this + a
+        |
+        |    bad_trailing_sig : Double
         |""".stripMargin.preprocessModule.desugar
 
     "have their atoms desugared to top-level atoms" in {
@@ -181,6 +183,13 @@ class ComplexTypeTest extends CompilerTest {
         .typed
         .asInstanceOf[IR.Name.Literal]
         .name shouldEqual "invalid_sig"
+
+      ir.bindings(10) shouldBe an[IR.Type.Ascription]
+      ir.bindings(10)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "bad_trailing_sig"
     }
   }
 }

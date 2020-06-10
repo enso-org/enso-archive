@@ -118,12 +118,12 @@ case object ComplexType extends IRPass {
     var lastSignature: Option[IR.Type.Ascription] = None
 
     /** Pairs up signatures with method definitions, and then generates the
-     * appropriate method definitions for the atoms in scope.
-     *
-     * @param name the name of the method
-     * @param defn the definition of the method
-     * @return a list of method definitions for `name`
-     */
+      * appropriate method definitions for the atoms in scope.
+      *
+      * @param name the name of the method
+      * @param defn the definition of the method
+      * @return a list of method definitions for `name`
+      */
     def matchSignaturesAndGenerate(
       name: IR.Name,
       defn: IR
@@ -171,8 +171,9 @@ case object ComplexType extends IRPass {
       case _ =>
         throw new CompilerError("Unexpected IR node in complex type body.")
     }
+    val allEntities = entityResults ::: lastSignature.toList
 
-    atomDefs ::: entityResults
+    atomDefs ::: allEntities
   }
 
   /** Generates a method definition from a definition in complex type def body.

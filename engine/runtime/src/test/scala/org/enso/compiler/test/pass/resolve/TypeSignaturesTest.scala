@@ -46,7 +46,6 @@ class TypeSignaturesTest extends CompilerTest {
     implicit val ctx: ModuleContext = mkModuleContext
 
     "associate signatures with method definitions" in {
-      pending
       val ir =
         """
           |MyAtom.bar : Number -> Suspended Number -> Number
@@ -54,54 +53,128 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
+      ir.bindings.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
     "raise an error if a signature is divorced from its definition" in {
-      pending
       val ir =
         """
           |MyAtom.quux : Fizz
           |MyAtom.foo : Number -> Number -> Number
           |
-          |MyAtom.bar
+          |MyAtom.bar = 1
           |
           |MyAtom.foo a b = a + b
+          |
+          |MyAtom.baz : Int
           |""".stripMargin.preprocessModule.resolve
 
-      // TODO [AA] both index 0 and index 3 should be errors
-      ir.bindings.length shouldEqual 4
+      ir.bindings.length shouldEqual 5
+      ir.bindings.head shouldBe an[IR.Error.Unexpected.TypeSignature]
+      ir.bindings(1) shouldBe an[IR.Error.Unexpected.TypeSignature]
+      ir.bindings(2) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings(3) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings(4) shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
     "work inside type definition bodies" in {
-      pending
+      val ir =
+        """
+          |type MyType
+          |    type MyAtom
+          |
+          |    is_atom : this -> Boolean
+          |    is_atom = true
+          |
+          |    error_signature : Int
+          |""".stripMargin.preprocessModule.resolve
+
+      ir.bindings.length shouldEqual 3
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Atom]
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method]
+      ir.bindings(1).getMetadata(TypeSignatures) shouldBe defined
+      ir.bindings(2) shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
     "recurse into bodies" in {
-      pending
+      val ir =
+        """
+          |main =
+          |    f : a -> a
+          |    f a = a
+          |
+          |    f 1
+          |""".stripMargin.preprocessModule.resolve.bindings.head
+          .asInstanceOf[IR.Module.Scope.Definition.Method]
+
+      val block = ir.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+
+      block.expressions.length shouldEqual 1
+      block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
     }
   }
 
   "Resolution of type signatures for blocks" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    val ir =
+      """
+        |block =
+        |    f : Int
+        |    f = 0
+        |
+        |    g : Int
+        |    g =
+        |        f : Double
+        |        f = 0
+        |        f 1
+        |
+        |    bad_sig : Int
+        |""".stripMargin.preprocessExpression.get.resolve
+        .asInstanceOf[IR.Expression.Binding]
+
+    val block = ir.expression.asInstanceOf[IR.Expression.Block]
+
     "associate signatures with bindings" in {
-      pending
+      block.expressions.head shouldBe an[IR.Expression.Binding]
+      block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
     }
 
     "raise an error if a signature is divorced from its definition" in {
-      pending
+      block.returnValue shouldBe an[IR.Error.Unexpected.TypeSignature]
     }
 
     "work recursively" in {
-      pending
+      val nested = block
+        .expressions(1)
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .asInstanceOf[IR.Expression.Block]
+
+      nested.expressions.head shouldBe an[IR.Expression.Binding]
+      nested.expressions.head.getMetadata(TypeSignatures) shouldBe defined
     }
   }
 
   "Resolution of inline type signatures" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    val ir =
+      """
+        |(f a (b = 1 : Int) : Double)
+        |""".stripMargin.preprocessExpression.get.resolve
+
     "associate the signature with the typed expression" in {
-      pending
+      ir shouldBe an[IR.Application.Prefix]
+      ir.getMetadata(TypeSignatures) shouldBe defined
     }
 
     "work recursively" in {
-      pending
+      val arg2Value = ir.asInstanceOf[IR.Application.Prefix].arguments(1).value
+      arg2Value shouldBe an[IR.Literal.Number]
     }
   }
 }
