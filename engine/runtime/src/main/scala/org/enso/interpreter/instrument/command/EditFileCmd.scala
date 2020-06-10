@@ -1,12 +1,7 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
-import org.enso.interpreter.instrument.job.{
-  ApplyEditsJob,
-  EnsureCompiledJob,
-  ExecuteJob
-}
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,26 +24,22 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
   ): Future[Unit] = {
     for {
       _ <- Future { ctx.jobControlPlane.abortAllJobs() }
-      _ <- ctx.jobProcessor.run(new EnsureCompiledJob(List(request.path)))
-      invalidationRules <- ctx.jobProcessor.run(
-        new ApplyEditsJob(request.path, request.edits)
+      _ <- ctx.jobProcessor.run(
+        new EnsureCompiledJob(request.path, request.edits)
       )
-      _ <- ctx.jobProcessor.run(new EnsureCompiledJob(List(request.path)))
-      _ <- Future.sequence(executeAll(invalidationRules))
+      _ <- Future.sequence(executeJobs.map(ctx.jobProcessor.run))
     } yield ()
   }
 
-  private def executeAll(
-    invalidationCommands: Iterable[CacheInvalidation]
-  )(implicit ctx: RuntimeContext): List[Future[Unit]] = {
+  private def executeJobs(
+    implicit ctx: RuntimeContext
+  ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .toList
       .map {
         case (contextId, stack) =>
-          CacheInvalidation.runAll(stack, invalidationCommands)
-          ctx.jobProcessor.run(new ExecuteJob(contextId, stack))
+          new ExecuteJob(contextId, stack)
       }
   }
 
