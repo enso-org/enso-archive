@@ -95,6 +95,9 @@ final class Handler {
     request.payload match {
       case Api.ShutDownRuntimeServer() =>
         commandProcessor.stop()
+        endpoint.sendToClient(
+          Api.Response(request.requestId, Api.RuntimeServerShutDown())
+        )
 
       case _ =>
         val cmd = CommandFactory.createCommand(request)
