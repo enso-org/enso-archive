@@ -3,7 +3,6 @@ package org.enso.interpreter.instrument.job
 import cats.implicits._
 import org.enso.interpreter.instrument.Visualisation
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
-import org.enso.interpreter.instrument.job.TruffleUtils.withContext
 import org.enso.interpreter.instrument.job.UpsertVisualisationJob.{
   EvalFailure,
   EvaluationFailed,
@@ -119,9 +118,7 @@ class UpsertVisualisationJob(
 
     notFoundOrModule.flatMap { module =>
       try {
-        withContext {
-          ctx.executionService.evaluateExpression(module, expression).asRight
-        }
+        ctx.executionService.evaluateExpression(module, expression).asRight
       } catch {
         case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft
       }
