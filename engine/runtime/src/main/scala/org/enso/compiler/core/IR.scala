@@ -1322,7 +1322,7 @@ object IR {
   }
   object Name {
 
-    /** A representation of a method reference of the form
+    /** A representation of a method reference of the form `Type_Path.method`.
       *
       * @param typePointer the type name
       * @param methodName the method on `typeName`
