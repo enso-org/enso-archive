@@ -28,6 +28,10 @@ with additional indexes used to answer the different search criteria. The
 database is populated partially by analyzing the sources and enriched with the
 extra information from the runtime.
 
+API data types for the suggestions database are specified in the [Language
+Server Message Specification](../language-server/protocol-language-server.md)
+document.
+
 ### Database Structure
 
 SQLite representation of the database.
@@ -116,4 +120,4 @@ the documentation text:
 
 1. Full match with a documentation tag
 2. Partial match with a document tag
-3. Matches in a documentation text
+3. Matches in the documentation text
