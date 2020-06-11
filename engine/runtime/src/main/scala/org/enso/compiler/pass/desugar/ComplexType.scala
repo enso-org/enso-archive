@@ -237,12 +237,18 @@ case object ComplexType extends IRPass {
     )
 
     val newSig =
-      signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
+      signature.map(sig =>
+        sig
+          .copy(typed =
+            methodRef.duplicate(keepMetadata = false, keepDiagnostics = false)
+          )
+          .duplicate(keepMetadata = false, keepDiagnostics = false)
+      )
 
     val binding = Method.Binding(
-      methodRef.duplicate(),
+      methodRef.duplicate(keepMetadata = false, keepDiagnostics = false),
       args,
-      body.duplicate(),
+      body.duplicate(keepMetadata = false, keepDiagnostics = false),
       location
     )
 
