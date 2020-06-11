@@ -783,4 +783,22 @@ class AstToIrTest extends CompilerTest {
         .name shouldEqual "!"
     }
   }
+
+  "AST translation of access modifiers" should {
+    "allow them to be declared at the top level" in {
+      pending
+    }
+
+    "allow them to be declared inside complex type bodies" in {
+      pending
+    }
+
+    "allow them to be used at the top level" in {
+      pending
+    }
+
+    "allow them to be used in any expression position" in {
+      pending
+    }
+  }
 }

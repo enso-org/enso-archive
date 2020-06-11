@@ -3,7 +3,7 @@ layout: developer-doc
 title: Types and Type Signatures
 category: syntax
 tags: [syntax, types]
-order: 6
+order: 7
 ---
 
 # Types and Type Signatures
@@ -319,18 +319,46 @@ sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we
 propose an explicit mechanism for access modification that works as follows:
 
-- We provide explicit access modifiers that, at the definition site, start an
-  indented block. These are `private` and `unsafe`.
-- All members in the block have the access modifier attributed to them.
-- By default, accessing any member under an access modifier will be an error.
-- To use members under an access modifier, you use the syntax `use <mod>`, where
-  `<mod>` is a modifier. This syntax 'takes' an expression, including blocks,
-  within which the user may access members qualified by the modifier `<mod>`.
+- We have a keyword `access <mod>`, which starts an indented block. All members
+  in the block have the access modifier `<mod>` attributed to them.
+- The current modifiers are `private` and `unsafe`.
+
+  ```ruby
+  type MyAtomType
+      type MyAtom a
+
+      is_foo : Boolean
+      is_foo = ...
+
+      access private
+          MyAtom.private_method a b = ...
+
+      access unsafe
+          MyAtom.unsafe_method a b = ...
+  ```
+
+- By default, accessing any member under an access modifier is an error when
+  performed from another module.
+- To use members that are protected by an access modifier, you use the syntax
+  `use <mod> <path>`, where `<mod>` is a modifier and `<path...>` is one or more
+  Enso import paths. This syntax takes an expression, including blocks, within
+  which the user may access members qualified by the modifier `<mod>` in the
+  modules described by `<path...>`.
+
+  ```ruby
+  import Base.Unsafe
+
+  use private Base.Vector v.mutate_at_index 0 (_ -> x)
+
+  use unsafe Base.Atom.Internal
+      x = MyAtom.mutate_field name="sum" (with = x -> x + 20)
+      x + 20
+  ```
 
 While `private` works as you might expect, coming from other languages, the
 `unsafe` annotation has additional restrictions:
 
-- It must be explicitly imported from `Std.Unsafe`.
+- It must be explicitly imported from `Base.Unsafe`.
 - When you use `unsafe`, you must write a documentation comment on its usage
   that contains a section `Safety` that describes why this usage of unsafe is
   valid.
