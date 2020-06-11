@@ -168,8 +168,7 @@ case object LambdaConsolidate extends IRPass {
           arguments = processedArgList,
           body      = runExpression(newBody, inlineContext),
           location  = newLocation,
-          canBeTCO  = chainedLambdas.last.canBeTCO,
-          passData  = MetadataStorage()
+          canBeTCO  = chainedLambdas.last.canBeTCO
         )
       case _: IR.Function.Binding =>
         throw new CompilerError(

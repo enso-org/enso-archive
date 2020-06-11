@@ -194,7 +194,7 @@ class TypeSignaturesTest extends CompilerTest {
 
     val ir =
       """
-        |(f a (b = 1 : Int) : Double)
+        |f a (b = 1 : Int) : Double
         |""".stripMargin.preprocessExpression.get.resolve
 
     "associate the signature with the typed expression" in {

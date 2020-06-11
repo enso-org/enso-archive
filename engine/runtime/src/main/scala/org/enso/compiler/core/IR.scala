@@ -1407,7 +1407,10 @@ object IR {
 
       override def children: List[IR] = typePointer :+ methodName
 
-      override def showCode(indent: Int): String = s"$typePointer.$methodName"
+      override def showCode(indent: Int): String = {
+        val tPointer = typePointer.map(_.showCode(indent)).mkString(".")
+        s"$tPointer.${methodName.showCode(indent)}"
+      }
 
       /** Constructs a name literal from the type name segments.
         *

@@ -143,8 +143,9 @@ case object TypeSignatures extends IRPass {
     * @return the typed expression in `sig`, with `signature` attached
     */
   def resolveAscription(sig: IR.Type.Ascription): IR.Expression = {
-    val newSig = sig.typed.mapExpressions(resolveExpression)
-    newSig.updateMetadata(this -->> Signature(sig.signature))
+    val newTyped = sig.typed.mapExpressions(resolveExpression)
+    val newSig   = sig.signature.mapExpressions(resolveExpression)
+    newTyped.updateMetadata(this -->> Signature(newSig))
   }
 
   /** Resolves type signatures in a block.
