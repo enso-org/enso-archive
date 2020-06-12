@@ -666,7 +666,19 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile / compile := FixInstrumentsGeneration.patchedCompile
       .dependsOn(`core-definition` / Compile / packageBin)
       .dependsOn(FixInstrumentsGeneration.preCompileTask)
-      .value
+      .value,
+    Test / javaOptions ++= Seq(
+      // TODO it seems that runtime tests need classpath separation to stay turned off
+      // because many instruments test still use the lookupClass hack for testing
+      // TODO discussion with @kustosz if this is ok
+      // won't this be an issue if we wanted to create interoperability tests? or maybe it's enough if we put such tests
+      // in some separate package? alternatively we could put just the instruments tests in the non-separated package?
+      "-XX:-UseJVMCIClassLoader",
+      "-Dgraalvm.locatorDisabled=true"
+//      s"-Dtruffle.class.path.append=${(Compile / fullClasspath).value
+//        .map(_.data)
+//        .mkString(File.pathSeparator)}"
+    )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
