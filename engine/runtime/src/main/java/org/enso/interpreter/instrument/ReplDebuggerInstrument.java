@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.TruffleLogger;
+import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -143,6 +144,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
         return new Right<>(lastReturn);
       } catch (Exception e) {
         nodeState = savedState;
+        TruffleStackTrace.fillIn(e);
         return new Left<>(e);
       }
     }

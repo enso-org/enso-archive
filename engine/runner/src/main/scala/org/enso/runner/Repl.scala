@@ -1,6 +1,6 @@
 package org.enso.runner
 
-import java.io.{InputStream, OutputStream, PrintStream}
+import java.io.{InputStream, OutputStream, PrintStream, PrintWriter, Writer}
 import java.util.Scanner
 
 import org.enso.polyglot.debugger.{ReplExecutor, SessionManager}
@@ -42,6 +42,28 @@ trait ReplIO {
     * @param contents contents of the line to print
     */
   def println(contents: String): Unit
+
+  /**
+    * Print a stack trace to the REPL.
+    * @param exception which stack trace is to be printed
+    */
+  def printStackTrace(exception: Exception): Unit = {
+    val traceBuilder = new StringBuilder
+    val traceWriter = new Writer() {
+      override def write(
+        cbuf: Array[Char],
+        off: Int,
+        len: Int
+      ): Unit =
+        traceBuilder.append(cbuf.slice(off, off + len).mkString)
+
+      override def flush(): Unit = {}
+
+      override def close(): Unit = {}
+    }
+    exception.printStackTrace(new PrintWriter(traceWriter))
+    println(traceBuilder.toString())
+  }
 }
 
 /**
@@ -131,12 +153,11 @@ case class Repl(replIO: ReplIO) extends SessionManager {
           } else {
             val result = executor.evaluate(line)
             result match {
-              case Left(error) =>
+              case Left(exception) =>
                 replIO.println(
-                  s"Evaluation failed with error: ${error.getMessage}"
+                  s"Evaluation failed with: ${exception.getMessage}"
                 )
-                // TODO [RW]
-                error.printStackTrace()
+                replIO.printStackTrace(exception)
               case Right(objectRepresentation) =>
                 replIO.println(s">>> $objectRepresentation")
             }

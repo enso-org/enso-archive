@@ -259,6 +259,30 @@ class ReplTest
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 
+    "attach language stack traces to the exception" in {
+      val code =
+        """
+          |main =
+          |    Debug.breakpoint
+          |""".stripMargin
+      var evalResult: Either[Exception, ObjectRepresentation] =
+        null
+      setSessionManager { executor =>
+        evalResult = executor.evaluate("Panic.throw \"Panic\"")
+        executor.exit()
+      }
+      eval(code)
+
+      var lastException: Throwable = evalResult.left.value
+      while (lastException.getCause != null) {
+        lastException = lastException.getCause
+      }
+
+      val traceMethodNames = lastException.getStackTrace.map(_.getMethodName)
+      traceMethodNames should contain("Panic.throw")
+      traceMethodNames should contain("Debug.breakpoint")
+    }
+
     "not pollute bindings upon nested error" in {
       val code =
         """
