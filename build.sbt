@@ -808,7 +808,10 @@ lazy val runner = project
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
-    }.taskValue
+    }.taskValue,
+    assembly := assembly
+      .dependsOn(runtime / assembly)
+      .value
   )
   //.dependsOn(runtime)
   .dependsOn(pkg)

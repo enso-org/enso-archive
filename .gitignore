@@ -91,6 +91,7 @@ bench-report.xml
 
 /enso
 /enso.jar
+/runtime.jar
 
 #########
 ## IDE ##
