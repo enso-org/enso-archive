@@ -314,18 +314,16 @@ case object NestedPatternMatch extends IRPass {
     currentBranchExpr: IR.Expression,
     remainingBranches: List[IR.Case.Branch]
   ): IR.Expression = {
-    // TODO [AA] Why does this need to not keep metadata? Am I not deep copying
-    //  the meta on copy?
     val fallbackCase = IR.Case.Expr(
-      topLevelScrutineeExpr.duplicate(keepMetadata = false),
+      topLevelScrutineeExpr.duplicate(),
       remainingBranches.duplicate(),
       None
     )
 
     val patternBranch =
       IR.Case.Branch(
-        pattern.duplicate(keepMetadata           = false),
-        currentBranchExpr.duplicate(keepMetadata = false),
+        pattern.duplicate(),
+        currentBranchExpr.duplicate(),
         None
       )
     val fallbackBranch = IR.Case.Branch(
@@ -335,7 +333,7 @@ case object NestedPatternMatch extends IRPass {
     )
 
     IR.Case.Expr(
-      nestedScrutinee.duplicate(keepMetadata = false),
+      nestedScrutinee.duplicate(),
       List(patternBranch, fallbackBranch),
       None
     )
