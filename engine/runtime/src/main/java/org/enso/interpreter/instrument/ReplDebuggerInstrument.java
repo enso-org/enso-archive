@@ -85,25 +85,6 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   public static class ReplExecutionEventNode extends ExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
 
-    /**
-     * State of the execution node.
-     *
-     * As the execution nodes are reused by Truffle, the nested nodes share
-     * state. If execution of a nested node fails, to ensure consistent state of
-     * the parent node, its state has to be restored.
-     */
-    private static class ReplExecutionEventNodeState {
-      Object lastReturn;
-      Object lastState;
-      CallerInfo lastScope;
-
-      ReplExecutionEventNodeState(Object lastReturn, Object lastState, CallerInfo lastScope) {
-        this.lastReturn = lastReturn;
-        this.lastState = lastState;
-        this.lastScope = lastScope;
-      }
-    }
-
     private ReplExecutionEventNodeState nodeState;
 
     private EventContext eventContext;
@@ -134,10 +115,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * @return a map, where keys are variable names and values are current values of variables.
      */
     public Map<String, Object> listBindings() {
-      Map<String, FramePointer> flatScope = nodeState.lastScope.getLocalScope().flattenBindings();
+      Map<String, FramePointer> flatScope = nodeState.getLastScope().getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
-        result.put(entry.getKey(), getValue(nodeState.lastScope.getFrame(), entry.getValue()));
+        result.put(entry.getKey(), getValue(nodeState.getLastScope().getFrame(), entry.getValue()));
       }
       return result;
     }
@@ -152,7 +133,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     public Either<Exception, Object> evaluate(String expression) {
       ReplExecutionEventNodeState savedState = nodeState;
       try {
-        Stateful result = evalNode.execute(nodeState.lastScope, nodeState.lastState, expression);
+        Stateful result = evalNode.execute(nodeState.getLastScope(), nodeState.getLastState(), expression);
         Object lastState = result.getState();
         CaptureResultScopeNode.WithCallerInfo payload =
             (CaptureResultScopeNode.WithCallerInfo) result.getValue();
@@ -176,7 +157,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * will never resume. It's forbidden to use this object after exit has been called.
      */
     public void exit() {
-      throw eventContext.createUnwind(nodeState.lastReturn);
+      throw eventContext.createUnwind(nodeState.getLastReturn());
     }
 
     /**
@@ -212,7 +193,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      */
     @Override
     protected Object onUnwind(VirtualFrame frame, Object info) {
-      return new Stateful(nodeState.lastState, nodeState.lastReturn);
+      return new Stateful(nodeState.getLastState(), nodeState.getLastReturn());
     }
 
     private void startSession() {
@@ -225,4 +206,5 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
   }
+
 }

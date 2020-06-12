@@ -135,6 +135,8 @@ case class Repl(replIO: ReplIO) extends SessionManager {
                 replIO.println(
                   s"Evaluation failed with error: ${error.getMessage}"
                 )
+                // TODO [RW]
+                error.printStackTrace()
               case Right(objectRepresentation) =>
                 replIO.println(s">>> $objectRepresentation")
             }
