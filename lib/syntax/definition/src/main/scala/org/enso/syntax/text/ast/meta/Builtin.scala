@@ -117,9 +117,8 @@ object Builtin {
       }
     }
 
-    val imp = Definition(
-      Var("import") -> Pattern
-        .SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
+    val `import` = Definition(
+      Var("import") -> Pattern.SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
     ) { ctx =>
       ctx.body match {
         case List(s1) =>
@@ -199,6 +198,8 @@ object Builtin {
 
     val nonSpacedExpr = Pattern.Any(Some(false)).many1.build
 
+    // NOTE: The macro engine currently resolves ahead of all operators, meaning
+    // that `->` doesn't obey the right precedence (e.g. with respect to `:`).
     val arrow = Definition(
       Some(nonSpacedExpr.or(Pattern.ExprUntilOpr("->"))),
       Opr("->") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
@@ -291,6 +292,34 @@ object Builtin {
       }
     }
 
+    val privateDef = {
+      Definition(Var("private") -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Modified("private", expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
+    val unsafeDef = {
+      Definition(Var("unsafe") -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Modified("unsafe", expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
     // TODO
     // We may want to better represent empty AST. Moreover, there should be a
     // way to generate multiple top-level entities from macros (like multiple
@@ -302,6 +331,8 @@ object Builtin {
       Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ => AST.Blank() }
 
     Registry(
+      privateDef,
+      unsafeDef,
       group,
       sequenceLiteral,
       typesetLiteral,
@@ -309,7 +340,7 @@ object Builtin {
       if_then,
       if_then_else,
       polyglotJavaImport,
-      imp,
+      `import`,
       defn,
       arrow,
       foreign,

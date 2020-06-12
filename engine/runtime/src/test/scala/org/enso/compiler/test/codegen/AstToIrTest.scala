@@ -789,7 +789,7 @@ class AstToIrTest extends CompilerTest {
       pending
       @unused val ir =
         """
-          |private foo a b = a + b
+          |private unsafe Unit.foo = a -> a
           |""".stripMargin.toAst
     }
 
@@ -798,7 +798,6 @@ class AstToIrTest extends CompilerTest {
     }
 
     "allow them to be used at the top level" in {
-      pending
       @unused val ir =
         """
           |import unsafe Base.Vector
@@ -807,6 +806,13 @@ class AstToIrTest extends CompilerTest {
           |    val = v.my_unsafe_function
           |    a.unsafe_set_field "x" val
           |""".stripMargin.toAst
+
+      val ir2 =
+        """
+          |import unsafe Base.Vector
+          |""".stripMargin.toAst
+
+      println(ir2)
     }
 
     "allow them to be used in any expression position" in {
