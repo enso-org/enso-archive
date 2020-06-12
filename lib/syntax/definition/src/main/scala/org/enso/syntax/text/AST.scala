@@ -1043,6 +1043,7 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T]: OffsetZip[Foreign, T] = _.map(Index.Start -> _)
     implicit def span[T]: HasSpan[Foreign[T]]   = _ => 0
   }
+
   //// Implicits ////
 
   object implicits {
@@ -2398,6 +2399,10 @@ object AST {
       Unapply[Foreign].run(t => (t.indent, t.lang, t.code))(t)
     val any = UnapplyByType[Foreign]
   }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Main ////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def main(): Unit = {
     val v1 = Ident.Var("foo")

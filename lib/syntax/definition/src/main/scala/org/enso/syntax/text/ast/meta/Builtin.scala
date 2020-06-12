@@ -1,11 +1,9 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.data.List1
-import org.enso.data.Shifted
+import org.enso.data.{List1, Shifted}
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Macro.Definition
-import org.enso.syntax.text.AST.Opr
-import org.enso.syntax.text.AST.Var
+import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
@@ -259,7 +257,7 @@ object Builtin {
     }
 
     val freeze = Definition(
-      Var("freeze") -> Pattern.Expr()
+      Var("freeze") -> (Pattern.Var() :: Pattern.Block())
     ) { ctx =>
       ctx.body match {
         case List(s1) =>

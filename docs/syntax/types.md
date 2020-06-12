@@ -319,9 +319,8 @@ sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we
 propose an explicit mechanism for access modification that works as follows:
 
-- We have a keyword `access <mod>`, which starts an indented block. All members
-  in the block have the access modifier `<mod>` attributed to them.
-- The current modifiers are `private` and `unsafe`.
+- We have a set of access modifiers, namely `private` and `unsafe`.
+- We can place these modifiers before a top-level definition.
 
   ```ruby
   type MyAtomType
@@ -330,27 +329,30 @@ propose an explicit mechanism for access modification that works as follows:
       is_foo : Boolean
       is_foo = ...
 
-      access private
-          MyAtom.private_method a b = ...
+      private private_method a b = ...
 
-      access unsafe
-          MyAtom.unsafe_method a b = ...
+      unsafe unsafe_method a b = ...
   ```
 
 - By default, accessing any member under an access modifier is an error when
   performed from another module.
-- To use members that are protected by an access modifier, you use the syntax
-  `use <mod> <path>`, where `<mod>` is a modifier and `<path...>` is one or more
-  Enso import paths. This syntax takes an expression, including blocks, within
-  which the user may access members qualified by the modifier `<mod>` in the
-  modules described by `<path...>`.
+- To use members protected by an access modifier, you must _import_ that access
+  modifier from the file in which you want to access those elements.
 
   ```ruby
-  import Base.Unsafe
+  import private Base.Vector
+  import unsafe Base.Atom
+  ```
 
-  use private Base.Vector v.mutate_at_index 0 (_ -> x)
+- These modified imports are available in _all_ scopes, so it is possible to
+  limit the scope in which you have access to the modified definitions.
 
-  use unsafe Base.Atom.Internal
+  ```ruby
+  function_using_modifiers v x =
+      import private Base.Vector
+      import unsafe Base.Atom
+
+      v.mutate_at_index 0 (_ -> x)
       x = MyAtom.mutate_field name="sum" (with = x -> x + 20)
       x + 20
   ```

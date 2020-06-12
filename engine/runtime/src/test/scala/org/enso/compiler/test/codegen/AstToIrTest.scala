@@ -787,6 +787,10 @@ class AstToIrTest extends CompilerTest {
   "AST translation of access modifiers" should {
     "allow them to be declared at the top level" in {
       pending
+      @unused val ir =
+        """
+          |private foo a b = a + b
+          |""".stripMargin.toAst
     }
 
     "allow them to be declared inside complex type bodies" in {
@@ -795,6 +799,14 @@ class AstToIrTest extends CompilerTest {
 
     "allow them to be used at the top level" in {
       pending
+      @unused val ir =
+        """
+          |import unsafe Base.Vector
+          |
+          |foo v =
+          |    val = v.my_unsafe_function
+          |    a.unsafe_set_field "x" val
+          |""".stripMargin.toAst
     }
 
     "allow them to be used in any expression position" in {
