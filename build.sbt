@@ -552,9 +552,9 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
 
 val truffleRunOptions = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-XX:-UseJVMCIClassLoader",
-  "-Dpolyglot.engine.BackgroundCompilation=false",
-  "-Dgraalvm.locatorDisabled=true"
+  //"-XX:-UseJVMCIClassLoader",
+  "-Dpolyglot.engine.BackgroundCompilation=false"
+  //"-Dgraalvm.locatorDisabled=true"
 )
 
 val truffleRunOptionsSettings = Seq(
@@ -738,6 +738,15 @@ lazy val runtime = (project in file("engine/runtime"))
 lazy val runner = project
   .in(file("engine/runner"))
   .settings(
+    javaOptions ++= Seq(
+      // Puts the language runtime on the truffle classpath, rather than the
+      // standard classpath. This is the recommended way of handling this and
+      // we should strive to use such structure everywhere. See
+      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+      s"-Dtruffle.class.path.append=${(runtime / Compile / fullClasspath).value
+        .map(_.data)
+        .mkString(File.pathSeparator)}"
+    ),
     mainClass in (Compile, run) := Some("org.enso.runner.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
     assemblyJarName in assembly := "enso.jar",
@@ -761,8 +770,9 @@ lazy val runner = project
       .copy(
         prependShellScript = Some(
           defaultUniversalScript(
-            shebang  = false,
-            javaOpts = truffleRunOptions
+            shebang = false,
+            javaOpts = truffleRunOptions ++
+              Seq("-Dtruffle.class.path.append=runtime.jar")
           )
         )
       ),
@@ -800,7 +810,7 @@ lazy val runner = project
         .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
     }.taskValue
   )
-  .dependsOn(runtime)
+  //.dependsOn(runtime)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
