@@ -339,7 +339,8 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](path: List1[AST.Cons])      extends SpacelessAST[T]
+  final case class Import[T](modifiers: List[String], path: List1[AST.Cons])
+      extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
@@ -2314,12 +2315,16 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(path: List1[Cons]): Import            = Shape.Import[AST](path)
-    def apply(head: Cons): Import                   = Import(head, List())
-    def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
-    def apply(head: Cons, tail: Cons*): Import      = Import(head, tail.toList)
-    def unapply(t: AST): Option[List1[Cons]] =
-      Unapply[Import].run(t => t.path)(t)
+    def apply(modifiers: List[String], path: List1[Cons]): Import =
+      Shape.Import[AST](modifiers, path)
+    def apply(modifiers: List[String], head: Cons): Import =
+      Import(modifiers, head, List())
+    def apply(modifiers: List[String], head: Cons, tail: List[Cons]): Import =
+      Import(modifiers, List1(head, tail))
+    def apply(modifiers: List[String], head: Cons, tail: Cons*): Import =
+      Import(modifiers, head, tail.toList)
+    def unapply(t: AST): Option[(List[String], List1[Cons])] =
+      Unapply[Import].run(t => (t.modifiers, t.path))(t)
     val any = UnapplyByType[Import]
   }
 

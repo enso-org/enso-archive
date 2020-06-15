@@ -6,7 +6,7 @@ import org.enso.syntax.text.AST.Macro.Definition
 import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
 
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
 
 /** It contains definitions of built-in macros, like if-then-else or (-). These
   * macros might get moved to stdlib in the future.
@@ -117,30 +117,43 @@ object Builtin {
       }
     }
 
-    val `import` = Definition(
-      Var("import") -> Pattern.SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
-    ) { ctx =>
-      ctx.body match {
-        case List(s1) =>
-          import Pattern.Match._
-          s1.body match {
-            case Seq(_, (headMatch, Many(_, tailMatch))) =>
-              def unwrapSeg(lseg: Pattern.Match): AST.Cons =
-                lseg.toStream match {
-                  case List(Shifted(_, AST.Cons.any(t))) => t
-                  case _                                 => internalError
-                }
+    val `import` = {
+      @unused val priv   = Pattern.fromAST(Var("private")).opt
+      @unused val unsafe = Pattern.fromAST(Var("unsafe")).opt
+      val modulePath = Pattern.SepList(
+        Pattern.Cons(),
+        AST.Opr("."): AST,
+        "expected module path"
+      )
+      // TODO Should be order invariant
+      val importPattern = priv :: unsafe :: modulePath
 
-              val head = unwrapSeg(headMatch)
-              val tail = tailMatch.map {
-                case Seq(_, (Tok(_, Shifted(_, AST.Opr("."))), seg)) =>
-                  unwrapSeg(seg)
-                case _ => internalError
-              }
-              AST.Import(head, tail)
-            case _ => internalError
-          }
-        case _ => internalError
+      Definition(
+        Var("import") -> importPattern
+      ) { ctx =>
+        println(ctx.body)
+        ctx.body match {
+          case List(s1) =>
+            import Pattern.Match._
+            s1.body match {
+              case Seq(_, (headMatch, Many(_, tailMatch))) =>
+                def unwrapSeg(lseg: Pattern.Match): AST.Cons =
+                  lseg.toStream match {
+                    case List(Shifted(_, AST.Cons.any(t))) => t
+                    case _                                 => internalError
+                  }
+
+                val head = unwrapSeg(headMatch)
+                val tail = tailMatch.map {
+                  case Seq(_, (Tok(_, Shifted(_, AST.Opr("."))), seg)) =>
+                    unwrapSeg(seg)
+                  case _ => internalError
+                }
+                AST.Import(List(), head, tail)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
       }
     }
 

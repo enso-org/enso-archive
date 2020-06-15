@@ -802,17 +802,17 @@ class AstToIrTest extends CompilerTest {
         """
           |import unsafe Base.Vector
           |
-          |foo v =
+          |#foo v =
           |    val = v.my_unsafe_function
           |    a.unsafe_set_field "x" val
           |""".stripMargin.toAst
 
-      val ir2 =
+      @unused val ir2 =
         """
           |import unsafe Base.Vector
           |""".stripMargin.toAst
 
-      println(ir2)
+//      println(ir2)
     }
 
     "allow them to be used in any expression position" in {
