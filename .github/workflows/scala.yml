@@ -79,7 +79,7 @@ jobs:
         with:
           path: ~/.cache
           key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
+          restore-keys: coursier-
 
       # Build
       - name: Build Enso
