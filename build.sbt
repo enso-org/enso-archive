@@ -507,6 +507,14 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
  * Currently the only exception to this are the tests of the runtime project
  * which have classpath separation disabled, because they need direct access to
  * the runtime's instruments.
+ *
+ * To ensure correct handling of dependencies by sbt, the classpath appended to
+ * Java options, should be based on `(runtime / Compile / fullClasspath).value`
+ * wherever possible. Using a key from the runtime project enables sbt to see
+ * the dependency.
+ *
+ * Assembly tasks that build JAR files which need `runtime.jar` to run should
+ * also add a dependency on `runtime / assembly`.
  */
 
 lazy val `json-rpc-server` = project
