@@ -6,11 +6,12 @@ import org.enso.syntax.text.AST.Macro.Definition
 import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
 
-import scala.annotation.{tailrec, unused}
+import scala.annotation.{nowarn, tailrec, unused}
 
 /** It contains definitions of built-in macros, like if-then-else or (-). These
   * macros might get moved to stdlib in the future.
   */
+@nowarn("cat=unused")
 object Builtin {
 
   val registry: Registry = {
@@ -117,14 +118,15 @@ object Builtin {
       }
     }
 
+    val modulePath = Pattern.SepList(
+      Pattern.Cons(),
+      AST.Opr("."): AST,
+      "expected module path"
+    )
+
     val `import` = {
       @unused val priv   = Pattern.fromAST(Var("private")).opt
       @unused val unsafe = Pattern.fromAST(Var("unsafe")).opt
-      val modulePath = Pattern.SepList(
-        Pattern.Cons(),
-        AST.Opr("."): AST,
-        "expected module path"
-      )
       // TODO Should be order invariant
       val importPattern = priv :: unsafe :: modulePath
 
@@ -306,16 +308,17 @@ object Builtin {
     }
 
     val privateDef = {
-      Definition(Var("private") -> Pattern.Expr()) { ctx =>
-        ctx.body match {
-          case List(s1) =>
-            s1.body.toStream match {
-              case List(expr) =>
-                AST.Modified("private", expr.wrapped)
-              case _ => internalError
-            }
-          case _ => internalError
-        }
+      Definition(Var("private") -> Pattern.Expr()) {
+        ctx =>
+          ctx.body match {
+            case List(s1) =>
+              s1.body.toStream match {
+                case List(expr) =>
+                  AST.Modified("private", expr.wrapped)
+                case _ => internalError
+              }
+            case _ => internalError
+          }
       }
     }
 
@@ -344,8 +347,6 @@ object Builtin {
       Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ => AST.Blank() }
 
     Registry(
-      privateDef,
-      unsafeDef,
       group,
       sequenceLiteral,
       typesetLiteral,
@@ -354,6 +355,8 @@ object Builtin {
       if_then_else,
       polyglotJavaImport,
       `import`,
+      privateDef,
+      unsafeDef,
       defn,
       arrow,
       foreign,
