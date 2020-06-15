@@ -188,6 +188,8 @@ layout of the code has no impact on semantics of the code:
     x.do_thing
   ```
 
+  It should be noted that this does not yet work.
+
 The following rules apply to code blocks:
 
 - Code blocks are desugared into in-order applications of monadic bind (as in
