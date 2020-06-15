@@ -134,11 +134,12 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
-      - name: Build the Uberjars
-        run: |
-          sbt --no-colors runtime/assembly
-          sbt --no-colors runner/assembly
-          sbt --no-colors project-manager/assembly
+      - name: Build the Runtime Uberjar
+        run: sbt --no-colors runtime/assembly
+      - name: Build the Runner Uberjar
+        run: sbt --no-colors runner/assembly
+      - name: Build the Project Manager Uberjar
+        run: sbt --no-colors project-manager/assembly
       - name: Prepare Distribution
         run: |
           DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
