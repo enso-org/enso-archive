@@ -2316,7 +2316,7 @@ object IR {
             passData = if (keepMetadata) passData.duplicate else MetadataStorage(),
             diagnostics =
               if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-            id = randomId
+           id = randomId
           )
 
         override def setLocation(

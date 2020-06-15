@@ -238,6 +238,7 @@ case object NestedPatternMatch extends IRPass {
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
             newName.duplicate()
+            newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -245,7 +246,8 @@ case object NestedPatternMatch extends IRPass {
             ))
 
           val newPattern = cons.copy(
-            fields = newFields.duplicate()
+            fields =
+              newFields.duplicate()
           )
 
           val newExpression = generateNestedCase(
