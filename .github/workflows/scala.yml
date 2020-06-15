@@ -66,20 +66,20 @@ jobs:
         uses: actions/cache@v1.1.2
         with:
           path: ~/.ivy2/cache
-          key: ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ${{ runner.os }}-ivy-
+          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+          restore-keys: ivy-
       - name: Cache SBT
         uses: actions/cache@v1.1.2
         with:
           path: ~/.sbt
-          key: sbt-${{ hashFiles('project/**') }}
-          restore-keys: ${{ runner.os }}-sbt-
+          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+          restore-keys: sbt-
       - name: Cache Coursier and Mill
         uses: actions/cache@v1.1.2
         with:
           path: ~/.cache
-          key: coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
+          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
+          restore-keys: coursier-
 
       # Build
       - name: Build Enso
