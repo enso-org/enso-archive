@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
+        os: [macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
@@ -62,24 +62,15 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache Ivy
-        uses: actions/cache@v2
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ivy-
       - name: Cache SBT
         uses: actions/cache@v2
         with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
-          restore-keys: sbt-
-      - name: Cache Coursier and Mill
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: coursier-
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
 
       # Build
       - name: Build Enso
@@ -132,24 +123,15 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache Ivy
-        uses: actions/cache@v2
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ${{ runner.os }}-ivy-
       - name: Cache SBT
         uses: actions/cache@v2
         with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Coursier and Mill
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
 
       # Build Artifacts
       - name: Build the Uberjar
