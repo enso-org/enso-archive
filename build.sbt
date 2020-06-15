@@ -498,15 +498,15 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Projects using the language runtime do not depend on it directly, but instead
- * the language runtime is put on the truffle classpath, rather than the
+ * the language runtime is put on the Truffle classpath, rather than the
  * standard classpath. This is the recommended way of handling this and we
  * strive to use such structure everywhere.
  * See
  * https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
  *
- * Currently the only exception to this are the runtime tests which have
- * classpath separation disabled, because they need direct access to the
- * runtime's instruments.
+ * Currently the only exception to this are the tests of the runtime project
+ * which have classpath separation disabled, because they need direct access to
+ * the runtime's instruments.
  */
 
 lazy val `json-rpc-server` = project
