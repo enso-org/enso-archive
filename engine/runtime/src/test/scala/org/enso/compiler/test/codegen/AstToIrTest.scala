@@ -809,10 +809,10 @@ class AstToIrTest extends CompilerTest {
 
       @unused val ir2 =
         """
-          |import unsafe Base.Vector
+          |import private Base.Vector
           |""".stripMargin.toAst
 
-//      println(ir2)
+      println(ir2.toString)
     }
 
     "allow them to be used in any expression position" in {

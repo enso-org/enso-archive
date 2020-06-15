@@ -128,10 +128,11 @@ object Builtin {
       @unused val priv   = Pattern.fromAST(Var("private")).opt
       @unused val unsafe = Pattern.fromAST(Var("unsafe")).opt
       // TODO Should be order invariant
-      val importPattern = priv :: unsafe :: modulePath
+      val importPattern = priv :: modulePath
 
       Definition(
-        Var("import") -> importPattern
+        Var("import") -> Pattern.Nothing(),
+        Var("private") -> modulePath
       ) { ctx =>
         println(ctx.body)
         ctx.body match {
