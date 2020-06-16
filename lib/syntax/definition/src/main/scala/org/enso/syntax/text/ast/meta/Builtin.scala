@@ -118,23 +118,6 @@ object Builtin {
       }
     }
 
-    val modulePath = Pattern.SepList(
-      Pattern.Cons(),
-      AST.Opr("."): AST,
-      "expected module path"
-    )
-
-    val `import` = {
-      Definition(
-        Var("import") -> Pattern.Expr(allowBlocks = false)
-      ) { ctx =>
-        ctx.body match {
-          case List(s1) => AST.Import(s1.body.toStream.head.wrapped)
-          case _ => internalError
-        }
-      }
-    }
-
     val if_then = Definition(
       Var("if")   -> Pattern.Expr(allowBlocks = false),
       Var("then") -> Pattern.Expr()
@@ -283,6 +266,22 @@ object Builtin {
       }
     }
 
+    val `import` = {
+      Definition(
+        Var("import") -> Pattern.Expr()
+      ) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Import(expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
     val privateDef = {
       Definition(Var("private") -> Pattern.Expr()) { ctx =>
         ctx.body match {
@@ -322,6 +321,8 @@ object Builtin {
       Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ => AST.Blank() }
 
     Registry(
+      privateDef,
+      unsafeDef,
       group,
       sequenceLiteral,
       typesetLiteral,
@@ -330,8 +331,6 @@ object Builtin {
       if_then_else,
       polyglotJavaImport,
       `import`,
-      privateDef,
-      unsafeDef,
       defn,
       arrow,
       foreign,

@@ -825,6 +825,9 @@ object AstToIr {
           segments.map(_.name).mkString("."),
           getIdentifiedLocation(imp.path)
         )
+      case AST.Modified(_, _) =>
+        println("modified")
+        ???
       case _ =>
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)
     }
