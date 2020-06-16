@@ -9,14 +9,14 @@ on:
 env:
   wasmpackVersion: 0.8.1
 
-strategy:
-  matrix:
-    os: [macOS-latest, ubuntu-latest, windows-latest]
-
 jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
     steps:
       - name: Checkout Parser Sources
         uses: actions/checkout@v2
@@ -24,6 +24,10 @@ jobs:
   build:
     name: Build
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
     steps:
       - name: Checkout Parser Sources
         uses: actions/checkout@v2
