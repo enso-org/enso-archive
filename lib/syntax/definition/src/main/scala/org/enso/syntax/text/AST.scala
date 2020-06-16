@@ -339,8 +339,7 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](modifiers: List[String], path: List1[AST.Cons])
-      extends SpacelessAST[T]
+  final case class Import[T](path: AST) extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
@@ -957,7 +956,7 @@ object Shape extends ShapeImplicit {
     implicit def ftor: Functor[Import]  = semi.functor
     implicit def fold: Foldable[Import] = semi.foldable
     implicit def repr[T]: Repr[Import[T]] =
-      t => R + ("import " + t.path.map(_.repr.build()).toList.mkString("."))
+      t => R + "import" + t.path.repr.build()
 
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Import, T] = _.map(Index.Start -> _)
@@ -2315,16 +2314,10 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(modifiers: List[String], path: List1[Cons]): Import =
-      Shape.Import[AST](modifiers, path)
-    def apply(modifiers: List[String], head: Cons): Import =
-      Import(modifiers, head, List())
-    def apply(modifiers: List[String], head: Cons, tail: List[Cons]): Import =
-      Import(modifiers, List1(head, tail))
-    def apply(modifiers: List[String], head: Cons, tail: Cons*): Import =
-      Import(modifiers, head, tail.toList)
-    def unapply(t: AST): Option[(List[String], List1[Cons])] =
-      Unapply[Import].run(t => (t.modifiers, t.path))(t)
+    def apply(path: AST): Import =
+      Shape.Import[AST](path)
+    def unapply(t: AST): Option[AST] =
+      Unapply[Import].run(t => t.path)(t)
     val any = UnapplyByType[Import]
   }
 

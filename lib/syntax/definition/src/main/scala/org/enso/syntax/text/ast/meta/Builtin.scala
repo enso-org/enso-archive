@@ -6,7 +6,7 @@ import org.enso.syntax.text.AST.Macro.Definition
 import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
 
-import scala.annotation.{nowarn, tailrec, unused}
+import scala.annotation.{nowarn, tailrec}
 
 /** It contains definitions of built-in macros, like if-then-else or (-). These
   * macros might get moved to stdlib in the future.
@@ -125,36 +125,11 @@ object Builtin {
     )
 
     val `import` = {
-      @unused val priv   = Pattern.fromAST(Var("private")).opt
-      @unused val unsafe = Pattern.fromAST(Var("unsafe")).opt
-      // TODO Should be order invariant
-      val importPattern = priv :: modulePath
-
       Definition(
-        Var("import") -> Pattern.Nothing(),
-        Var("private") -> modulePath
+        Var("import") -> Pattern.Expr(allowBlocks = false)
       ) { ctx =>
-        println(ctx.body)
         ctx.body match {
-          case List(s1) =>
-            import Pattern.Match._
-            s1.body match {
-              case Seq(_, (headMatch, Many(_, tailMatch))) =>
-                def unwrapSeg(lseg: Pattern.Match): AST.Cons =
-                  lseg.toStream match {
-                    case List(Shifted(_, AST.Cons.any(t))) => t
-                    case _                                 => internalError
-                  }
-
-                val head = unwrapSeg(headMatch)
-                val tail = tailMatch.map {
-                  case Seq(_, (Tok(_, Shifted(_, AST.Opr("."))), seg)) =>
-                    unwrapSeg(seg)
-                  case _ => internalError
-                }
-                AST.Import(List(), head, tail)
-              case _ => internalError
-            }
+          case List(s1) => AST.Import(s1.body.toStream.head.wrapped)
           case _ => internalError
         }
       }
@@ -309,17 +284,16 @@ object Builtin {
     }
 
     val privateDef = {
-      Definition(Var("private") -> Pattern.Expr()) {
-        ctx =>
-          ctx.body match {
-            case List(s1) =>
-              s1.body.toStream match {
-                case List(expr) =>
-                  AST.Modified("private", expr.wrapped)
-                case _ => internalError
-              }
-            case _ => internalError
-          }
+      Definition(Var("private") -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Modified("private", expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
       }
     }
 
