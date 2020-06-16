@@ -27,7 +27,7 @@ env:
 jobs:
   # This job is responsible for testing the codebase
   test:
-    name: Test
+    name: Test Engine
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -54,9 +54,7 @@ jobs:
       - name: Setup GraalVM Environment
         uses: DeLaGuardo/setup-graalvm@2.0
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up SBT
-        run: |
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }} - name: Set Up SBT run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
@@ -93,7 +91,7 @@ jobs:
 
   # This job is responsible for building the artifacts
   build:
-    name: Build
+    name: Build Engine
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
