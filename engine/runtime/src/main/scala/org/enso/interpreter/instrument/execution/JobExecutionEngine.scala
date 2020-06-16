@@ -60,7 +60,6 @@ class JobExecutionEngine(
       override def call(): Unit = {
         val logger = runtimeContext.executionService.getLogger
         logger.log(Level.FINE, s"Executing job: $job...")
-        runtimeContext.executionService.getContext.getThreadManager.enter()
         try {
           val result = job.run(runtimeContext)
           logger.log(Level.FINE, s"Job $job finished.")
@@ -68,7 +67,6 @@ class JobExecutionEngine(
         } catch {
           case NonFatal(ex) => promise.failure(ex)
         } finally {
-          runtimeContext.executionService.getContext.getThreadManager.leave()
           runningJobsRef.updateAndGet(_.filterNot(_.id == jobId))
         }
       }

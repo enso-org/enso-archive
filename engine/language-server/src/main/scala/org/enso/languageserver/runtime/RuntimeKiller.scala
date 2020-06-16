@@ -8,7 +8,6 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.Context
 
-import scala.annotation.unused
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
@@ -55,10 +54,7 @@ class RuntimeKiller(runtimeConnector: ActorRef, truffleContext: Context)
       shutDownTruffle(replyTo)
   }
 
-  private def shuttingDownTruffle(
-    replyTo: ActorRef,
-    @unused retryCount: Int
-  ): Receive = {
+  private def shuttingDownTruffle(replyTo: ActorRef, retryCount: Int): Receive = {
     case TryToStopTruffle =>
       shutDownTruffle(replyTo, retryCount)
   }

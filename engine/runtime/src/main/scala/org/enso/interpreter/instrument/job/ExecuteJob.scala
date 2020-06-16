@@ -27,6 +27,7 @@ class ExecuteJob(
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()
+    ctx.executionService.getContext.getThreadManager.enter()
     try {
       val errorOrOk = runProgram(contextId, stack, updatedVisualisations)
       errorOrOk match {
@@ -38,6 +39,7 @@ class ExecuteJob(
         case Right(()) => //nop
       }
     } finally {
+      ctx.executionService.getContext.getThreadManager.leave()
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseContextLock(contextId)
     }
