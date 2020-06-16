@@ -1,0 +1,10 @@
+name: Parser CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "*" ]
+
+env:
+  wasmpackVersion: 0.8.1

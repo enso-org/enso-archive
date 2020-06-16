@@ -1,4 +1,4 @@
-name: Enso CI
+name: Engine CI
 
 on:
   push:
