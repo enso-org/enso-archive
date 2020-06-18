@@ -6,11 +6,11 @@ import slick.jdbc.SQLiteProfile.api._
 import scala.concurrent.ExecutionContext
 
 /** The object for accessing the suggestions database. */
-final class SuggestionsDBIO(implicit ec: ExecutionContext) {
+final class SuggestionsRepo(implicit ec: ExecutionContext) {
 
   /** The query returning the arguments joined with the corresponding
     * suggestions. */
-  val joined: Query[
+  private val joined: Query[
     (Rep[Option[ArgumentsTable]], SuggestionsTable),
     (Option[ArgumentRow], SuggestionRow),
     Seq

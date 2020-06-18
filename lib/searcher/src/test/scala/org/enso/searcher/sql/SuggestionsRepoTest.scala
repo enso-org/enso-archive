@@ -10,7 +10,7 @@ import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-class SuggestionsDBIOTest
+class SuggestionsRepoTest
     extends AnyWordSpec
     with Matchers
     with BeforeAndAfterAll {
@@ -18,7 +18,7 @@ class SuggestionsDBIOTest
   val Timeout: FiniteDuration = 3.seconds
 
   val db   = Database.forConfig("searcher.db")
-  val dbio = new SuggestionsDBIO()
+  val repo = new SuggestionsRepo()
 
   override def beforeAll(): Unit = {
     Await.ready(
@@ -32,8 +32,8 @@ class SuggestionsDBIOTest
     "select" in {
       val action =
         for {
-          id  <- db.run(dbio.insert(stub.atom))
-          res <- db.run(dbio.select(id))
+          id  <- db.run(repo.insert(stub.atom))
+          res <- db.run(repo.select(id))
         } yield res
 
       Await.result(action, Timeout) shouldEqual Some(stub.atom)
@@ -42,8 +42,8 @@ class SuggestionsDBIOTest
     "findBy returnType" in {
       val action =
         for {
-          _   <- db.run(dbio.insert(stub.local))
-          res <- db.run(dbio.findBy(stub.local.returnType))
+          _   <- db.run(repo.insert(stub.local))
+          res <- db.run(repo.findBy(stub.local.returnType))
         } yield res
 
       Await.result(action, Timeout) shouldEqual Seq(stub.local)
