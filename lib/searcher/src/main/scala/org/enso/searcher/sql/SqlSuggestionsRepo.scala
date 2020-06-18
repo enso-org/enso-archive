@@ -6,7 +6,8 @@ import slick.jdbc.SQLiteProfile.api._
 import scala.concurrent.ExecutionContext
 
 /** The object for accessing the suggestions database. */
-final class SuggestionsRepo(implicit ec: ExecutionContext) {
+final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
+    extends SuggestionsRepo[DBIO] {
 
   /** The query returning the arguments joined with the corresponding
     * suggestions. */
@@ -19,12 +20,8 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
       .joinRight(suggestions)
       .on(_.suggestionId === _.id)
 
-  /** Find suggestions by the return type.
-    *
-    * @param returnType the return type of a suggestion
-    * @return the list of suggestions
-    */
-  def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
+  /** @inheritdoc **/
+  override def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
       if suggestion.returnType === returnType
@@ -32,12 +29,8 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
     query.result.map(joinedToSuggestion)
   }
 
-  /** Select the suggestion by id.
-    *
-    * @param id the id of a suggestion
-    * @return return the suggestion
-    */
-  def select(id: Long): DBIO[Option[Suggestion]] = {
+  /** @inheritdoc **/
+  override def select(id: Long): DBIO[Option[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
       if suggestion.id === id
@@ -45,12 +38,8 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
     query.result.map(coll => joinedToSuggestion(coll).headOption)
   }
 
-  /** Insert the suggestion
-    *
-    * @param suggestion the suggestion to insert
-    * @return the id of an inserted suggestion
-    */
-  def insert(suggestion: Suggestion): DBIO[Long] = {
+  /** @inheritdoc **/
+  override def insert(suggestion: Suggestion): DBIO[Long] = {
     val (suggestionRow, args) = toSuggestionRow(suggestion)
     for {
       id <- suggestions.returning(suggestions.map(_.id)) += suggestionRow

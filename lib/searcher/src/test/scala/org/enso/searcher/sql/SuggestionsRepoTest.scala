@@ -18,7 +18,7 @@ class SuggestionsRepoTest
   val Timeout: FiniteDuration = 3.seconds
 
   val db   = Database.forConfig("searcher.db")
-  val repo = new SuggestionsRepo()
+  val repo = new SqlSuggestionsRepo()
 
   override def beforeAll(): Unit = {
     Await.ready(
