@@ -25,11 +25,11 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
     * @return the list of suggestions
     */
   def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
-    val q = for {
-      (a, s) <- joined
-      if s.returnType === returnType
-    } yield (a, s)
-    q.result.map(joinedToSuggestion)
+    val query = for {
+      (argument, suggestion) <- joined
+      if suggestion.returnType === returnType
+    } yield (argument, suggestion)
+    query.result.map(joinedToSuggestion)
   }
 
   /** Select the suggestion by id.
@@ -38,11 +38,11 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
     * @return return the suggestion
     */
   def select(id: Long): DBIO[Option[Suggestion]] = {
-    val q = for {
-      (a, s) <- joined
-      if s.id === id
-    } yield (a, s)
-    q.result.map(coll => joinedToSuggestion(coll).headOption)
+    val query = for {
+      (argument, suggestion) <- joined
+      if suggestion.id === id
+    } yield (argument, suggestion)
+    query.result.map(coll => joinedToSuggestion(coll).headOption)
   }
 
   /** Insert the suggestion
@@ -125,62 +125,64 @@ final class SuggestionsRepo(implicit ec: ExecutionContext) {
 
   private def toArgumentRow(
     suggestionId: Long,
-    arg: Suggestion.Argument
+    argument: Suggestion.Argument
   ): ArgumentRow =
     ArgumentRow(
       id           = None,
       suggestionId = suggestionId,
-      name         = arg.name,
-      tpe          = arg.reprType,
-      isSuspended  = arg.isSuspended,
-      hasDefault   = arg.hasDefault,
-      defaultValue = arg.defaultValue
+      name         = argument.name,
+      tpe          = argument.reprType,
+      isSuspended  = argument.isSuspended,
+      hasDefault   = argument.hasDefault,
+      defaultValue = argument.defaultValue
     )
 
   private def toSuggestion(
-    s: SuggestionRow,
-    as: Seq[ArgumentRow]
+    suggestion: SuggestionRow,
+    arguments: Seq[ArgumentRow]
   ): Suggestion =
-    s.kind match {
+    suggestion.kind match {
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
-          name          = s.name,
-          arguments     = as.map(toArgument),
-          returnType    = s.returnType,
-          documentation = s.documentation
+          name          = suggestion.name,
+          arguments     = arguments.map(toArgument),
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
-          name          = s.name,
-          arguments     = as.map(toArgument),
-          selfType      = s.selfType.get,
-          returnType    = s.returnType,
-          documentation = s.documentation
+          name          = suggestion.name,
+          arguments     = arguments.map(toArgument),
+          selfType      = suggestion.selfType.get,
+          returnType    = suggestion.returnType,
+          documentation = suggestion.documentation
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
-          name       = s.name,
-          arguments  = as.map(toArgument),
-          returnType = s.returnType,
-          scope      = Suggestion.Scope(s.scopeStart.get, s.scopeEnd.get)
+          name       = suggestion.name,
+          arguments  = arguments.map(toArgument),
+          returnType = suggestion.returnType,
+          scope =
+            Suggestion.Scope(suggestion.scopeStart.get, suggestion.scopeEnd.get)
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
-          name       = s.name,
-          returnType = s.returnType,
-          scope      = Suggestion.Scope(s.scopeStart.get, s.scopeEnd.get)
+          name       = suggestion.name,
+          returnType = suggestion.returnType,
+          scope =
+            Suggestion.Scope(suggestion.scopeStart.get, suggestion.scopeEnd.get)
         )
 
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
     }
 
-  private def toArgument(a: ArgumentRow): Suggestion.Argument =
+  private def toArgument(row: ArgumentRow): Suggestion.Argument =
     Suggestion.Argument(
-      name         = a.name,
-      reprType     = a.tpe,
-      isSuspended  = a.isSuspended,
-      hasDefault   = a.hasDefault,
-      defaultValue = a.defaultValue
+      name         = row.name,
+      reprType     = row.tpe,
+      isSuspended  = row.isSuspended,
+      hasDefault   = row.hasDefault,
+      defaultValue = row.defaultValue
     )
 }
