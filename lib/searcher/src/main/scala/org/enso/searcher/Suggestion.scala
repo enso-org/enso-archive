@@ -20,6 +20,12 @@ object Suggestion {
     defaultValue: Option[String]
   )
 
+  /** The definition scope.
+    * @param start the start of the definition scope
+    * @param end the end of the definition scope
+    */
+  case class Scope(start: Int, end: Int)
+
   /** A value constructor.
     *
     * @param name the atom name
@@ -50,26 +56,26 @@ object Suggestion {
     documentation: Option[String]
   ) extends Suggestion
 
-  /** A lambda bind to a value.
+  /** A local function definition.
     *
     * @param name the function name
     * @param arguments the function arguments
     * @param returnType the return type of a function
-    * @param location the position in the source
+    * @param scope the scope where the function is defined
     */
   case class Function(
     name: String,
     arguments: Seq[Argument],
     returnType: String,
-    location: Int
+    scope: Scope
   ) extends Suggestion
 
   /** A local value.
     *
     * @param name the name of a value
     * @param returnType the type of a local value
-    * @param location the position in the source
+    * @param scope the scope where the value is defined
     */
-  case class Local(name: String, returnType: String, location: Int)
+  case class Local(name: String, returnType: String, scope: Scope)
       extends Suggestion
 }

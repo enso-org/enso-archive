@@ -54,12 +54,12 @@ final class SuggestionBuilder {
               _,
               _
               ) if name.location.isDefined =>
-            acc += buildFunction(name, args, name.location.get.location)
+            acc += buildFunction(name, args, scope.location.get)
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
-            acc += buildLocal(name.name, name.location.get.location)
+            acc += buildLocal(name.name, scope.location.get)
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
@@ -100,11 +100,11 @@ final class SuggestionBuilder {
       name       = name.name,
       arguments  = args.map(buildArgument),
       returnType = Any,
-      location   = buildLocation(location)
+      scope      = buildScope(location)
     )
 
   private def buildLocal(name: String, location: Location): Suggestion.Local =
-    Suggestion.Local(name, Any, buildLocation(location))
+    Suggestion.Local(name, Any, buildScope(location))
 
   private def buildAtom(
     name: String,
@@ -137,8 +137,8 @@ final class SuggestionBuilder {
       case _                                 => None
     }
 
-  private def buildLocation(location: Location): Int =
-    location.start
+  private def buildScope(location: Location): Suggestion.Scope =
+    Suggestion.Scope(location.start, location.end)
 }
 
 object SuggestionBuilder {
@@ -155,13 +155,6 @@ object SuggestionBuilder {
     /** Create new scope from the list of items. */
     def apply(items: Seq[IR], location: Option[Location]): Scope =
       new Scope(mutable.Queue(items: _*), location)
-  }
-
-  sealed trait ScopeType
-  object ScopeType {
-
-    case object Local  extends ScopeType
-    case object Global extends ScopeType
   }
 
   private val Any: String = "Any"

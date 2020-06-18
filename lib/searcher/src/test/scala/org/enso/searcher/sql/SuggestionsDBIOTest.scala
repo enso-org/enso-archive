@@ -75,7 +75,7 @@ class SuggestionsDBIOTest
       Suggestion.Local(
         name       = "bazz",
         returnType = "MyType",
-        location   = 84
+        scope      = Suggestion.Scope(37, 84)
       )
   }
 }

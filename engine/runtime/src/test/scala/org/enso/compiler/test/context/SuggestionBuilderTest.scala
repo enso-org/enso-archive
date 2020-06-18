@@ -77,8 +77,8 @@ class SuggestionBuilderTest extends CompilerTest {
           returnType    = "Any",
           documentation = None
         ),
-        Suggestion.Local("x", "Any", 14),
-        Suggestion.Local("y", "Any", 28)
+        Suggestion.Local("x", "Any", Suggestion.Scope(9, 47)),
+        Suggestion.Local("y", "Any", Suggestion.Scope(9, 47))
       )
     }
 
@@ -149,7 +149,7 @@ class SuggestionBuilderTest extends CompilerTest {
             Suggestion.Argument("a", "Any", false, false, None)
           ),
           returnType = "Any",
-          location   = 11
+          scope      = Suggestion.Scope(6, 35)
         )
       )
     }

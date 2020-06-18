@@ -81,7 +81,8 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           selfType      = None,
           returnType    = returnType,
           documentation = doc,
-          location      = None
+          scopeStart    = None,
+          scopeEnd      = None
         )
         row -> args
       case Suggestion.Method(name, args, selfType, returnType, doc) =>
@@ -92,10 +93,11 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           selfType      = Some(selfType),
           returnType    = returnType,
           documentation = doc,
-          location      = None
+          scopeStart    = None,
+          scopeEnd      = None
         )
         row -> args
-      case Suggestion.Function(name, args, returnType, location) =>
+      case Suggestion.Function(name, args, returnType, scope) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.FUNCTION,
@@ -103,10 +105,11 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           selfType      = None,
           returnType    = returnType,
           documentation = None,
-          location      = Some(location)
+          scopeStart    = Some(scope.start),
+          scopeEnd      = Some(scope.end)
         )
         row -> args
-      case Suggestion.Local(name, returnType, location) =>
+      case Suggestion.Local(name, returnType, scope) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.LOCAL,
@@ -114,7 +117,8 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           selfType      = None,
           returnType    = returnType,
           documentation = None,
-          location      = Some(location)
+          scopeStart    = Some(scope.start),
+          scopeEnd      = Some(scope.end)
         )
         row -> Seq()
     }
@@ -158,13 +162,13 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           name       = s.name,
           arguments  = as.map(toArgument),
           returnType = s.returnType,
-          location   = s.location.get
+          scope      = Suggestion.Scope(s.scopeStart.get, s.scopeEnd.get)
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
           name       = s.name,
           returnType = s.returnType,
-          location   = s.location.get
+          scope      = Suggestion.Scope(s.scopeStart.get, s.scopeEnd.get)
         )
 
       case k =>

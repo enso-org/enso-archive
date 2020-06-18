@@ -30,7 +30,8 @@ case class ArgumentRow(
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
   * @param documentation the documentation string
-  * @param location the position in the source
+  * @param scopeStart the start of the scope
+  * @param scopeEnd the end of the scope
   */
 case class SuggestionRow(
   id: Option[Long],
@@ -39,7 +40,8 @@ case class SuggestionRow(
   selfType: Option[String],
   returnType: String,
   documentation: Option[String],
-  location: Option[Int]
+  scopeStart: Option[Int],
+  scopeEnd: Option[Int]
 )
 
 /** The type of a suggestion. */
@@ -84,9 +86,19 @@ final class SuggestionsTable(tag: Tag)
   def selfType      = column[Option[String]]("self_type")
   def returnType    = column[String]("return_type")
   def documentation = column[Option[String]]("documentation")
-  def location      = column[Option[Int]]("location")
+  def scopeStart    = column[Option[Int]]("scope_start")
+  def scopeEnd      = column[Option[Int]]("scope_end")
   def * =
-    (id.?, kind, name, selfType, returnType, documentation, location) <>
+    (
+      id.?,
+      kind,
+      name,
+      selfType,
+      returnType,
+      documentation,
+      scopeStart,
+      scopeEnd
+    ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
   def selfTypeIdx   = index("self_type_idx", selfType)
