@@ -27,48 +27,68 @@ class SuggestionsRepoTest
     )
   }
 
+  override def afterAll(): Unit = {
+    db.close()
+  }
+
   "SuggestionsDBIO" should {
 
-    "select" in {
+    "select suggestion by id" in {
       val action =
         for {
-          id  <- db.run(repo.insert(stub.atom))
+          id  <- db.run(repo.insert(suggestion.atom))
           res <- db.run(repo.select(id))
         } yield res
 
-      Await.result(action, Timeout) shouldEqual Some(stub.atom)
+      Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "findBy returnType" in {
+    "find suggestion by returnType" in {
       val action =
         for {
-          _   <- db.run(repo.insert(stub.local))
-          res <- db.run(repo.findBy(stub.local.returnType))
+          _   <- db.run(repo.insert(suggestion.local))
+          _   <- db.run(repo.insert(suggestion.method))
+          _   <- db.run(repo.insert(suggestion.function))
+          res <- db.run(repo.findBy("MyType"))
         } yield res
 
-      Await.result(action, Timeout) shouldEqual Seq(stub.local)
+      Await.result(action, Timeout) should contain theSameElementsAs Seq(
+        suggestion.local,
+        suggestion.function
+      )
     }
   }
 
-  object stub {
+  object suggestion {
 
     val atom: Suggestion.Atom =
       Suggestion.Atom(
-        name = "Foo",
+        name = "Pair",
         arguments = Seq(
-          Suggestion.Argument("a", "Any", false, false, None)
+          Suggestion.Argument("a", "Any", false, false, None),
+          Suggestion.Argument("b", "Any", false, false, None)
         ),
-        returnType    = "Number",
+        returnType    = "Pair",
         documentation = Some("Awesome")
       )
 
-    val function: Suggestion.Method =
+    val method: Suggestion.Method =
       Suggestion.Method(
         name          = "main",
         arguments     = Seq(),
         selfType      = "Main",
         returnType    = "IO",
         documentation = None
+      )
+
+    val function: Suggestion.Function =
+      Suggestion.Function(
+        name = "bar",
+        arguments = Seq(
+          Suggestion.Argument("x", "Number", false, true, Some("0"))
+        ),
+        returnType = "MyType",
+        scope      = Suggestion.Scope(5, 9)
       )
 
     val local: Suggestion.Local =
