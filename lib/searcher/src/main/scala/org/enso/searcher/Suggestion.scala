@@ -50,6 +50,18 @@ object Suggestion {
     documentation: Option[String]
   ) extends Suggestion
 
+  /** A lambda bind to a value.
+    *
+    * @param name the function name
+    * @param arguments the function arguments
+    * @param returnType the return type of a function
+    */
+  case class Function(
+    name: String,
+    arguments: Seq[Argument],
+    returnType: String
+  ) extends Suggestion
+
   /** A local value.
     *
     * @param name the name of a value

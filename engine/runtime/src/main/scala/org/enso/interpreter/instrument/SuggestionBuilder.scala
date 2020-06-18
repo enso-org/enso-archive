@@ -3,6 +3,7 @@ package org.enso.interpreter.instrument
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.searcher.Suggestion
+import org.enso.syntax.text.Location
 
 import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
@@ -44,12 +45,22 @@ final class SuggestionBuilder {
                 _
                 ) =>
             acc += buildMethod(methodName, typePtr, args, doc)
-            scopes += Scope(body.children)
+            scopes += Scope(body.children, body.location.map(_.location))
+            go(scope, scopes, acc)
+          case IR.Expression.Binding(
+              name,
+              IR.Function.Lambda(args, body, _, _, _, _),
+              _,
+              _,
+              _
+              ) if name.location.isDefined =>
+            acc += buildFunction(name, args)
+            scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             acc += buildLocal(name.name)
-            scopes += Scope(expr.children)
+            scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
             acc += buildAtom(name.name, arguments, doc)
@@ -60,7 +71,7 @@ final class SuggestionBuilder {
       }
 
     go(
-      Scope(ir.children),
+      Scope(ir.children, ir.location.map(_.location)),
       mutable.Queue(),
       new VectorBuilder()
     )
@@ -78,6 +89,16 @@ final class SuggestionBuilder {
       selfType      = buildSelfType(typeRef),
       returnType    = Any,
       documentation = doc
+    )
+
+  private def buildFunction(
+    name: IR.Name,
+    args: Seq[IR.DefinitionArgument]
+  ): Suggestion.Function =
+    Suggestion.Function(
+      name       = name.name,
+      arguments  = args.map(buildArgument),
+      returnType = Any
     )
 
   private def buildLocal(name: String): Suggestion.Local =
@@ -117,14 +138,25 @@ final class SuggestionBuilder {
 
 object SuggestionBuilder {
 
-  /** A single level of an `IR`. */
-  private case class Scope(queue: mutable.Queue[IR])
+  /** A single level of an `IR`.
+    *
+    * @param queue the nodes in the scope
+    * @param location the scope location
+    */
+  private case class Scope(queue: mutable.Queue[IR], location: Option[Location])
 
   private object Scope {
 
     /** Create new scope from the list of items. */
-    def apply(items: Seq[IR]): Scope =
-      new Scope(mutable.Queue(items: _*))
+    def apply(items: Seq[IR], location: Option[Location]): Scope =
+      new Scope(mutable.Queue(items: _*), location)
+  }
+
+  sealed trait ScopeType
+  object ScopeType {
+
+    case object Local  extends ScopeType
+    case object Global extends ScopeType
   }
 
   private val Any: String = "Any"

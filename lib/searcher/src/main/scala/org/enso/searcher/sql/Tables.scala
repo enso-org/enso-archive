@@ -44,8 +44,9 @@ case class SuggestionRow(
 object SuggestionKind {
 
   val ATOM: Byte     = 0
-  val FUNCTION: Byte = 1
-  val LOCAL: Byte    = 2
+  val METHOD: Byte   = 1
+  val FUNCTION: Byte = 2
+  val LOCAL: Byte    = 3
 }
 
 /** The schema of the arguments table. */

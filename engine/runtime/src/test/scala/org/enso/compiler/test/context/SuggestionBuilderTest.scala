@@ -14,7 +14,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
   "SuggestionBuilder" should {
 
-    "build function without arguments" in {
+    "build method without arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo = 42""".stripMargin
@@ -33,7 +33,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build function with documentation" in {
+    "build method with documentation" in {
       pending // fix documentation
       implicit val moduleContext: ModuleContext = freshModuleContext
 
@@ -55,7 +55,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build function with arguments" in {
+    "build method with arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -82,7 +82,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build function with default arguments" in {
+    "build method with default arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -103,7 +103,7 @@ class SuggestionBuilderTest extends CompilerTest {
       )
     }
 
-    "build function with lazy arguments" in {
+    "build method with lazy arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -120,6 +120,35 @@ class SuggestionBuilderTest extends CompilerTest {
           selfType      = "here",
           returnType    = "Any",
           documentation = None
+        )
+      )
+    }
+
+    "build function" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo a = a + 1
+          |    foo 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          name = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Function(
+          name = "foo",
+          arguments = Seq(
+            Suggestion.Argument("a", "Any", false, false, None)
+          ),
+          returnType = "Any"
         )
       )
     }

@@ -83,6 +83,26 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           documentation = doc
         )
         row -> args
+      case Suggestion.Method(name, args, selfType, returnType, doc) =>
+        val row = SuggestionRow(
+          id            = None,
+          kind          = SuggestionKind.METHOD,
+          name          = name,
+          selfType      = Some(selfType),
+          returnType    = returnType,
+          documentation = doc
+        )
+        row -> args
+      case Suggestion.Function(name, args, returnType) =>
+        val row = SuggestionRow(
+          id            = None,
+          kind          = SuggestionKind.FUNCTION,
+          name          = name,
+          selfType      = None,
+          returnType    = returnType,
+          documentation = None
+        )
+        row -> args
       case Suggestion.Local(name, returnType) =>
         val row = SuggestionRow(
           id            = None,
@@ -93,16 +113,6 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           documentation = None
         )
         row -> Seq()
-      case Suggestion.Method(name, args, selfType, returnType, doc) =>
-        val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.FUNCTION,
-          name          = name,
-          selfType      = Some(selfType),
-          returnType    = returnType,
-          documentation = doc
-        )
-        row -> args
     }
 
   private def toArgumentRow(
@@ -124,19 +134,6 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
     as: Seq[ArgumentRow]
   ): Suggestion =
     s.kind match {
-      case SuggestionKind.FUNCTION =>
-        Suggestion.Method(
-          name          = s.name,
-          arguments     = as.map(toArgument),
-          selfType      = s.selfType.get,
-          returnType    = s.returnType,
-          documentation = s.documentation
-        )
-      case SuggestionKind.LOCAL =>
-        Suggestion.Local(
-          name       = s.name,
-          returnType = s.returnType
-        )
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
           name          = s.name,
@@ -144,6 +141,26 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           returnType    = s.returnType,
           documentation = s.documentation
         )
+      case SuggestionKind.METHOD =>
+        Suggestion.Method(
+          name          = s.name,
+          arguments     = as.map(toArgument),
+          selfType      = s.selfType.get,
+          returnType    = s.returnType,
+          documentation = s.documentation
+        )
+      case SuggestionKind.FUNCTION =>
+        Suggestion.Function(
+          name       = s.name,
+          arguments  = as.map(toArgument),
+          returnType = s.returnType
+        )
+      case SuggestionKind.LOCAL =>
+        Suggestion.Local(
+          name       = s.name,
+          returnType = s.returnType
+        )
+
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
     }
