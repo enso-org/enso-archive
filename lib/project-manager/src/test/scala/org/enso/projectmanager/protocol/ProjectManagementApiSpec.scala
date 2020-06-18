@@ -9,11 +9,15 @@ import io.circe.parser.parse
 import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.data.Socket
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.io.Source
+
 class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "project/create" must {
 
-    "check if project name is not empty" taggedAs(Flaky) in {
+    "check if project name is not empty" taggedAs (Flaky) in {
       val client = new WsTestClient(address)
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -27,7 +31,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
-            "error": { "code": 4001, "message": "Cannot create project with empty name" }
+            "error": { "code": 4001, "message": "Project name cannot be empty" }
           }
           """)
     }
@@ -97,29 +101,15 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
     "create project structure" in {
       val projectName = "foo"
+
+      implicit val client = new WsTestClient(address)
+
+      createProject(projectName)
+
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
 
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 1,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 1,
-            "result" : {
-              "projectId" : $getGeneratedUUID
-            }
-          }
-          """)
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
     }
@@ -186,9 +176,9 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
     "remove project structure" in {
       //given
       val projectName     = "to-remove"
-      val projectDir      = new File(userProjectDir, projectName)
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
+      val projectDir      = new File(userProjectDir, projectName)
       projectDir shouldBe Symbol("directory")
       //when
       client.send(json"""
@@ -446,6 +436,156 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
+    }
+
+  }
+
+  "project/rename" must {
+
+    "rename a project and move project dir" in {
+      implicit val client = new WsTestClient(address)
+      //given
+      val projectId = createProject("foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "bar"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": null
+          }
+          """)
+      val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
+      Await.result(future, 5.seconds)
+      val projectDir  = new File(userProjectDir, "bar")
+      val packageFile = new File(projectDir, "package.yaml")
+      val lines       = Source.fromFile(packageFile).getLines()
+      lines.contains("name: Bar") shouldBe true
+      //teardown
+      deleteProject(projectId)
+    }
+
+    "reply with an error when the project with the same name exists" in {
+      //given
+      implicit val client   = new WsTestClient(address)
+      val projectId         = createProject("foo")
+      val existingProjectId = createProject("bar")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "bar"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":4003,
+              "message":"Project with the provided name exists"
+            }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
+      deleteProject(existingProjectId)
+    }
+
+    "reply with an error when the project doesn't exist" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": ${UUID.randomUUID()},
+                "name": "bar"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":4004,
+              "message":"Project with the provided id does not exist"
+            }
+          }
+          """)
+    }
+
+    "check if project name is not empty" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": ""
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "error": { "code": 4001, "message": "Project name cannot be empty" }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
+    }
+
+    "validate project name" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "luna-test-project4/#$$%^@!"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":0,
+          "error":{
+            "code":4001,
+            "message":"Project name contains forbidden characters: %,!,@,#,$$,^,/"
+            }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
     }
 
   }

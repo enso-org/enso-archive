@@ -5,7 +5,7 @@ import java.util.UUID
 import cats.MonadError
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -22,6 +22,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
   ProjectRepositoryFailure
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKind.UserProject
@@ -40,13 +41,14 @@ import org.enso.projectmanager.service.ValidationFailure.{
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
+class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerService: LanguageServerService[F]
+  languageServerService: LanguageServerService[F],
+  shutdownHookProcessor: ShutdownHookProcessor[F]
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
@@ -60,11 +62,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     for {
       _            <- log.debug(s"Creating project $name.")
       _            <- validateName(name)
-      _            <- validateExists(name)
+      _            <- checkIfNameExists(name)
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
-      _            <- repo.save(project).mapError(toServiceFailure)
+      _            <- repo.create(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -91,6 +93,33 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       }
 
   /** @inheritdoc **/
+  override def renameProject(
+    projectId: UUID,
+    name: String
+  ): F[ProjectServiceFailure, Unit] = {
+    log.debug(s"Renaming project $projectId to $name.") *>
+    validateName(name) *>
+    checkIfProjectExists(projectId) *>
+    checkIfNameExists(name) *>
+    repo.rename(projectId, name).mapError(toServiceFailure) *>
+    shutdownHookProcessor.registerShutdownHook(
+      new MoveProjectDirCmd[F](projectId, repo, log)
+    ) *>
+    log.info(s"Project $projectId renamed.")
+  }
+
+  private def checkIfProjectExists(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] =
+    repo
+      .findById(projectId)
+      .mapError(toServiceFailure)
+      .flatMap {
+        case None    => ErrorChannel[F].fail(ProjectNotFound)
+        case Some(_) => CovariantFlatMap[F].pure(())
+      }
+
+  /** @inheritdoc **/
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -101,7 +130,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.save(updated).mapError(toServiceFailure)
+      _        <- repo.create(updated).mapError(toServiceFailure)
       sockets  <- startServer(clientId, updated)
     } yield sockets
     // format: on
@@ -173,7 +202,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  private def validateExists(
+  private def checkIfNameExists(
     name: String
   ): F[ProjectServiceFailure, Unit] =
     repo
@@ -204,7 +233,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       .mapError {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
-            "Cannot create project with empty name"
+            "Project name cannot be empty"
           )
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(

@@ -65,10 +65,10 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
-  override def save(
+  override def create(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
-    val projectPath     = new File(storageConfig.userProjectsPath, project.name)
+    val projectPath     = getTargetPath(project)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
     createProjectStructure(project, projectPath) *>
@@ -87,6 +87,65 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     Sync[F]
       .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
+
+  /** @inheritdoc **/
+  override def rename(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] = {
+    updateProjectName(projectId, name) *>
+    updatePackageName(projectId, name)
+  }
+
+  private def updatePackageName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    for {
+      project <- getProject(projectId)
+      _       <- changePacketName(new File(project.path.get), name)
+    } yield ()
+
+  private def getProject(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Project] =
+    findById(projectId)
+      .flatMap {
+        case None          => ErrorChannel[F].fail(ProjectNotFoundInIndex)
+        case Some(project) => CovariantFlatMap[F].pure(project)
+      }
+
+  private def changePacketName(
+    projectPath: File,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    Sync[F]
+      .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
+      .mapError(th => StorageFailure(th.toString))
+      .flatMap {
+        case None =>
+          ErrorChannel[F].fail(
+            InconsistentStorage(s"Cannot find package.yaml at $projectPath")
+          )
+
+        case Some(projectPackage) =>
+          val newName = PackageManager.Default.normalizeName(name)
+          Sync[F]
+            .blockingOp { projectPackage.rename(newName) }
+            .map(_ => ())
+            .mapError(th => StorageFailure(th.toString))
+      }
+
+  private def updateProjectName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(_.copy(name = name))
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
   override def delete(
@@ -121,5 +180,45 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )
+
+  /** @inheritdoc **/
+  override def moveProjectToTargetDir(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, File] = {
+    getProject(projectId)
+      .flatMap { project =>
+        val targetPath = getTargetPath(project)
+        if (targetPath.toString == project.path.get) {
+          CovariantFlatMap[F].pure(targetPath)
+        } else {
+          moveProjectDir(project, targetPath) *>
+          updateProjectDir(projectId, targetPath) *>
+          CovariantFlatMap[F].pure(targetPath)
+        }
+      }
+
+  }
+
+  private def updateProjectDir(projectId: UUID, targetPath: File) = {
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(
+          _.copy(path = Some(targetPath.toString))
+        )
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+  }
+
+  private def moveProjectDir(project: Project, targetPath: File) = {
+    fileSystem
+      .move(new File(project.path.get), targetPath)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(failure.toString)
+      )
+  }
+
+  private def getTargetPath(project: Project): File =
+    new File(storageConfig.userProjectsPath, project.name)
 
 }
