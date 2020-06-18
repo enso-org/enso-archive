@@ -74,7 +74,8 @@ class SuggestionsDBIOTest
     val local: Suggestion.Local =
       Suggestion.Local(
         name       = "bazz",
-        returnType = "MyType"
+        returnType = "MyType",
+        location   = 84
       )
   }
 }

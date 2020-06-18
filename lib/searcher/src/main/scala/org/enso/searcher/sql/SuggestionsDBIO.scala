@@ -80,7 +80,8 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           name          = name,
           selfType      = None,
           returnType    = returnType,
-          documentation = doc
+          documentation = doc,
+          location      = None
         )
         row -> args
       case Suggestion.Method(name, args, selfType, returnType, doc) =>
@@ -90,27 +91,30 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
           name          = name,
           selfType      = Some(selfType),
           returnType    = returnType,
-          documentation = doc
+          documentation = doc,
+          location      = None
         )
         row -> args
-      case Suggestion.Function(name, args, returnType) =>
+      case Suggestion.Function(name, args, returnType, location) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.FUNCTION,
           name          = name,
           selfType      = None,
           returnType    = returnType,
-          documentation = None
+          documentation = None,
+          location      = Some(location)
         )
         row -> args
-      case Suggestion.Local(name, returnType) =>
+      case Suggestion.Local(name, returnType, location) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.LOCAL,
           name          = name,
           selfType      = None,
           returnType    = returnType,
-          documentation = None
+          documentation = None,
+          location      = Some(location)
         )
         row -> Seq()
     }
@@ -153,12 +157,14 @@ final class SuggestionsDBIO(implicit ec: ExecutionContext) {
         Suggestion.Function(
           name       = s.name,
           arguments  = as.map(toArgument),
-          returnType = s.returnType
+          returnType = s.returnType,
+          location   = s.location.get
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
           name       = s.name,
-          returnType = s.returnType
+          returnType = s.returnType,
+          location   = s.location.get
         )
 
       case k =>

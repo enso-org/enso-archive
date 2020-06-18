@@ -55,17 +55,21 @@ object Suggestion {
     * @param name the function name
     * @param arguments the function arguments
     * @param returnType the return type of a function
+    * @param location the position in the source
     */
   case class Function(
     name: String,
     arguments: Seq[Argument],
-    returnType: String
+    returnType: String,
+    location: Int
   ) extends Suggestion
 
   /** A local value.
     *
     * @param name the name of a value
     * @param returnType the type of a local value
+    * @param location the position in the source
     */
-  case class Local(name: String, returnType: String) extends Suggestion
+  case class Local(name: String, returnType: String, location: Int)
+      extends Suggestion
 }

@@ -54,12 +54,12 @@ final class SuggestionBuilder {
               _,
               _
               ) if name.location.isDefined =>
-            acc += buildFunction(name, args)
+            acc += buildFunction(name, args, name.location.get.location)
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
-            acc += buildLocal(name.name)
+            acc += buildLocal(name.name, name.location.get.location)
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
@@ -93,16 +93,18 @@ final class SuggestionBuilder {
 
   private def buildFunction(
     name: IR.Name,
-    args: Seq[IR.DefinitionArgument]
+    args: Seq[IR.DefinitionArgument],
+    location: Location
   ): Suggestion.Function =
     Suggestion.Function(
       name       = name.name,
       arguments  = args.map(buildArgument),
-      returnType = Any
+      returnType = Any,
+      location   = buildLocation(location)
     )
 
-  private def buildLocal(name: String): Suggestion.Local =
-    Suggestion.Local(name, Any)
+  private def buildLocal(name: String, location: Location): Suggestion.Local =
+    Suggestion.Local(name, Any, buildLocation(location))
 
   private def buildAtom(
     name: String,
@@ -134,6 +136,9 @@ final class SuggestionBuilder {
       case IR.Literal.Text(text, _, _, _)    => Some(text)
       case _                                 => None
     }
+
+  private def buildLocation(location: Location): Int =
+    location.start
 }
 
 object SuggestionBuilder {

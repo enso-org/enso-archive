@@ -77,8 +77,8 @@ class SuggestionBuilderTest extends CompilerTest {
           returnType    = "Any",
           documentation = None
         ),
-        Suggestion.Local("x", "Any"),
-        Suggestion.Local("y", "Any")
+        Suggestion.Local("x", "Any", 14),
+        Suggestion.Local("y", "Any", 28)
       )
     }
 
@@ -148,7 +148,8 @@ class SuggestionBuilderTest extends CompilerTest {
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
-          returnType = "Any"
+          returnType = "Any",
+          location   = 11
         )
       )
     }
