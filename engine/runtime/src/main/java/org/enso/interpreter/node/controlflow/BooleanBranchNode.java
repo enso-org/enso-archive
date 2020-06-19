@@ -15,7 +15,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** An implementation of the case expression specialised to working on constructors. */
+/** An implementation of the case expression specialised to working on booleans. */
 @NodeInfo(shortName = "BooleanMatch")
 public abstract class BooleanBranchNode extends BranchNode {
   private final boolean matched;
@@ -40,10 +40,7 @@ public abstract class BooleanBranchNode extends BranchNode {
   }
 
   /**
-   * Handles the atom scrutinee case.
-   *
-   * <p>The atom's constructor is checked and if it matches the conditional branch is executed with
-   * all the atom's fields as arguments.
+   * Handles the boolean scrutinee case.
    *
    * @param frame the stack frame in which to execute
    * @param target the atom to destructure
@@ -61,7 +58,7 @@ public abstract class BooleanBranchNode extends BranchNode {
   }
 
   /**
-   * The fallback specialisation for executing the constructor branch node.
+   * The fallback specialisation for executing the boolean branch node.
    *
    * @param frame the stack frame in which to execute
    * @param target the object to execute on

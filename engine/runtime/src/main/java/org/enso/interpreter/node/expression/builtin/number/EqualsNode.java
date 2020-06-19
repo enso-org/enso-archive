@@ -15,8 +15,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** An implementation of the operator + for numbers. */
-@NodeInfo(shortName = "Number.==", description = "Addition on numbers.")
+@NodeInfo(shortName = "Number.==", description = "Equality on numbers.")
 public class EqualsNode extends BuiltinRootNode {
   private EqualsNode(Language language) {
     super(language);
@@ -40,6 +39,12 @@ public class EqualsNode extends BuiltinRootNode {
         new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
+  /**
+   * Executes the node.
+   *
+   * @param frame current execution frame
+   * @return whether or not the input arguments are equal
+   */
   @Override
   public Stateful execute(VirtualFrame frame) {
     long thisArg =
@@ -56,28 +61,6 @@ public class EqualsNode extends BuiltinRootNode {
       thatOpBadTypeProfile.enter();
       throw new TypeError("Unexpected type for `that` operand in " + getName(), this);
     }
-  }
-
-  private void initBooleans() {
-    ModuleScope scope = lookupContextReference(Language.class).get().getBuiltins().getScope();
-    tru = scope.getConstructor("True").get();
-    fls = scope.getConstructor("False").get();
-  }
-
-  private AtomConstructor getTrue() {
-    if (tru == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      initBooleans();
-    }
-    return tru;
-  }
-
-  private AtomConstructor getFalse() {
-    if (fls == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      initBooleans();
-    }
-    return fls;
   }
 
   /**

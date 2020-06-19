@@ -234,6 +234,7 @@ public class Builtins {
     return number;
   }
 
+  /** @return the Boolean part of builtins. */
   public Bool bool() {
     return bool;
   }

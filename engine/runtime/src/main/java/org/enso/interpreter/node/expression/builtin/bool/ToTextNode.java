@@ -11,8 +11,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrateg
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** An implementation of generic string conversion. */
-@NodeInfo(shortName = "Boolean.to_text", description = "Generic text conversion.")
+@NodeInfo(shortName = "Boolean.to_text", description = "Boolean to text conversion.")
 public class ToTextNode extends BuiltinRootNode {
   private ToTextNode(Language language) {
     super(language);
