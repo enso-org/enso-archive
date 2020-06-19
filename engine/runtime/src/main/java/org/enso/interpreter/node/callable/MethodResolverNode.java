@@ -52,7 +52,7 @@ public abstract class MethodResolverNode extends Node {
   public abstract Function execute(UnresolvedSymbol symbol, Object self);
 
   @Specialization(guards = "isValidAtomCache(symbol, cachedSymbol, atom, cachedConstructor)")
-  Function resolveAtomCached(
+  Function resolveAtom(
       UnresolvedSymbol symbol,
       Atom atom,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -64,7 +64,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "atomConstructor == cachedConstructor"})
-  Function resolveAtomConstructorCached(
+  Function resolveAtomConstructor(
       UnresolvedSymbol symbol,
       AtomConstructor atomConstructor,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -75,7 +75,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveNumberCached(
+  Function resolveNumber(
       UnresolvedSymbol symbol,
       long self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -85,7 +85,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "function != null"})
-  Function resolveBooleanCached(
+  Function resolveBoolean(
       UnresolvedSymbol symbol,
       boolean self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -99,8 +99,8 @@ public abstract class MethodResolverNode extends Node {
 
   @Specialization(
       guards = {"cachedSymbol == symbol", "self"},
-      replaces = "resolveBooleanCached")
-  Function resolveTrueCached(
+      replaces = "resolveBoolean")
+  Function resolveTrue(
       UnresolvedSymbol symbol,
       boolean self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -114,8 +114,8 @@ public abstract class MethodResolverNode extends Node {
 
   @Specialization(
       guards = {"cachedSymbol == symbol", "!self"},
-      replaces = "resolveBooleanCached")
-  Function resolveFalseCached(
+      replaces = "resolveBoolean")
+  Function resolveFalse(
       UnresolvedSymbol symbol,
       boolean self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -128,7 +128,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveStringCached(
+  Function resolveString(
       UnresolvedSymbol symbol,
       String self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -138,7 +138,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveFunctionCached(
+  Function resolveFunction(
       UnresolvedSymbol symbol,
       Function self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -148,7 +148,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveErrorCached(
+  Function resolveError(
       UnresolvedSymbol symbol,
       RuntimeError self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -158,7 +158,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
-  Function resolveHostCached(
+  Function resolveHost(
       UnresolvedSymbol symbol,
       Object target,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
