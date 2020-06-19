@@ -8,8 +8,9 @@ order: 2
 
 # Migrating to Java 11
 JDK 11 will be supported longer than JDK 8 that we currently use and it adds new
-features that could improve performance. Thus, we want to move to using Graal
-builds for Java 11.
+features that could improve performance. Moreover, we want to be compliant to
+the Java Platform Module System, as all future versions of the JDK will rely on
+it. Thus, we want to move to using Graal builds for Java 11.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -56,6 +57,7 @@ on any changes.
 
 The sbt process running zinc code tries to load our classes, but it fails for
 some of them with errors like:
+
 ```
 java.lang.IllegalAccessError: superinterface check failed: class com.oracle.truffle.sl.runtime.SLFunction (in unnamed module @0x7590b48c) cannot access class com.oracle.truffle.api.interop.TruffleObject (in module org.graalvm.truffle) because module org.graalvm.truffle does not export com.oracle.truffle.api.interop to unnamed module @0x7590b48c
 ```
