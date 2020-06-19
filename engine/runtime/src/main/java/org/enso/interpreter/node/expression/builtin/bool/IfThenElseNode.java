@@ -18,8 +18,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
     shortName = "Boolean.if_then_else",
     description = "Performs the standard if-then-else control flow operation.")
 public class IfThenElseNode extends BuiltinRootNode {
-  private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build(true);
-  private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build(true);
+  private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
+  private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
   private IfThenElseNode(Language language) {
@@ -47,9 +47,9 @@ public class IfThenElseNode extends BuiltinRootNode {
         TypesGen.asThunk(Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2]);
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     if (condProfile.profile(self)) {
-      return leftThunkExecutorNode.executeThunk(ifT, state);
+      return leftThunkExecutorNode.executeThunk(ifT, state, true);
     } else {
-      return rightThunkExecutorNode.executeThunk(ifF, state);
+      return rightThunkExecutorNode.executeThunk(ifF, state, true);
     }
   }
 

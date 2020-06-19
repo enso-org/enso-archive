@@ -88,9 +88,11 @@ public abstract class MethodResolverNode extends Node {
   Function resolveBooleanCached(
       UnresolvedSymbol symbol,
       boolean self,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
-      @Cached("resolveMethodOnPrimBoolean(cachedSymbol, contextReference.get())")
+      @Cached(
+              value = "resolveMethodOnPrimBoolean(cachedSymbol, contextReference.get())",
+              allowUncached = true)
           Function function) {
     return function;
   }
@@ -101,9 +103,11 @@ public abstract class MethodResolverNode extends Node {
   Function resolveTrueCached(
       UnresolvedSymbol symbol,
       boolean self,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
-      @Cached("resolveMethodOnBool(true, cachedSymbol, contextReference.get())")
+      @Cached(
+              value = "resolveMethodOnBool(true, cachedSymbol, contextReference.get())",
+              allowUncached = true)
           Function function) {
     return function;
   }
@@ -114,9 +118,11 @@ public abstract class MethodResolverNode extends Node {
   Function resolveFalseCached(
       UnresolvedSymbol symbol,
       boolean self,
-      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
-      @Cached("resolveMethodOnBool(false, cachedSymbol, contextReference.get())")
+      @Cached(
+              value = "resolveMethodOnBool(false, cachedSymbol, contextReference.get())",
+              allowUncached = true)
           Function function) {
     return function;
   }
