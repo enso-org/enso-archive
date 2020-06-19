@@ -25,6 +25,7 @@ framework.
 - [Currying and Eta-Expansion](#currying-and-eta-expansion)
 - [Dynamic Dispatch](#dynamic-dispatch)
 - [Defaulted Arguments and Application](#defaulted-arguments-and-application)
+- [Megamorphic Call Sites](#megamorphic-call-sites)
 - [Flow Diagram](#flow-diagram)
 
 <!-- /MarkdownTOC -->
