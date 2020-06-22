@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument
+package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}

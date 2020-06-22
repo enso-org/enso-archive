@@ -1,11 +1,14 @@
 package org.enso.compiler.test.context
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
+import org.enso.compiler.context.{
+  FreshNameSupply,
+  ModuleContext,
+  SuggestionBuilder
+}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
-import org.enso.interpreter.instrument.SuggestionBuilder
 import org.enso.searcher.Suggestion
 
 class SuggestionBuilderTest extends CompilerTest {
