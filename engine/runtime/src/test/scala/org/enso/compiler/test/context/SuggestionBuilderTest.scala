@@ -14,7 +14,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
   "SuggestionBuilder" should {
 
-    "build method without arguments" in {
+    "build method without explicit arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code   = """foo = 42""".stripMargin
@@ -60,6 +60,7 @@ class SuggestionBuilderTest extends CompilerTest {
 
       val code =
         """foo a b =
+          |    x : Number
           |    x = a + 1
           |    y = b - 2
           |    x * y""".stripMargin
@@ -77,8 +78,8 @@ class SuggestionBuilderTest extends CompilerTest {
           returnType    = "Any",
           documentation = None
         ),
-        Suggestion.Local("x", "Any", Suggestion.Scope(9, 47)),
-        Suggestion.Local("y", "Any", Suggestion.Scope(9, 47))
+        Suggestion.Local("x", "Number", Suggestion.Scope(9, 62)),
+        Suggestion.Local("y", "Any", Suggestion.Scope(9, 62))
       )
     }
 
@@ -98,6 +99,31 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           selfType      = "here",
           returnType    = "Any",
+          documentation = None
+        )
+      )
+    }
+
+    "build method with associated type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """
+          |MyAtom.bar : Number -> Number -> Number
+          |MyAtom.bar a b = a + b
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          name = "bar",
+          arguments = Seq(
+            Suggestion.Argument("this", "MyAtom", false, false, None),
+            Suggestion.Argument("a", "Number", false, false, None),
+            Suggestion.Argument("b", "Number", false, false, None)
+          ),
+          selfType      = "MyAtom",
+          returnType    = "Number",
           documentation = None
         )
       )
@@ -150,6 +176,37 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           returnType = "Any",
           scope      = Suggestion.Scope(6, 35)
+        )
+      )
+    }
+
+    "build function with associated type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+
+      val code =
+        """main =
+          |    foo : Number -> Number
+          |    foo a = a + 1
+          |    foo 42""".stripMargin
+      val module = code.preprocessModule
+
+      build(module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          name = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Function(
+          name = "foo",
+          arguments = Seq(
+            Suggestion.Argument("a", "Number", false, false, None)
+          ),
+          returnType = "Number",
+          scope      = Suggestion.Scope(6, 62)
         )
       )
     }
@@ -296,6 +353,35 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           selfType      = "Nothing",
           returnType    = "Any",
+          documentation = None
+        )
+      )
+    }
+
+    "build type with methods with type signature" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type MyType
+          |    type MyAtom
+          |
+          |    is_atom : this -> Boolean
+          |    is_atom = true""".stripMargin
+      val module = code.preprocessModule
+
+      build(module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(
+          name          = "MyAtom",
+          arguments     = Seq(),
+          returnType    = "MyAtom",
+          documentation = None
+        ),
+        Suggestion.Method(
+          name = "is_atom",
+          arguments = Seq(
+            Suggestion.Argument("this", "MyAtom", false, false, None)
+          ),
+          selfType      = "MyAtom",
+          returnType    = "Boolean",
           documentation = None
         )
       )
