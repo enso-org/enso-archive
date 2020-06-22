@@ -574,7 +574,6 @@ lazy val searcher = project
   .in(file("lib/searcher"))
   .configs(Test)
   .settings(
-    Compile / console / scalacOptions -= "-Xfatal-warnings",
     libraryDependencies ++= Seq(
       "com.typesafe.slick" %% "slick"       % "3.3.2",
       "org.xerial"          % "sqlite-jdbc" % "3.31.1",
