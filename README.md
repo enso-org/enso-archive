@@ -1,3 +1,11 @@
+<h1 align="center">
+  <b>Development has moved to <a href="https://github.com/enso-org/enso">Enso</a>.</b> <br/>
+  Watch <a href="https://github.com/enso-org/enso">Enso</a> for the upcoming 2.0 release.<br/>
+</h1>
+<p align="center">
+  <b>Want to support Enso? Star the new repo, or check out our <a href="https://github.com/enso-lang/enso/contribute">good first issues.</a> </b>
+</p>
+
 <p align="center">
   <br/>
   <a href="http://enso.org">
@@ -23,15 +31,15 @@
 
 ### Fluidly Combining Worlds
 <p>
-  <a href="https://github.com/luna/enso/actions">
-    <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=main"
+  <a href="https://github.com/enso-org/enso/actions">
+    <img src="https://github.com/enso-org/enso-archive/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://github.com/luna/enso/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/luna/ide/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/ide/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
