@@ -3,7 +3,7 @@
 # General Repository Configuration
 repository:
   name: enso-archive
-  description: Hybrid visual and textual functional programming.
+  description: Looking for Enso, the visual programming language? ➡️ https://github.com/enso-org/enso
   homepage: https://enso.org
   topics: enso, visual, textual, hybrid, functional, language, compiler, interpreter, rts, jit, polyglot
 
