@@ -112,7 +112,7 @@ In order to build and run Enso you will need the following tools:
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
-  the [`build.sbt`](../build.sbt) file, and Java 8, configured as your default
+  the [`build.sbt`](../build.sbt) file, and Java 11, configured as your default
   JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
@@ -166,6 +166,10 @@ unstable state.
 In order to build a specific component (e.g. `runtime`), please follow the
 following steps.
 
+0. When building the project for the first time or after changing to a new
+   version of Graal, you need to bootstrap the project. To avoid restarting,
+   before launching the sbt shell, run `sbt bootstrap` in the repository root
+   directory.
 1. Enter the sbt shell in the repository root directory by typing `sbt`.
 2. Change to the project you are concerned with (in our case `runtime`) by
    executing `project runtime`.
